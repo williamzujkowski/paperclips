@@ -5,6 +5,7 @@
 
 import { gameState } from './game/core/gameState.js';
 import { gameLoop } from './game/core/gameLoop.js';
+import { errorHandler } from './game/core/errorHandler.js';
 import { productionSystem } from './game/systems/production.js';
 import { marketSystem } from './game/systems/market.js';
 import { computingSystem } from './game/systems/computing.js';
@@ -15,39 +16,56 @@ import { setupEventHandlers } from './game/ui/events.js';
 
 // Game initialization
 function initGame() {
-  console.log('Universal Paperclips - Modern Edition');
-  console.log('Original by Frank Lantz and Bennett Foddy');
+  errorHandler.info('Universal Paperclips - Modern Edition');
+  errorHandler.info('Original by Frank Lantz and Bennett Foddy');
+
+  // Set error handler log level based on environment
+  const isDev = window.location.hostname === 'localhost';
+  errorHandler.setLogLevel(isDev ? 'debug' : 'info');
 
   // Try to load saved game
-  const loaded = gameState.load();
-  if (loaded) {
-    console.log('Save game loaded successfully');
-  } else {
-    console.log('Starting new game');
+  try {
+    const loaded = gameState.load();
+    if (loaded) {
+      errorHandler.info('Save game loaded successfully');
+    } else {
+      errorHandler.info('Starting new game');
+    }
+  } catch (error) {
+    errorHandler.handleError(error, 'initGame.load');
+    errorHandler.warn('Failed to load save, starting new game');
   }
 
-  // Register update handlers
-  gameLoop.addUpdateHandler((deltaTime, state) => {
-    const currentTime = Date.now();
+  // Register update handlers with error boundaries
+  gameLoop.addUpdateHandler(
+    errorHandler.createErrorBoundary((deltaTime, state) => {
+      const currentTime = Date.now();
 
-    // Update game systems
-    productionSystem.update(deltaTime);
-    marketSystem.update(deltaTime, currentTime);
-    computingSystem.update(deltaTime);
-    combatSystem.update(deltaTime, currentTime);
+      // Update game systems
+      productionSystem.update(deltaTime);
+      marketSystem.update(deltaTime, currentTime);
+      computingSystem.update(deltaTime);
+      combatSystem.update(deltaTime, currentTime);
 
-    // Update elapsed time
-    state.increment('ui.elapsedTime', deltaTime);
-  });
+      // Update elapsed time
+      state.increment('ui.elapsedTime', deltaTime);
+    }, 'mainUpdateHandler'),
+  );
 
-  // Register render handlers
-  gameLoop.addRenderHandler((state) => {
-    uiRenderer.render(state);
-    uiRenderer.updateButtonStates(state);
-  });
+  // Register render handlers with error boundaries
+  gameLoop.addRenderHandler(
+    errorHandler.createErrorBoundary((state) => {
+      uiRenderer.render(state);
+      uiRenderer.updateButtonStates(state);
+    }, 'mainRenderHandler'),
+  );
 
-  // Set up UI event handlers
-  setupEventHandlers();
+  // Set up UI event handlers with error handling
+  try {
+    setupEventHandlers();
+  } catch (error) {
+    errorHandler.handleError(error, 'initGame.setupEventHandlers');
+  }
 
   // Start the game loop
   gameLoop.start();
@@ -55,9 +73,13 @@ function initGame() {
   // Initial render
   uiRenderer.render(gameState);
 
-  // Set up autosave
+  // Set up autosave with error handling
   setInterval(() => {
-    gameState.save();
+    try {
+      gameState.save();
+    } catch (error) {
+      errorHandler.handleError(error, 'autosave.interval');
+    }
   }, 30000); // Every 30 seconds
 }
 
@@ -68,8 +90,13 @@ if (document.readyState === 'loading') {
   initGame();
 }
 
+// Import performance monitor for debugging
+import { performanceMonitor } from './game/core/performanceMonitor.js';
+
 // Export for debugging in console
 window.UniversalPaperclips = {
+  errorHandler,
+  performanceMonitor,
   gameState,
   gameLoop,
   productionSystem,
@@ -97,7 +124,13 @@ window.UniversalPaperclips = {
         location.reload();
       }
     },
+    // Error and performance debugging
+    getErrors: () => errorHandler.getErrorLog(),
+    clearErrors: () => errorHandler.clearErrorLog(),
+    getPerformance: () => performanceMonitor.getReport(),
+    resetPerformance: () => performanceMonitor.reset(),
+    setLogLevel: (level) => errorHandler.setLogLevel(level),
   },
 };
 
-console.log('Game loaded. Use window.UniversalPaperclips.debug for debugging tools.');
+errorHandler.info('Game loaded. Use window.UniversalPaperclips.debug for debugging tools.');

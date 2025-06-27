@@ -5,6 +5,8 @@
 
 import { gameState } from './gameState.js';
 import { DISPLAY_UPDATE_INTERVAL, AUTOSAVE_INTERVAL } from './constants.js';
+import { errorHandler } from './errorHandler.js';
+import { performanceMonitor } from './performanceMonitor.js';
 
 export class GameLoop {
   constructor() {
@@ -69,6 +71,8 @@ export class GameLoop {
     this.lastUpdate = Date.now();
     this.lastRender = Date.now();
     this.lastAutosave = Date.now();
+    errorHandler.info('Game loop started');
+    performanceMonitor.start();
     this.loop();
   }
 
@@ -81,6 +85,8 @@ export class GameLoop {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+    errorHandler.info('Game loop stopped');
+    performanceMonitor.stop();
   }
 
   /**
@@ -114,6 +120,9 @@ export class GameLoop {
       this.lastAutosave = now;
     }
 
+    // Record frame for performance monitoring
+    performanceMonitor.recordFrame();
+
     // Schedule next frame
     this.animationFrameId = requestAnimationFrame(() => this.loop());
   }
@@ -122,40 +131,55 @@ export class GameLoop {
    * Update game logic
    */
   update(deltaTime) {
-    // Increment tick counter
-    gameState.increment('ui.ticks');
+    performanceMonitor.measure(() => {
+      // Increment tick counter
+      gameState.increment('ui.ticks');
 
-    // Call all registered update handlers
-    for (const handler of this.updateHandlers) {
-      try {
-        handler(deltaTime, gameState);
-      } catch (error) {
-        console.error('Error in update handler:', error);
+      // Call all registered update handlers
+      for (const handler of this.updateHandlers) {
+        try {
+          handler(deltaTime, gameState);
+        } catch (error) {
+          errorHandler.handleError(error, 'gameLoop.update', {
+            handler: handler.name || 'anonymous',
+            deltaTime,
+          });
+        }
       }
-    }
+    }, 'update');
   }
 
   /**
    * Render UI updates
    */
   render() {
-    // Call all registered render handlers
-    for (const handler of this.renderHandlers) {
-      try {
-        handler(gameState);
-      } catch (error) {
-        console.error('Error in render handler:', error);
+    performanceMonitor.measure(() => {
+      // Call all registered render handlers
+      for (const handler of this.renderHandlers) {
+        try {
+          handler(gameState);
+        } catch (error) {
+          errorHandler.handleError(error, 'gameLoop.render', {
+            handler: handler.name || 'anonymous',
+          });
+        }
       }
-    }
+    }, 'render');
   }
 
   /**
    * Perform autosave
    */
   autosave() {
-    const saved = gameState.save();
-    if (saved) {
-      console.log('Game autosaved');
+    try {
+      const saved = gameState.save();
+      if (saved) {
+        errorHandler.debug('Game autosaved');
+      } else {
+        errorHandler.warn('Autosave failed');
+      }
+    } catch (error) {
+      errorHandler.handleError(error, 'gameLoop.autosave');
     }
   }
 

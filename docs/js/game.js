@@ -23,7 +23,7 @@
         acquiredMatter: 0,
         processedMatter: 0,
         totalMatter: 0,
-        foundMatter: 0
+        foundMatter: 0,
       };
 
       // Production Rates & Efficiency
@@ -42,7 +42,7 @@
         factoryRate: 0,
         harvesterRate: 0,
         wireDroneRate: 0,
-        farmRate: 0
+        farmRate: 0,
       };
 
       // Economics & Market
@@ -60,7 +60,7 @@
         adCost: 100,
         avgRev: 0,
         income: 0,
-        incomeTracker: [0]
+        incomeTracker: [0],
       };
 
       // Computing Resources
@@ -79,7 +79,7 @@
         creativityCounter: 0,
         qChipCost: 10000,
         nextQchip: 0,
-        qClock: 0
+        qClock: 0,
       };
 
       // Infrastructure
@@ -98,7 +98,7 @@
         batteryLevel: 0,
         batteryCost: 1000000000,
         storedPower: 0,
-        batterySize: 0
+        batterySize: 0,
       };
 
       // Combat System
@@ -114,7 +114,7 @@
         driftersKilled: 0,
         honor: 0,
         honorCount: 0,
-        bonusHonor: 0
+        bonusHonor: 0,
       };
 
       // Game Progression Flags
@@ -136,7 +136,7 @@
         megaClipper: false,
         wireBuyer: false,
         strategyEngine: false,
-        investmentEngine: false
+        investmentEngine: false,
       };
 
       // AI & Swarm
@@ -150,7 +150,7 @@
         disorgCounter: 0,
         disorgFlag: 0,
         boredomLevel: 0,
-        boredomFlag: 0
+        boredomFlag: 0,
       };
 
       // UI & Display
@@ -169,7 +169,7 @@
         battleEndTimer: 0,
         sliderPos: 50,
         qFade: 1,
-        opFade: 1
+        opFade: 1,
       };
 
       // Game Meta
@@ -178,7 +178,7 @@
         prestigeS: 0,
         dismantle: 0,
         resetFlag: 0,
-        transaction: null
+        transaction: null,
       };
     }
 
@@ -200,8 +200,8 @@
             flags: this.flags,
             swarm: this.swarm,
             ui: this.ui,
-            meta: this.meta
-          }
+            meta: this.meta,
+          },
         };
         localStorage.setItem('universalPaperclipsSave', JSON.stringify(saveData));
         return true;
@@ -346,6 +346,565 @@
   const SCIENTIFIC_THRESHOLD = 1e21;
 
   /**
+   * Error handling and logging system
+   * @module ErrorHandler
+   */
+
+  /**
+   * @class ErrorHandler
+   * @description Centralized error handling and logging for the game.
+   * Provides error boundaries, logging levels, and error recovery mechanisms.
+   */
+  class ErrorHandler {
+    /**
+     * Creates a new ErrorHandler instance
+     * @constructor
+     */
+    constructor() {
+      /** @type {Array<Object>} Error log history */
+      this.errorLog = [];
+      /** @type {number} Maximum log entries to keep */
+      this.maxLogSize = 100;
+      /** @type {string} Current log level */
+      this.logLevel = 'info'; // debug, info, warn, error
+      /** @type {boolean} Whether to send errors to console */
+      this.consoleOutput = true;
+      /** @type {Function|null} Custom error reporter */
+      this.errorReporter = null;
+
+      // Set up global error handlers
+      this.setupGlobalHandlers();
+    }
+
+    /**
+     * Set up global error event listeners
+     * @private
+     */
+    setupGlobalHandlers() {
+      // Handle unhandled errors
+      window.addEventListener('error', (event) => {
+        this.handleError(event.error, 'window.error', {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+        });
+      });
+
+      // Handle unhandled promise rejections
+      window.addEventListener('unhandledrejection', (event) => {
+        this.handleError(event.reason, 'unhandledrejection', {
+          promise: event.promise,
+        });
+      });
+    }
+
+    /**
+     * Log a message at the specified level
+     * @param {string} level - Log level (debug, info, warn, error)
+     * @param {string} message - Log message
+     * @param {Object} [context={}] - Additional context data
+     */
+    log(level, message, context = {}) {
+      const logEntry = {
+        timestamp: Date.now(),
+        level,
+        message,
+        context,
+      };
+
+      // Add to log history
+      this.errorLog.push(logEntry);
+      if (this.errorLog.length > this.maxLogSize) {
+        this.errorLog.shift();
+      }
+
+      // Console output if enabled
+      if (this.consoleOutput && this.shouldLog(level)) {
+        const logMethod = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log';
+        console[logMethod](`[${level.toUpperCase()}] ${message}`, context);
+      }
+
+      // Send to custom reporter if configured
+      if (this.errorReporter && level === 'error') {
+        try {
+          this.errorReporter(logEntry);
+        } catch (reporterError) {
+          console.error('Error reporter failed:', reporterError);
+        }
+      }
+    }
+
+    /**
+     * Check if a message should be logged based on current log level
+     * @param {string} level - Log level to check
+     * @returns {boolean} True if should log
+     * @private
+     */
+    shouldLog(level) {
+      const levels = ['debug', 'info', 'warn', 'error'];
+      const currentLevelIndex = levels.indexOf(this.logLevel);
+      const messageLevelIndex = levels.indexOf(level);
+      return messageLevelIndex >= currentLevelIndex;
+    }
+
+    /**
+     * Log debug message
+     * @param {string} message - Debug message
+     * @param {Object} [context={}] - Additional context
+     */
+    debug(message, context = {}) {
+      this.log('debug', message, context);
+    }
+
+    /**
+     * Log info message
+     * @param {string} message - Info message
+     * @param {Object} [context={}] - Additional context
+     */
+    info(message, context = {}) {
+      this.log('info', message, context);
+    }
+
+    /**
+     * Log warning message
+     * @param {string} message - Warning message
+     * @param {Object} [context={}] - Additional context
+     */
+    warn(message, context = {}) {
+      this.log('warn', message, context);
+    }
+
+    /**
+     * Log error message
+     * @param {string} message - Error message
+     * @param {Object} [context={}] - Additional context
+     */
+    error(message, context = {}) {
+      this.log('error', message, context);
+    }
+
+    /**
+     * Handle an error with context
+     * @param {Error} error - The error object
+     * @param {string} source - Where the error occurred
+     * @param {Object} [context={}] - Additional context
+     */
+    handleError(error, source, context = {}) {
+      this.error(`Error in ${source}: ${error.message}`, {
+        ...context,
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
+      });
+
+      // Attempt recovery if possible
+      this.attemptRecovery(error, source);
+    }
+
+    /**
+     * Attempt to recover from an error
+     * @param {Error} error - The error object
+     * @param {string} source - Where the error occurred
+     * @private
+     */
+    attemptRecovery(error, source) {
+      // Log recovery attempt
+      this.info(`Attempting recovery from error in ${source}`);
+
+      // Specific recovery strategies based on error type
+      if (error.name === 'QuotaExceededError') {
+        // localStorage quota exceeded
+        this.warn('localStorage quota exceeded, clearing old data');
+        try {
+          // Clear old saves or compress data
+          const saves = Object.keys(localStorage).filter((key) => key.startsWith('paperclips_'));
+          if (saves.length > 5) {
+            // Keep only the 5 most recent saves
+            saves
+              .sort()
+              .slice(0, -5)
+              .forEach((key) => localStorage.removeItem(key));
+          }
+        } catch (clearError) {
+          this.error('Failed to clear localStorage', {
+            error: clearError,
+          });
+        }
+      }
+    }
+
+    /**
+     * Create an error boundary wrapper for functions
+     * @param {Function} fn - Function to wrap
+     * @param {string} [name='anonymous'] - Function name for logging
+     * @returns {Function} Wrapped function with error handling
+     */
+    createErrorBoundary(fn, name = 'anonymous') {
+      return (...args) => {
+        try {
+          return fn(...args);
+        } catch (error) {
+          this.handleError(error, `function:${name}`, {
+            args,
+          });
+          // Return a safe default or re-throw based on context
+          if (name.includes('render') || name.includes('update')) {
+            // Don't crash the render/update loop
+            return undefined;
+          }
+          throw error;
+        }
+      };
+    }
+
+    /**
+     * Get error log entries
+     * @param {number} [count] - Number of entries to return (default: all)
+     * @returns {Array<Object>} Error log entries
+     */
+    getErrorLog(count) {
+      if (count) {
+        return this.errorLog.slice(-count);
+      }
+      return [...this.errorLog];
+    }
+
+    /**
+     * Clear error log
+     */
+    clearErrorLog() {
+      this.errorLog = [];
+      this.info('Error log cleared');
+    }
+
+    /**
+     * Set log level
+     * @param {string} level - New log level (debug, info, warn, error)
+     */
+    setLogLevel(level) {
+      const validLevels = ['debug', 'info', 'warn', 'error'];
+      if (validLevels.includes(level)) {
+        this.logLevel = level;
+        this.info(`Log level set to ${level}`);
+      } else {
+        this.warn(`Invalid log level: ${level}`);
+      }
+    }
+
+    /**
+     * Set custom error reporter
+     * @param {Function} reporter - Function to call with error data
+     */
+    setErrorReporter(reporter) {
+      this.errorReporter = reporter;
+      this.info('Custom error reporter configured');
+    }
+
+    /**
+     * Export error log as JSON
+     * @returns {string} JSON string of error log
+     */
+    exportErrorLog() {
+      return JSON.stringify(
+        {
+          timestamp: Date.now(),
+          logLevel: this.logLevel,
+          errors: this.errorLog,
+        },
+        null,
+        2,
+      );
+    }
+  }
+
+  // Create singleton instance
+  const errorHandler = new ErrorHandler();
+
+  // Export for debugging
+  if (typeof window !== 'undefined') {
+    window.UniversalPaperclipsErrorHandler = errorHandler;
+  }
+
+  /**
+   * Performance monitoring system
+   * @module PerformanceMonitor
+   */
+
+  /**
+   * @class PerformanceMonitor
+   * @description Tracks game performance metrics and detects performance issues.
+   * Monitors FPS, update times, memory usage, and other performance indicators.
+   */
+  class PerformanceMonitor {
+    /**
+     * Creates a new PerformanceMonitor instance
+     * @constructor
+     */
+    constructor() {
+      /** @type {Array<number>} Frame time history */
+      this.frameTimes = [];
+      /** @type {number} Maximum frame history size */
+      this.maxFrameHistory = 60;
+      /** @type {number} Last frame timestamp */
+      this.lastFrameTime = performance.now();
+      /** @type {Object} Performance metrics */
+      this.metrics = {
+        fps: 0,
+        avgFrameTime: 0,
+        maxFrameTime: 0,
+        minFps: 60,
+        updateTime: 0,
+        renderTime: 0,
+        memoryUsage: 0,
+        gcCount: 0,
+      };
+      /** @type {number} Performance check interval */
+      this.checkInterval = 1000; // 1 second
+      /** @type {number} Last performance check */
+      this.lastCheck = performance.now();
+      /** @type {boolean} Whether monitoring is active */
+      this.active = true;
+      /** @type {Object} Performance thresholds */
+      this.thresholds = {
+        minFps: 30,
+        maxFrameTime: 100,
+        // ms
+        maxUpdateTime: 50,
+        // ms
+        maxRenderTime: 16,
+        // ms (60fps target)
+        maxMemoryMB: 100,
+      };
+    }
+
+    /**
+     * Start monitoring performance
+     */
+    start() {
+      this.active = true;
+      this.lastFrameTime = performance.now();
+      errorHandler.debug('Performance monitoring started');
+    }
+
+    /**
+     * Stop monitoring performance
+     */
+    stop() {
+      this.active = false;
+      errorHandler.debug('Performance monitoring stopped');
+    }
+
+    /**
+     * Record frame timing
+     */
+    recordFrame() {
+      if (!this.active) {
+        return;
+      }
+      const now = performance.now();
+      const frameTime = now - this.lastFrameTime;
+      this.lastFrameTime = now;
+
+      // Add to frame history
+      this.frameTimes.push(frameTime);
+      if (this.frameTimes.length > this.maxFrameHistory) {
+        this.frameTimes.shift();
+      }
+
+      // Update max frame time
+      if (frameTime > this.metrics.maxFrameTime) {
+        this.metrics.maxFrameTime = frameTime;
+      }
+
+      // Check if we should update metrics
+      if (now - this.lastCheck >= this.checkInterval) {
+        this.updateMetrics();
+        this.checkPerformance();
+        this.lastCheck = now;
+      }
+    }
+
+    /**
+     * Measure function execution time
+     * @param {Function} fn - Function to measure
+     * @param {string} name - Name for logging
+     * @returns {*} Function result
+     */
+    measure(fn, name) {
+      const start = performance.now();
+      try {
+        const result = fn();
+        const duration = performance.now() - start;
+        if (name.includes('update')) {
+          this.metrics.updateTime = duration;
+        } else if (name.includes('render')) {
+          this.metrics.renderTime = duration;
+        }
+
+        // Log slow operations
+        if (duration > 16) {
+          errorHandler.debug(`Slow operation: ${name} took ${duration.toFixed(2)}ms`);
+        }
+        return result;
+      } catch (error) {
+        const duration = performance.now() - start;
+        errorHandler.handleError(error, `performanceMonitor.measure.${name}`, {
+          duration,
+        });
+        throw error;
+      }
+    }
+
+    /**
+     * Update performance metrics
+     * @private
+     */
+    updateMetrics() {
+      if (this.frameTimes.length === 0) {
+        return;
+      }
+
+      // Calculate average frame time
+      const avgFrameTime = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
+      this.metrics.avgFrameTime = avgFrameTime;
+
+      // Calculate FPS
+      this.metrics.fps = 1000 / avgFrameTime;
+
+      // Track minimum FPS
+      if (this.metrics.fps < this.metrics.minFps) {
+        this.metrics.minFps = this.metrics.fps;
+      }
+
+      // Update memory usage if available
+      if (performance.memory) {
+        this.metrics.memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024; // MB
+      }
+
+      // Reset max frame time periodically
+      if (this.metrics.maxFrameTime > 1000) {
+        this.metrics.maxFrameTime = Math.max(...this.frameTimes);
+      }
+    }
+
+    /**
+     * Check for performance issues
+     * @private
+     */
+    checkPerformance() {
+      const issues = [];
+
+      // Check FPS
+      if (this.metrics.fps < this.thresholds.minFps) {
+        issues.push(
+          `Low FPS: ${this.metrics.fps.toFixed(1)} (threshold: ${this.thresholds.minFps})`,
+        );
+      }
+
+      // Check frame time spikes
+      if (this.metrics.maxFrameTime > this.thresholds.maxFrameTime) {
+        issues.push(`Frame time spike: ${this.metrics.maxFrameTime.toFixed(1)}ms`);
+      }
+
+      // Check update time
+      if (this.metrics.updateTime > this.thresholds.maxUpdateTime) {
+        issues.push(`Slow update: ${this.metrics.updateTime.toFixed(1)}ms`);
+      }
+
+      // Check render time
+      if (this.metrics.renderTime > this.thresholds.maxRenderTime) {
+        issues.push(`Slow render: ${this.metrics.renderTime.toFixed(1)}ms`);
+      }
+
+      // Check memory usage
+      if (this.metrics.memoryUsage > this.thresholds.maxMemoryMB) {
+        issues.push(`High memory: ${this.metrics.memoryUsage.toFixed(1)}MB`);
+      }
+
+      // Log issues if any
+      if (issues.length > 0) {
+        errorHandler.warn('Performance issues detected', {
+          issues,
+          metrics: this.getMetrics(),
+        });
+      }
+    }
+
+    /**
+     * Get current performance metrics
+     * @returns {Object} Current metrics
+     */
+    getMetrics() {
+      return {
+        ...this.metrics,
+        frameCount: this.frameTimes.length,
+      };
+    }
+
+    /**
+     * Get performance report
+     * @returns {string} Formatted performance report
+     */
+    getReport() {
+      const m = this.metrics;
+      return `
+Performance Report:
+  FPS: ${m.fps.toFixed(1)} (min: ${m.minFps.toFixed(1)})
+  Avg Frame Time: ${m.avgFrameTime.toFixed(2)}ms
+  Max Frame Time: ${m.maxFrameTime.toFixed(2)}ms
+  Update Time: ${m.updateTime.toFixed(2)}ms
+  Render Time: ${m.renderTime.toFixed(2)}ms
+  Memory Usage: ${m.memoryUsage.toFixed(1)}MB
+    `.trim();
+    }
+
+    /**
+     * Reset performance metrics
+     */
+    reset() {
+      this.frameTimes = [];
+      this.metrics = {
+        fps: 0,
+        avgFrameTime: 0,
+        maxFrameTime: 0,
+        minFps: 60,
+        updateTime: 0,
+        renderTime: 0,
+        memoryUsage: 0,
+        gcCount: 0,
+      };
+      this.lastFrameTime = performance.now();
+      this.lastCheck = performance.now();
+      errorHandler.debug('Performance metrics reset');
+    }
+
+    /**
+     * Set performance threshold
+     * @param {string} metric - Metric name
+     * @param {number} value - Threshold value
+     */
+    setThreshold(metric, value) {
+      if (metric in this.thresholds) {
+        this.thresholds[metric] = value;
+        errorHandler.debug(`Performance threshold set: ${metric} = ${value}`);
+      } else {
+        errorHandler.warn(`Invalid performance metric: ${metric}`);
+      }
+    }
+  }
+
+  // Create singleton instance
+  const performanceMonitor = new PerformanceMonitor();
+
+  // Export for debugging
+  if (typeof window !== 'undefined') {
+    window.UniversalPaperclipsPerformance = performanceMonitor;
+  }
+
+  /**
    * Main game loop controller
    * Handles game updates, rendering, and timing
    */
@@ -412,6 +971,8 @@
       this.lastUpdate = Date.now();
       this.lastRender = Date.now();
       this.lastAutosave = Date.now();
+      errorHandler.info('Game loop started');
+      performanceMonitor.start();
       this.loop();
     }
 
@@ -424,6 +985,8 @@
         cancelAnimationFrame(this.animationFrameId);
         this.animationFrameId = null;
       }
+      errorHandler.info('Game loop stopped');
+      performanceMonitor.stop();
     }
 
     /**
@@ -456,6 +1019,9 @@
         this.lastAutosave = now;
       }
 
+      // Record frame for performance monitoring
+      performanceMonitor.recordFrame();
+
       // Schedule next frame
       this.animationFrameId = requestAnimationFrame(() => this.loop());
     }
@@ -464,40 +1030,55 @@
      * Update game logic
      */
     update(deltaTime) {
-      // Increment tick counter
-      gameState.increment('ui.ticks');
+      performanceMonitor.measure(() => {
+        // Increment tick counter
+        gameState.increment('ui.ticks');
 
-      // Call all registered update handlers
-      for (const handler of this.updateHandlers) {
-        try {
-          handler(deltaTime, gameState);
-        } catch (error) {
-          console.error('Error in update handler:', error);
+        // Call all registered update handlers
+        for (const handler of this.updateHandlers) {
+          try {
+            handler(deltaTime, gameState);
+          } catch (error) {
+            errorHandler.handleError(error, 'gameLoop.update', {
+              handler: handler.name || 'anonymous',
+              deltaTime,
+            });
+          }
         }
-      }
+      }, 'update');
     }
 
     /**
      * Render UI updates
      */
     render() {
-      // Call all registered render handlers
-      for (const handler of this.renderHandlers) {
-        try {
-          handler(gameState);
-        } catch (error) {
-          console.error('Error in render handler:', error);
+      performanceMonitor.measure(() => {
+        // Call all registered render handlers
+        for (const handler of this.renderHandlers) {
+          try {
+            handler(gameState);
+          } catch (error) {
+            errorHandler.handleError(error, 'gameLoop.render', {
+              handler: handler.name || 'anonymous',
+            });
+          }
         }
-      }
+      }, 'render');
     }
 
     /**
      * Perform autosave
      */
     autosave() {
-      const saved = gameState.save();
-      if (saved) {
-        console.log('Game autosaved');
+      try {
+        const saved = gameState.save();
+        if (saved) {
+          errorHandler.debug('Game autosaved');
+        } else {
+          errorHandler.warn('Autosave failed');
+        }
+      } catch (error) {
+        errorHandler.handleError(error, 'gameLoop.autosave');
       }
     }
 
@@ -579,7 +1160,7 @@
       const wire = gameState.get('resources.wire');
       if (clipRate > 0 && wire > 0) {
         // Calculate clips to produce this tick
-        const clipsToMake = clipRate * deltaTime / 1000;
+        const clipsToMake = (clipRate * deltaTime) / 1000;
         const wireNeeded = Math.ceil(clipsToMake);
         if (wire >= wireNeeded) {
           // Produce clips
@@ -674,7 +1255,7 @@
       const availableMatter = gameState.get('resources.availableMatter');
       if (factoryLevel > 0 && availableMatter > 0) {
         const productionRate = factoryLevel * factoryBoost;
-        const matterToProcess = Math.min(productionRate * deltaTime / 1000, availableMatter);
+        const matterToProcess = Math.min((productionRate * deltaTime) / 1000, availableMatter);
         if (matterToProcess > 0) {
           gameState.decrement('resources.availableMatter', matterToProcess);
           gameState.increment('resources.processedMatter', matterToProcess);
@@ -693,12 +1274,17 @@
         megaClipperLevel: gameState.get('production.megaClipperLevel'),
         factoryLevel: gameState.get('infrastructure.factoryLevel'),
         wireConsumptionRate: gameState.get('production.wireConsumptionRate') || 0,
-        factoryRate: gameState.get('production.factoryRate')
+        factoryRate: gameState.get('production.factoryRate'),
       };
     }
 
     /**
-     * Apply production boost (from projects/upgrades)
+     * Apply production boost to specific producer type
+     * @param {string} type - Type of boost ('clipper', 'megaClipper', or 'factory')
+     * @param {number} multiplier - Boost multiplier to apply
+     * @returns {void}
+     * @example
+     * productionSystem.applyProductionBoost('clipper', 2.0); // Double clipper speed
      */
     applyProductionBoost(type, multiplier) {
       switch (type) {
@@ -875,7 +1461,7 @@
       // Record price in history
       this.priceHistory.push({
         time: Date.now(),
-        price: gameState.get('market.margin')
+        price: gameState.get('market.margin'),
       });
       if (this.priceHistory.length > this.maxPriceHistory) {
         this.priceHistory.shift();
@@ -940,7 +1526,7 @@
         unsoldClips: gameState.get('resources.unsoldClips'),
         avgRevenue: gameState.get('market.avgRev'),
         marketingLevel: gameState.get('market.marketingLvl'),
-        wireCost: gameState.get('market.wireCost')
+        wireCost: gameState.get('market.wireCost'),
       };
     }
 
@@ -964,17 +1550,32 @@
 
   /**
    * Computing system - handles processors, memory, operations, and quantum computing
+   * @module ComputingSystem
    */
 
+  /**
+   * @class ComputingSystem
+   * @description Manages computational resources, operations generation, creativity, and quantum computing.
+   * Handles processor/memory allocation, trust limits, and quantum chip generation.
+   */
   class ComputingSystem {
+    /**
+     * Creates a new ComputingSystem instance
+     * @constructor
+     */
     constructor() {
+      /** @type {number|null} Timer for quantum compute operations */
       this.quantumComputeTimer = null;
+      /** @type {number} Timestamp of last quantum compute */
       this.lastQuantumCompute = 0;
-      this.creativityBaseRate = 0.001; // Base creativity generation rate
+      /** @type {number} Base creativity generation rate per processor per second */
+      this.creativityBaseRate = 0.001;
     }
 
     /**
-     * Update computing resources
+     * Update computing resources - operations, creativity, and quantum computing
+     * @param {number} deltaTime - Time elapsed since last update in milliseconds
+     * @returns {void}
      */
     update(deltaTime) {
       // Generate operations
@@ -990,7 +1591,10 @@
     }
 
     /**
-     * Generate operations based on processor count
+     * Generate operations based on processor and memory count
+     * @param {number} deltaTime - Time elapsed since last update in milliseconds
+     * @returns {void}
+     * @private
      */
     generateOperations(deltaTime) {
       const processors = gameState.get('computing.processors');
@@ -998,7 +1602,7 @@
       if (processors > 0) {
         // Operations generated per second = processors * memory
         const opsPerSecond = processors * memory;
-        const opsGenerated = opsPerSecond * deltaTime / 1000;
+        const opsGenerated = (opsPerSecond * deltaTime) / 1000;
         const currentOps = gameState.get('computing.operations');
         const maxOps = memory * 1000; // Max operations = memory * 1000
 
@@ -1008,14 +1612,18 @@
     }
 
     /**
-     * Generate creativity based on processor allocation
+     * Generate creativity based on processor count and creativity speed
+     * @param {number} deltaTime - Time elapsed since last update in milliseconds
+     * @returns {void}
+     * @private
      */
     generateCreativity(deltaTime) {
       const processors = gameState.get('computing.processors');
       const creativityOn = gameState.get('flags.creativity');
       if (processors > 0 && creativityOn) {
-        const creativitySpeed = gameState.get('computing.creativitySpeed') || this.creativityBaseRate;
-        const creativityGenerated = processors * creativitySpeed * deltaTime / 1000;
+        const creativitySpeed =
+          gameState.get('computing.creativitySpeed') || this.creativityBaseRate;
+        const creativityGenerated = (processors * creativitySpeed * deltaTime) / 1000;
         gameState.increment('computing.creativity', creativityGenerated);
 
         // Update creativity counter for display
@@ -1025,7 +1633,12 @@
     }
 
     /**
-     * Add a processor
+     * Add a processor if within trust limits
+     * @returns {boolean} True if processor was added, false if at trust limit
+     * @example
+     * if (computingSystem.addProcessor()) {
+     *   console.log('Processor added!');
+     * }
      */
     addProcessor() {
       const trust = gameState.get('computing.trust');
@@ -1041,7 +1654,12 @@
     }
 
     /**
-     * Add memory
+     * Add memory if within trust limits
+     * @returns {boolean} True if memory was added, false if at trust limit
+     * @example
+     * if (computingSystem.addMemory()) {
+     *   console.log('Memory added!');
+     * }
      */
     addMemory() {
       const trust = gameState.get('computing.trust');
@@ -1057,7 +1675,13 @@
     }
 
     /**
-     * Spend operations
+     * Spend operations if available
+     * @param {number} amount - Amount of operations to spend
+     * @returns {boolean} True if operations were spent, false if insufficient
+     * @example
+     * if (computingSystem.spendOperations(1000)) {
+     *   console.log('Operations spent!');
+     * }
      */
     spendOperations(amount) {
       const currentOps = gameState.get('computing.operations');
@@ -1069,7 +1693,13 @@
     }
 
     /**
-     * Spend creativity
+     * Spend creativity if available
+     * @param {number} amount - Amount of creativity to spend
+     * @returns {boolean} True if creativity was spent, false if insufficient
+     * @example
+     * if (computingSystem.spendCreativity(50)) {
+     *   console.log('Creativity spent!');
+     * }
      */
     spendCreativity(amount) {
       const currentCreativity = gameState.get('computing.creativity');
@@ -1081,7 +1711,10 @@
     }
 
     /**
-     * Update quantum computing
+     * Update quantum computing timer and check for chip generation
+     * @param {number} deltaTime - Time elapsed since last update in milliseconds
+     * @returns {void}
+     * @private
      */
     updateQuantumComputing(deltaTime) {
       const qClock = gameState.get('computing.qClock') || 0;
@@ -1098,7 +1731,12 @@
     }
 
     /**
-     * Start quantum computation
+     * Start quantum computation if operations available
+     * @returns {boolean} True if quantum compute started, false if insufficient operations
+     * @example
+     * if (computingSystem.startQuantumCompute()) {
+     *   console.log('Quantum computation started!');
+     * }
      */
     startQuantumCompute() {
       const operations = gameState.get('computing.operations');
@@ -1120,7 +1758,9 @@
     }
 
     /**
-     * Generate quantum chip result
+     * Generate quantum chip result - randomly boosts operations or creativity
+     * @returns {{type: string, amount: number}} Result object with type and amount of bonus
+     * @private
      */
     generateQuantumChip() {
       // Quantum computing gives random boost to operations or creativity
@@ -1135,7 +1775,7 @@
         gameState.set('computing.nextQchip', 0);
         return {
           type: 'operations',
-          amount: bonus
+          amount: bonus,
         };
       } else {
         // Boost creativity
@@ -1146,13 +1786,17 @@
         gameState.set('computing.nextQchip', 0);
         return {
           type: 'creativity',
-          amount: bonus
+          amount: bonus,
         };
       }
     }
 
     /**
-     * Get computing statistics
+     * Get current computing statistics
+     * @returns {Object} Computing statistics including processors, memory, operations, etc.
+     * @example
+     * const stats = computingSystem.getComputingStats();
+     * console.log(`Operations: ${stats.operations}/${stats.maxOperations}`);
      */
     getComputingStats() {
       return {
@@ -1164,12 +1808,16 @@
         trust: gameState.get('computing.trust'),
         maxTrust: gameState.get('computing.maxTrust'),
         qChipCost: gameState.get('computing.qChipCost'),
-        quantumActive: gameState.get('computing.nextQchip') > 0
+        quantumActive: gameState.get('computing.nextQchip') > 0,
       };
     }
 
     /**
-     * Add trust
+     * Add trust points (increases processor/memory allocation limit)
+     * @param {number} [amount=1] - Amount of trust to add
+     * @returns {void}
+     * @example
+     * computingSystem.addTrust(2); // Add 2 trust points
      */
     addTrust(amount = 1) {
       gameState.increment('computing.trust', amount);
@@ -1183,7 +1831,11 @@
     }
 
     /**
-     * Set creativity generation speed
+     * Set creativity generation speed multiplier
+     * @param {number} speed - New creativity generation speed
+     * @returns {void}
+     * @example
+     * computingSystem.setCreativitySpeed(0.01); // Set to 1% per processor per second
      */
     setCreativitySpeed(speed) {
       gameState.set('computing.creativitySpeed', speed);
@@ -1196,7 +1848,6 @@
   /**
    * Combat system - handles space battles between probes and drifters
    */
-
 
   /**
    * Represents a single battle
@@ -1226,8 +1877,11 @@
       const drifterAttack = drifterCombat * this.drifters * (attackSpeed / 1000);
 
       // Apply damage
-      const drifterCasualties = Math.min(Math.ceil(probeAttack * deltaTime / 1000), this.drifters);
-      const probeCasualties = Math.min(Math.ceil(drifterAttack * deltaTime / 1000), this.probes);
+      const drifterCasualties = Math.min(
+        Math.ceil((probeAttack * deltaTime) / 1000),
+        this.drifters,
+      );
+      const probeCasualties = Math.min(Math.ceil((drifterAttack * deltaTime) / 1000), this.probes);
       this.drifters -= drifterCasualties;
       this.probes -= probeCasualties;
       this.drifterLosses += drifterCasualties;
@@ -1252,7 +1906,7 @@
         probeLosses: this.probeLosses,
         drifterLosses: this.drifterLosses,
         duration: this.duration,
-        status: this.status
+        status: this.status,
       };
     }
   }
@@ -1397,7 +2051,7 @@
      * Get active battles
      */
     getActiveBattles() {
-      return Array.from(this.battles.values()).map(b => b.getSummary());
+      return Array.from(this.battles.values()).map((b) => b.getSummary());
     }
 
     /**
@@ -1412,7 +2066,7 @@
         bonusHonor: gameState.get('combat.bonusHonor'),
         probeCombat: gameState.get('combat.probeCombat'),
         drifterCombat: gameState.get('combat.drifterCombat'),
-        attackSpeed: gameState.get('combat.attackSpeed')
+        attackSpeed: gameState.get('combat.attackSpeed'),
       };
     }
 
@@ -1456,7 +2110,6 @@
   /**
    * Projects system - handles upgrades, research, and special abilities
    */
-
 
   /**
    * Represents a single project/upgrade
@@ -1530,7 +2183,7 @@
         funds: 'resources.funds',
         clips: 'resources.clips',
         trust: 'computing.trust',
-        honor: 'combat.honor'
+        honor: 'combat.honor',
       };
       return resourceMap[resource] || resource;
     }
@@ -1551,39 +2204,39 @@
         name: 'Improved AutoClippers',
         description: 'Increases AutoClipper performance by 25%',
         cost: {
-          operations: 750
+          operations: 750,
         },
-        requirement: state => state.get('production.clipmakerLevel') >= 1,
-        effect: state => {
+        requirement: (state) => state.get('production.clipmakerLevel') >= 1,
+        effect: (state) => {
           const current = state.get('production.clipperBoost');
           state.set('production.clipperBoost', current * 1.25);
-        }
+        },
       });
       this.addProject({
         id: 'evenBetterAutoclippers',
         name: 'Even Better AutoClippers',
         description: 'Increases AutoClipper performance by another 50%',
         cost: {
-          operations: 2500
+          operations: 2500,
         },
-        requirement: state => this.isPurchased('improvedAutoclippers'),
-        effect: state => {
+        requirement: (_state) => this.isPurchased('improvedAutoclippers'),
+        effect: (state) => {
           const current = state.get('production.clipperBoost');
           state.set('production.clipperBoost', current * 1.5);
-        }
+        },
       });
       this.addProject({
         id: 'optimizedAutoclippers',
         name: 'Optimized AutoClippers',
         description: 'Increases AutoClipper performance by another 75%',
         cost: {
-          operations: 5000
+          operations: 5000,
         },
-        requirement: state => this.isPurchased('evenBetterAutoclippers'),
-        effect: state => {
+        requirement: (_state) => this.isPurchased('evenBetterAutoclippers'),
+        effect: (state) => {
           const current = state.get('production.clipperBoost');
           state.set('production.clipperBoost', current * 1.75);
-        }
+        },
       });
 
       // Trust Projects
@@ -1592,25 +2245,25 @@
         name: 'Creativity',
         description: 'Use idle operations to generate new problems and new solutions',
         cost: {
-          operations: 1000
+          operations: 1000,
         },
-        requirement: state => state.get('computing.memory') >= 2,
-        effect: state => {
+        requirement: (state) => state.get('computing.memory') >= 2,
+        effect: (state) => {
           state.set('flags.creativity', true);
-        }
+        },
       });
       this.addProject({
         id: 'limerick',
         name: 'Limerick',
         description: 'Algorithmically-generated poem (+1 Trust)',
         cost: {
-          creativity: 10
+          creativity: 10,
         },
-        requirement: state => state.get('flags.creativity'),
-        effect: state => {
+        requirement: (state) => state.get('flags.creativity'),
+        effect: (state) => {
           state.increment('computing.trust');
         },
-        oneTime: false // Can be purchased multiple times
+        oneTime: false, // Can be purchased multiple times
       });
 
       // Marketing Projects
@@ -1620,13 +2273,13 @@
         description: 'Improve marketing effectiveness by 50%',
         cost: {
           creativity: 25,
-          operations: 2500
+          operations: 2500,
         },
-        requirement: state => state.get('market.marketingLvl') >= 1,
-        effect: state => {
+        requirement: (state) => state.get('market.marketingLvl') >= 1,
+        effect: (state) => {
           const current = state.get('market.marketingEffectiveness');
           state.set('market.marketingEffectiveness', current * 1.5);
-        }
+        },
       });
       this.addProject({
         id: 'catchy',
@@ -1634,13 +2287,13 @@
         description: 'Double marketing effectiveness',
         cost: {
           creativity: 45,
-          operations: 4500
+          operations: 4500,
         },
-        requirement: state => this.isPurchased('newSlogan'),
-        effect: state => {
+        requirement: (_state) => this.isPurchased('newSlogan'),
+        effect: (state) => {
           const current = state.get('market.marketingEffectiveness');
           state.set('market.marketingEffectiveness', current * 2);
-        }
+        },
       });
 
       // Quantum Computing
@@ -1649,12 +2302,12 @@
         name: 'Quantum Computing',
         description: 'Convert operations into quantum computing cycles',
         cost: {
-          operations: 10000
+          operations: 10000,
         },
-        requirement: state => state.get('computing.processors') >= 5,
-        effect: state => {
+        requirement: (state) => state.get('computing.processors') >= 5,
+        effect: (state) => {
           state.set('flags.quantum', true);
-        }
+        },
       });
 
       // Mega Projects
@@ -1663,12 +2316,12 @@
         name: 'MegaClippers',
         description: 'Build MegaClippers (500x more powerful than AutoClippers)',
         cost: {
-          operations: 12000
+          operations: 12000,
         },
-        requirement: state => state.get('production.clipmakerLevel') >= 75,
-        effect: state => {
+        requirement: (state) => state.get('production.clipmakerLevel') >= 75,
+        effect: (state) => {
           state.set('flags.megaClipper', true);
-        }
+        },
       });
 
       // Space Projects
@@ -1678,13 +2331,15 @@
         description: 'Dismantle terrestrial facilities and explore the universe',
         cost: {
           operations: 120000,
-          funds: 1000000
+          funds: 1000000,
         },
-        requirement: state => state.get('resources.clips') >= 1000000000 && state.get('production.clipmakerLevel') >= 100,
-        effect: state => {
+        requirement: (state) =>
+          state.get('resources.clips') >= 1000000000 &&
+          state.get('production.clipmakerLevel') >= 100,
+        effect: (state) => {
           state.set('flags.space', true);
           state.set('flags.human', false);
-        }
+        },
       });
 
       // Combat Projects
@@ -1693,25 +2348,26 @@
         name: 'Combat Algorithms',
         description: 'Upgrade probe combat capabilities (+1 Combat)',
         cost: {
-          honor: 15
+          honor: 15,
         },
-        requirement: state => state.get('flags.battle'),
-        effect: state => {
+        requirement: (state) => state.get('flags.battle'),
+        effect: (state) => {
           state.increment('combat.probeCombat');
         },
-        oneTime: false
+        oneTime: false,
       });
       this.addProject({
         id: 'strategyModeling',
         name: 'Strategic Modeling',
         description: 'Analyze battle data to improve tactics',
         cost: {
-          operations: 50000
+          operations: 50000,
         },
-        requirement: state => state.get('flags.battle') && state.get('combat.driftersKilled') >= 100,
-        effect: state => {
+        requirement: (state) =>
+          state.get('flags.battle') && state.get('combat.driftersKilled') >= 100,
+        effect: (state) => {
           state.set('flags.strategyEngine', true);
-        }
+        },
       });
     }
 
@@ -1735,7 +2391,7 @@
             name: project.name,
             description: project.description,
             cost: project.cost,
-            canAfford: project.canAfford()
+            canAfford: project.canAfford(),
           });
         }
       }
@@ -1776,7 +2432,7 @@
         cost: project.cost,
         purchased: project.purchased,
         available: project.isAvailable(),
-        canAfford: project.canAfford()
+        canAfford: project.canAfford(),
       };
     }
 
@@ -1797,7 +2453,6 @@
   /**
    * Number formatting utilities
    */
-
 
   /**
    * Format a number for display with appropriate notation
@@ -2234,7 +2889,7 @@
     });
 
     // Keyboard shortcuts
-    document.addEventListener('keydown', e => {
+    document.addEventListener('keydown', (e) => {
       // Ctrl+S to save
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
@@ -2274,42 +2929,58 @@
    * Modern modular version of the classic incremental game
    */
 
-
   // Game initialization
   function initGame() {
-    console.log('Universal Paperclips - Modern Edition');
-    console.log('Original by Frank Lantz and Bennett Foddy');
+    errorHandler.info('Universal Paperclips - Modern Edition');
+    errorHandler.info('Original by Frank Lantz and Bennett Foddy');
+
+    // Set error handler log level based on environment
+    const isDev = window.location.hostname === 'localhost';
+    errorHandler.setLogLevel(isDev ? 'debug' : 'info');
 
     // Try to load saved game
-    const loaded = gameState.load();
-    if (loaded) {
-      console.log('Save game loaded successfully');
-    } else {
-      console.log('Starting new game');
+    try {
+      const loaded = gameState.load();
+      if (loaded) {
+        errorHandler.info('Save game loaded successfully');
+      } else {
+        errorHandler.info('Starting new game');
+      }
+    } catch (error) {
+      errorHandler.handleError(error, 'initGame.load');
+      errorHandler.warn('Failed to load save, starting new game');
     }
 
-    // Register update handlers
-    gameLoop.addUpdateHandler((deltaTime, state) => {
-      const currentTime = Date.now();
+    // Register update handlers with error boundaries
+    gameLoop.addUpdateHandler(
+      errorHandler.createErrorBoundary((deltaTime, state) => {
+        const currentTime = Date.now();
 
-      // Update game systems
-      productionSystem.update(deltaTime);
-      marketSystem.update(deltaTime, currentTime);
-      computingSystem.update(deltaTime);
-      combatSystem.update(deltaTime, currentTime);
+        // Update game systems
+        productionSystem.update(deltaTime);
+        marketSystem.update(deltaTime, currentTime);
+        computingSystem.update(deltaTime);
+        combatSystem.update(deltaTime, currentTime);
 
-      // Update elapsed time
-      state.increment('ui.elapsedTime', deltaTime);
-    });
+        // Update elapsed time
+        state.increment('ui.elapsedTime', deltaTime);
+      }, 'mainUpdateHandler'),
+    );
 
-    // Register render handlers
-    gameLoop.addRenderHandler(state => {
-      uiRenderer.render(state);
-      uiRenderer.updateButtonStates(state);
-    });
+    // Register render handlers with error boundaries
+    gameLoop.addRenderHandler(
+      errorHandler.createErrorBoundary((state) => {
+        uiRenderer.render(state);
+        uiRenderer.updateButtonStates(state);
+      }, 'mainRenderHandler'),
+    );
 
-    // Set up UI event handlers
-    setupEventHandlers();
+    // Set up UI event handlers with error handling
+    try {
+      setupEventHandlers();
+    } catch (error) {
+      errorHandler.handleError(error, 'initGame.setupEventHandlers');
+    }
 
     // Start the game loop
     gameLoop.start();
@@ -2317,9 +2988,13 @@
     // Initial render
     uiRenderer.render(gameState);
 
-    // Set up autosave
+    // Set up autosave with error handling
     setInterval(() => {
-      gameState.save();
+      try {
+        gameState.save();
+      } catch (error) {
+        errorHandler.handleError(error, 'autosave.interval');
+      }
     }, 30000); // Every 30 seconds
   }
 
@@ -2332,6 +3007,8 @@
 
   // Export for debugging in console
   window.UniversalPaperclips = {
+    errorHandler,
+    performanceMonitor,
     gameState,
     gameLoop,
     productionSystem,
@@ -2344,12 +3021,12 @@
     debug: {
       getState: () => gameState,
       setState: (path, value) => gameState.set(path, value),
-      addClips: amount => gameState.increment('resources.clips', amount),
-      addFunds: amount => gameState.increment('resources.funds', amount),
-      addWire: amount => gameState.increment('resources.wire', amount),
+      addClips: (amount) => gameState.increment('resources.clips', amount),
+      addFunds: (amount) => gameState.increment('resources.funds', amount),
+      addWire: (amount) => gameState.increment('resources.wire', amount),
       unlockAll: () => {
         // Unlock all features for testing
-        Object.keys(gameState.flags).forEach(flag => {
+        Object.keys(gameState.flags).forEach((flag) => {
           gameState.set(`flags.${flag}`, true);
         });
       },
@@ -2358,9 +3035,14 @@
           gameState.reset();
           location.reload();
         }
-      }
-    }
+      },
+      // Error and performance debugging
+      getErrors: () => errorHandler.getErrorLog(),
+      clearErrors: () => errorHandler.clearErrorLog(),
+      getPerformance: () => performanceMonitor.getReport(),
+      resetPerformance: () => performanceMonitor.reset(),
+      setLogLevel: (level) => errorHandler.setLogLevel(level),
+    },
   };
-  console.log('Game loaded. Use window.UniversalPaperclips.debug for debugging tools.');
-
+  errorHandler.info('Game loaded. Use window.UniversalPaperclips.debug for debugging tools.');
 })();
