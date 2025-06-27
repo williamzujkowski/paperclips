@@ -8,17 +8,29 @@ module.exports = {
   input: 'src/index.js',
   output: [
     {
-      file: 'docs/js/game.js',
-      format: 'iife',
-      name: 'UniversalPaperclips',
+      dir: 'docs/js',
+      format: 'es',
       sourcemap: !production,
+      entryFileNames: 'game.js',
+      chunkFileNames: '[name]-[hash].js',
+      // Preserve modules for dynamic imports
+      preserveModules: false,
+      // Manual chunks for better code splitting
+      manualChunks: {
+        'phase-space': ['src/game/systems/swarm.js', 'src/game/systems/exploration.js'],
+      },
     },
     {
-      file: 'docs/js/game.min.js',
-      format: 'iife',
-      name: 'UniversalPaperclips',
+      dir: 'docs/js/min',
+      format: 'es',
       plugins: [terser()],
       sourcemap: false,
+      entryFileNames: 'game.min.js',
+      chunkFileNames: '[name]-[hash].min.js',
+      preserveModules: false,
+      manualChunks: {
+        'phase-space': ['src/game/systems/swarm.js', 'src/game/systems/exploration.js'],
+      },
     }
   ],
   plugins: [

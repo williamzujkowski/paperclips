@@ -4,6 +4,9 @@
  */
 export class GameState {
   constructor() {
+    // Observers for state changes
+    this.observers = new Map();
+
     // Core Resources & Production
     this.resources = {
       clips: 0,
@@ -120,6 +123,7 @@ export class GameState {
       trust: false,
       creation: false,
       space: false,
+      endgame: false,
       factory: false,
       harvester: false,
       wireDrone: false,
@@ -134,6 +138,8 @@ export class GameState {
       wireBuyer: false,
       strategyEngine: false,
       investmentEngine: false,
+      creativity: false,
+      quantum: false,
     };
 
     // AI & Swarm
@@ -142,12 +148,27 @@ export class GameState {
       gifts: 0,
       nextGift: 0,
       giftPeriod: 0,
-      giftCountdown: 0,
       probeCount: 0,
+      probesLaunched: 0,
+      harvesterProbes: 0,
+      wireProbes: 0,
+      combatProbes: 0,
+      harvesterRatio: 0.5,
+      wireRatio: 0.3,
+      combatRatio: 0.2,
+      giftCountdown: 0,
       disorgCounter: 0,
       disorgFlag: 0,
       boredomLevel: 0,
       boredomFlag: 0,
+    };
+
+    // Exploration System
+    this.exploration = {
+      exploredSpace: 0,
+      sectors: [],
+      probeSpeed: 1,
+      matterDensity: 0.1,
     };
 
     // UI & Display
@@ -196,6 +217,7 @@ export class GameState {
           combat: this.combat,
           flags: this.flags,
           swarm: this.swarm,
+          exploration: this.exploration,
           ui: this.ui,
           meta: this.meta,
         },
@@ -235,6 +257,7 @@ export class GameState {
       Object.assign(this.combat, parsed.state.combat || {});
       Object.assign(this.flags, parsed.state.flags || {});
       Object.assign(this.swarm, parsed.state.swarm || {});
+      Object.assign(this.exploration, parsed.state.exploration || {});
       Object.assign(this.ui, parsed.state.ui || {});
       Object.assign(this.meta, parsed.state.meta || {});
 
@@ -307,7 +330,13 @@ export class GameState {
       }
       target = target[key];
     }
+    const oldValue = target[lastKey];
     target[lastKey] = newValue;
+
+    // Notify observers if value changed
+    if (oldValue !== newValue) {
+      this.notifyObservers(path, newValue, oldValue);
+    }
   }
 
   /**
@@ -324,6 +353,68 @@ export class GameState {
   decrement(path, amount = 1) {
     const current = this.get(path) || 0;
     this.set(path, Math.max(0, current - amount));
+  }
+
+  /**
+   * Add an observer for state changes
+   * @param {string} path - Path to observe (e.g., 'flags.space')
+   * @param {Function} callback - Callback function (value, oldValue) => void
+   * @returns {Function} Unsubscribe function
+   */
+  addObserver(path, callback) {
+    if (!this.observers.has(path)) {
+      this.observers.set(path, new Set());
+    }
+
+    this.observers.get(path).add(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const callbacks = this.observers.get(path);
+      if (callbacks) {
+        callbacks.delete(callback);
+        if (callbacks.size === 0) {
+          this.observers.delete(path);
+        }
+      }
+    };
+  }
+
+  /**
+   * Notify observers of a state change
+   * @param {string} path - Path that changed
+   * @param {*} newValue - New value
+   * @param {*} oldValue - Old value
+   * @private
+   */
+  notifyObservers(path, newValue, oldValue) {
+    // Notify exact path observers
+    const exactObservers = this.observers.get(path);
+    if (exactObservers) {
+      for (const callback of exactObservers) {
+        try {
+          callback(newValue, oldValue);
+        } catch (error) {
+          console.error(`Observer error for path ${path}:`, error);
+        }
+      }
+    }
+
+    // Notify wildcard observers (e.g., 'flags.*')
+    const pathParts = path.split('.');
+    for (let i = pathParts.length - 1; i > 0; i--) {
+      const wildcardPath = pathParts.slice(0, i).join('.') + '.*';
+      const wildcardObservers = this.observers.get(wildcardPath);
+      if (wildcardObservers) {
+        for (const callback of wildcardObservers) {
+          try {
+            callback(newValue, oldValue, path);
+          } catch (error) {
+            console.error(`Wildcard observer error for path ${wildcardPath}:`, error);
+          }
+        }
+      }
+    }
   }
 }
 

@@ -6,6 +6,7 @@
 import { gameState } from './game/core/gameState.js';
 import { gameLoop } from './game/core/gameLoop.js';
 import { errorHandler } from './game/core/errorHandler.js';
+import { phaseManager } from './game/core/phaseManager.js';
 import { productionSystem } from './game/systems/production.js';
 import { marketSystem } from './game/systems/market.js';
 import { computingSystem } from './game/systems/computing.js';
@@ -16,7 +17,7 @@ import { setupEventHandlers } from './game/ui/events.js';
 import { devDashboard } from './game/ui/devDashboard.js';
 
 // Game initialization
-function initGame() {
+async function initGame() {
   errorHandler.info('Universal Paperclips - Modern Edition');
   errorHandler.info('Original by Frank Lantz and Bennett Foddy');
 
@@ -43,16 +44,53 @@ function initGame() {
     errorHandler.warn('Failed to load save, starting new game');
   }
 
+  // Initialize phase manager for lazy loading
+  try {
+    await phaseManager.init();
+    errorHandler.info(`Game initialized in ${phaseManager.getCurrentPhase()} phase`);
+  } catch (error) {
+    errorHandler.handleError(error, 'initGame.phaseManager');
+    errorHandler.warn('Phase manager failed, continuing with all modules loaded');
+  }
+
   // Register update handlers with error boundaries
   gameLoop.addUpdateHandler(
     errorHandler.createErrorBoundary((deltaTime, state) => {
       const currentTime = Date.now();
 
-      // Update game systems
+      // Always update core systems
       productionSystem.update(deltaTime);
-      marketSystem.update(deltaTime, currentTime);
       computingSystem.update(deltaTime);
-      combatSystem.update(deltaTime, currentTime);
+
+      // Update phase-specific systems
+      const currentPhase = phaseManager.getCurrentPhase();
+
+      if (currentPhase === 'human') {
+        // Human phase: market is active
+        marketSystem.update(deltaTime, currentTime);
+      }
+
+      if (currentPhase === 'space' || currentPhase === 'endgame') {
+        // Space phase: combat and lazy-loaded systems
+        combatSystem.update(deltaTime, currentTime);
+
+        // Update lazy-loaded systems if available
+        const swarmModule = phaseManager.isModuleLoaded('swarm');
+        if (swarmModule) {
+          const swarmSystem = phaseManager.getLoadedModules().get('swarm').default;
+          if (swarmSystem && swarmSystem.update) {
+            swarmSystem.update(deltaTime);
+          }
+        }
+
+        const explorationModule = phaseManager.isModuleLoaded('exploration');
+        if (explorationModule) {
+          const explorationSystem = phaseManager.getLoadedModules().get('exploration').default;
+          if (explorationSystem && explorationSystem.update) {
+            explorationSystem.update(deltaTime);
+          }
+        }
+      }
 
       // Update elapsed time
       state.increment('ui.elapsedTime', deltaTime);
@@ -105,6 +143,7 @@ window.UniversalPaperclips = {
   errorHandler,
   performanceMonitor,
   devDashboard,
+  phaseManager,
   gameState,
   gameLoop,
   productionSystem,
