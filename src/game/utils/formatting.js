@@ -18,10 +18,20 @@ export function formatNumber(num, decimals = 0) {
 
   let result;
 
-  if (num < NOTATION_THRESHOLD) {
-    // Regular notation for smaller numbers
+  if (num < 1000) {
+    // For small numbers
     if (decimals > 0) {
       result = num.toFixed(decimals);
+    } else {
+      result = Math.round(num).toString();
+    }
+  } else if (num < NOTATION_THRESHOLD) {
+    // Regular notation for smaller numbers
+    if (decimals > 0) {
+      // Format with commas and decimals
+      const parts = num.toFixed(decimals).split('.');
+      parts[0] = parseInt(parts[0]).toLocaleString();
+      result = parts.join('.');
     } else {
       result = Math.floor(num).toLocaleString();
     }
@@ -44,17 +54,25 @@ function abbreviateNumber(num, decimals = 0) {
   const unrangifiedOrder = Math.floor(Math.log10(Math.abs(num)) / 3);
   const order = Math.max(0, Math.min(unrangifiedOrder, abbrev.length - 1));
   const suffix = abbrev[order];
-  const precision = Math.pow(10, decimals);
   const scaled = num / Math.pow(10, order * 3);
-  const rounded = Math.round(scaled * precision) / precision;
-
-  return rounded.toFixed(decimals) + suffix;
+  
+  // For default formatting with no decimals specified, show decimals only if needed
+  if (decimals === 0 && scaled === Math.floor(scaled)) {
+    return scaled.toString() + suffix;
+  }
+  
+  // Otherwise format with specified decimals
+  return scaled.toFixed(decimals || 1) + suffix;
 }
 
 /**
  * Format currency values
  */
 export function formatCurrency(amount, decimals = 2) {
+  // For whole millions/billions with default decimals, show without decimals
+  if (decimals === 2 && amount >= 1000000 && amount === Math.floor(amount)) {
+    return '$' + formatNumber(amount, 0);
+  }
   return '$' + formatNumber(amount, decimals);
 }
 
@@ -89,12 +107,17 @@ export function formatDuration(milliseconds) {
  * Parse formatted number back to numeric value
  */
 export function parseFormattedNumber(str) {
-  if (typeof str !== 'string') {
+  if (typeof str !== 'string' || str.trim() === '') {
     return 0;
   }
 
   // Remove currency symbols and spaces
   str = str.replace(/[$,\s]/g, '');
+  
+  // Check if empty after cleanup
+  if (str === '') {
+    return 0;
+  }
 
   // Handle abbreviations
   const abbrevMap = {
@@ -114,7 +137,7 @@ export function parseFormattedNumber(str) {
   for (const [suffix, multiplier] of Object.entries(abbrevMap)) {
     if (str.endsWith(suffix)) {
       const numPart = parseFloat(str.slice(0, -1));
-      return numPart * multiplier;
+      return isNaN(numPart) ? 0 : numPart * multiplier;
     }
   }
 
@@ -124,7 +147,8 @@ export function parseFormattedNumber(str) {
   }
 
   // Regular number
-  return parseFloat(str) || 0;
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
 }
 
 /**

@@ -4,16 +4,31 @@
  */
 
 // Mock localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-  length: 0,
-  key: jest.fn(),
-};
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: jest.fn((key) => store[key] || null),
+    setItem: jest.fn((key, value) => {
+      store[key] = value.toString();
+    }),
+    removeItem: jest.fn((key) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+    length: 0,
+    key: jest.fn((index) => {
+      const keys = Object.keys(store);
+      return keys[index] || null;
+    }),
+  };
+})();
 
-global.localStorage = localStorageMock;
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
 
 // Mock requestAnimationFrame
 global.requestAnimationFrame = (callback) => {
@@ -27,7 +42,12 @@ global.cancelAnimationFrame = (id) => {
 // Reset mocks before each test
 beforeEach(() => {
   jest.clearAllMocks();
-  localStorage.clear();
+  localStorageMock.clear();
+  // Also clear the actual store
+  localStorageMock.getItem.mockImplementation((key) => null);
+  localStorageMock.setItem.mockImplementation((key, value) => {
+    localStorageMock.getItem.mockImplementation((k) => k === key ? value : null);
+  });
 });
 
 // Mock console methods to reduce test output noise

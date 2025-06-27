@@ -187,7 +187,7 @@ describe('ProductionSystem', () => {
       // 5 factories * 1 boost * 1 second = 5 matter processed
       expect(gameState.get('resources.availableMatter')).toBe(5);
       expect(gameState.get('resources.processedMatter')).toBe(5);
-      expect(gameState.get('resources.wire')).toBe(5000); // 5 * 1000
+      expect(gameState.get('resources.wire')).toBe(6000); // Initial 1000 + 5 * 1000
     });
 
     it('should handle insufficient matter', () => {
@@ -199,7 +199,7 @@ describe('ProductionSystem', () => {
       
       expect(gameState.get('resources.availableMatter')).toBe(0);
       expect(gameState.get('resources.processedMatter')).toBe(2);
-      expect(gameState.get('resources.wire')).toBe(2000);
+      expect(gameState.get('resources.wire')).toBe(3000); // Initial 1000 + 2 * 1000
     });
   });
 

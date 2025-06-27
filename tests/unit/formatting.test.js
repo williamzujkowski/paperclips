@@ -29,9 +29,9 @@ describe('Formatting Utilities', () => {
     });
 
     it('should abbreviate large numbers', () => {
-      expect(formatNumber(1000000)).toBe('1.0M');
+      expect(formatNumber(1000000)).toBe('1M');
       expect(formatNumber(1500000)).toBe('1.5M');
-      expect(formatNumber(1000000000)).toBe('1.0B');
+      expect(formatNumber(1000000000)).toBe('1B');
       expect(formatNumber(1500000000000)).toBe('1.5T');
     });
 
@@ -42,7 +42,7 @@ describe('Formatting Utilities', () => {
 
     it('should handle negative numbers', () => {
       expect(formatNumber(-123)).toBe('-123');
-      expect(formatNumber(-1000000)).toBe('-1.0M');
+      expect(formatNumber(-1000000)).toBe('-1M');
       expect(formatNumber(-1e21)).toBe('-1e+21');
     });
 
@@ -58,7 +58,7 @@ describe('Formatting Utilities', () => {
       expect(formatCurrency(0)).toBe('$0.00');
       expect(formatCurrency(10.5)).toBe('$10.50');
       expect(formatCurrency(1234.56)).toBe('$1,234.56');
-      expect(formatCurrency(1000000)).toBe('$1.00M');
+      expect(formatCurrency(1000000)).toBe('$1M');
     });
 
     it('should respect decimal places', () => {
