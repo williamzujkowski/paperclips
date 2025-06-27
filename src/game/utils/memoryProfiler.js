@@ -25,11 +25,11 @@ export class MemoryProfiler {
   startProfile(name) {
     const startMemory = this.getMemorySnapshot();
     const startTime = performance.now();
-    
+
     return () => {
       const endTime = performance.now();
       const endMemory = this.getMemorySnapshot();
-      
+
       const profile = {
         name,
         duration: endTime - startTime,
@@ -37,18 +37,18 @@ export class MemoryProfiler {
         allocations: this.allocationSites.get(name) || 0,
         timestamp: Date.now(),
       };
-      
+
       if (!this.profiles.has(name)) {
         this.profiles.set(name, []);
       }
       this.profiles.get(name).push(profile);
-      
+
       // Keep only recent profiles
       const profiles = this.profiles.get(name);
       if (profiles.length > 100) {
         profiles.shift();
       }
-      
+
       return profile;
     };
   }
@@ -87,7 +87,7 @@ export class MemoryProfiler {
   getHotspots(limit = 10) {
     const sites = Array.from(this.allocationSites.entries());
     sites.sort((a, b) => b[1] - a[1]);
-    
+
     return sites.slice(0, limit).map(([site, count]) => ({
       site,
       count,
@@ -129,9 +129,9 @@ export class MemoryProfiler {
         returned: 0,
       },
     };
-    
+
     this.objectPools.set(type, pool);
-    
+
     return {
       get: () => this.getFromPool(type),
       release: (obj) => this.releaseToPool(type, obj),
@@ -150,7 +150,7 @@ export class MemoryProfiler {
     if (!pool) {
       throw new Error(`Object pool '${type}' not found`);
     }
-    
+
     let obj;
     if (pool.available.length > 0) {
       obj = pool.available.pop();
@@ -159,7 +159,7 @@ export class MemoryProfiler {
       obj = pool.factory();
       pool.stats.created++;
     }
-    
+
     pool.inUse.add(obj);
     return obj;
   }
@@ -175,15 +175,15 @@ export class MemoryProfiler {
     if (!pool) {
       throw new Error(`Object pool '${type}' not found`);
     }
-    
+
     if (!pool.inUse.has(obj)) {
       errorHandler.warn(`Object not from pool '${type}'`);
       return;
     }
-    
+
     pool.inUse.delete(obj);
     pool.reset(obj);
-    
+
     if (pool.available.length < pool.maxSize) {
       pool.available.push(obj);
       pool.stats.returned++;
@@ -201,22 +201,23 @@ export class MemoryProfiler {
       pools: {},
       recommendations: [],
     };
-    
+
     // Analyze profiles
     for (const [name, profiles] of this.profiles.entries()) {
       if (profiles.length > 0) {
         const avgMemory = profiles.reduce((sum, p) => sum + p.memoryDelta, 0) / profiles.length;
         const avgDuration = profiles.reduce((sum, p) => sum + p.duration, 0) / profiles.length;
-        
+
         results.profiles[name] = {
           count: profiles.length,
           avgMemoryDelta: avgMemory,
           avgDuration: avgDuration,
           memoryPerMs: avgMemory / avgDuration,
         };
-        
+
         // Generate recommendations
-        if (avgMemory > 1024 * 1024) { // > 1MB
+        if (avgMemory > 1024 * 1024) {
+          // > 1MB
           results.recommendations.push({
             type: 'high-memory',
             target: name,
@@ -225,17 +226,17 @@ export class MemoryProfiler {
         }
       }
     }
-    
+
     // Analyze pools
     for (const [type, pool] of this.objectPools.entries()) {
-      const reuseRate = pool.stats.reused / (pool.stats.created + pool.stats.reused) * 100;
+      const reuseRate = (pool.stats.reused / (pool.stats.created + pool.stats.reused)) * 100;
       results.pools[type] = {
         ...pool.stats,
         reuseRate: reuseRate.toFixed(1) + '%',
         poolSize: pool.available.length,
         inUse: pool.inUse.size,
       };
-      
+
       if (reuseRate < 50) {
         results.recommendations.push({
           type: 'low-reuse',
@@ -244,7 +245,7 @@ export class MemoryProfiler {
         });
       }
     }
-    
+
     // Check for allocation hotspots
     for (const hotspot of results.hotspots) {
       if (hotspot.percentage > 20) {
@@ -255,7 +256,7 @@ export class MemoryProfiler {
         });
       }
     }
-    
+
     return results;
   }
 
@@ -265,9 +266,9 @@ export class MemoryProfiler {
    */
   generateReport() {
     const analysis = this.analyzePatterns();
-    
+
     let report = '=== Memory Profiling Report ===\n\n';
-    
+
     // Profile results
     if (Object.keys(analysis.profiles).length > 0) {
       report += 'Operation Profiles:\n';
@@ -280,7 +281,7 @@ export class MemoryProfiler {
       }
       report += '\n';
     }
-    
+
     // Allocation hotspots
     if (analysis.hotspots.length > 0) {
       report += 'Allocation Hotspots:\n';
@@ -289,7 +290,7 @@ export class MemoryProfiler {
       }
       report += '\n';
     }
-    
+
     // Object pools
     if (Object.keys(analysis.pools).length > 0) {
       report += 'Object Pools:\n';
@@ -303,7 +304,7 @@ export class MemoryProfiler {
       }
       report += '\n';
     }
-    
+
     // Recommendations
     if (analysis.recommendations.length > 0) {
       report += 'Recommendations:\n';
@@ -311,7 +312,7 @@ export class MemoryProfiler {
         report += `  [${rec.type}] ${rec.message}\n`;
       }
     }
-    
+
     return report;
   }
 
@@ -321,7 +322,7 @@ export class MemoryProfiler {
   reset() {
     this.profiles.clear();
     this.allocationSites.clear();
-    
+
     // Clear pool stats but keep pools
     for (const pool of this.objectPools.values()) {
       pool.stats.created = 0;

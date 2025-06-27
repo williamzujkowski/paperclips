@@ -221,7 +221,7 @@ export class PerformanceMonitor {
     const m = this.metrics;
     const memStats = memoryMonitor.getStats();
     const memTrend = memoryMonitor.getTrend();
-    
+
     let report = `
 Performance Report:
   FPS: ${m.fps.toFixed(1)} (min: ${m.minFps.toFixed(1)})
@@ -230,7 +230,7 @@ Performance Report:
   Update Time: ${m.updateTime.toFixed(2)}ms
   Render Time: ${m.renderTime.toFixed(2)}ms
   Memory Usage: ${m.memoryUsage.toFixed(1)}MB`;
-  
+
     if (memStats.current) {
       report += `
   Memory Details:
@@ -238,7 +238,7 @@ Performance Report:
     Trend: ${memTrend}
     Tracked Objects: ${memStats.trackedObjects}`;
     }
-    
+
     return report.trim();
   }
 

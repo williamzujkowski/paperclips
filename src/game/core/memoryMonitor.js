@@ -252,12 +252,14 @@ export class MemoryMonitor {
 
     return {
       enabled: this.enabled,
-      current: current ? {
-        usedMB: (current.usedJSHeapSize / (1024 * 1024)).toFixed(2),
-        totalMB: (current.totalJSHeapSize / (1024 * 1024)).toFixed(2),
-        limitMB: (current.jsHeapSizeLimit / (1024 * 1024)).toFixed(2),
-        usagePercent: ((current.usedJSHeapSize / current.jsHeapSizeLimit) * 100).toFixed(1),
-      } : null,
+      current: current
+        ? {
+            usedMB: (current.usedJSHeapSize / (1024 * 1024)).toFixed(2),
+            totalMB: (current.totalJSHeapSize / (1024 * 1024)).toFixed(2),
+            limitMB: (current.jsHeapSizeLimit / (1024 * 1024)).toFixed(2),
+            usagePercent: ((current.usedJSHeapSize / current.jsHeapSizeLimit) * 100).toFixed(1),
+          }
+        : null,
       samples: recentSamples,
       trackedObjects: this.trackedObjects.size,
       allocations: Object.fromEntries(this.allocationCounts),

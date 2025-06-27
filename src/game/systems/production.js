@@ -16,7 +16,7 @@ export class ProductionSystem {
    */
   update(deltaTime) {
     const stopProfile = memoryProfiler.startProfile('production.update');
-    
+
     // Calculate clip production rate
     this.updateClipRate();
 
@@ -30,7 +30,7 @@ export class ProductionSystem {
     if (gameState.get('flags.factory')) {
       this.updateFactoryProduction(deltaTime);
     }
-    
+
     stopProfile();
   }
 

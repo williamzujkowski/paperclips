@@ -315,14 +315,14 @@ export class UIRenderer {
    */
   cleanupStaleElements() {
     let cleaned = 0;
-    
+
     for (const [key, element] of Object.entries(this.elements)) {
       if (element && !document.body.contains(element)) {
         this.elements[key] = null;
         cleaned++;
       }
     }
-    
+
     return cleaned;
   }
 

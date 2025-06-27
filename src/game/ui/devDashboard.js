@@ -461,29 +461,29 @@ export class DevDashboard {
   updateMemoryPanel() {
     const content = document.getElementById('devMemoryStats');
     const stats = memoryMonitor.getStats();
-    
+
     if (!stats.current) {
       content.innerHTML = '<div style="color: #999;">Memory API not available</div>';
       return;
     }
-    
+
     const trend = memoryMonitor.getTrend();
     const trendColor = trend === 'growing' ? '#fa0' : trend === 'shrinking' ? '#0f0' : '#999';
-    
+
     let html = `
       <div>Used: ${stats.current.usedMB} MB (${stats.current.usagePercent}%)</div>
       <div>Total: ${stats.current.totalMB} MB | Limit: ${stats.current.limitMB} MB</div>
       <div>Trend: <span style="color: ${trendColor}">${trend}</span></div>
       <div>Tracked Objects: ${stats.trackedObjects}</div>
     `;
-    
+
     if (stats.issues.length > 0) {
       html += '<div style="margin-top: 5px; color: #fa0;">Recent Issues:</div>';
-      stats.issues.slice(-3).forEach(issue => {
+      stats.issues.slice(-3).forEach((issue) => {
         html += `<div style="font-size: 10px; color: #fa0;">- ${issue.type}: ${JSON.stringify(issue.details)}</div>`;
       });
     }
-    
+
     content.innerHTML = html;
   }
 
@@ -494,9 +494,9 @@ export class DevDashboard {
   updateProfilerPanel() {
     const content = document.getElementById('devProfilerStats');
     const analysis = memoryProfiler.analyzePatterns();
-    
+
     let html = '<div style="font-size: 10px;">';
-    
+
     // Object pools
     if (Object.keys(analysis.pools).length > 0) {
       html += '<div style="margin-bottom: 5px;">Object Pools:</div>';
@@ -504,23 +504,23 @@ export class DevDashboard {
         html += `<div style="margin-left: 10px;">${type}: ${stats.reuseRate} reuse (${stats.inUse}/${stats.poolSize})</div>`;
       }
     }
-    
+
     // Hotspots
     if (analysis.hotspots.length > 0) {
       html += '<div style="margin: 5px 0;">Allocation Hotspots:</div>';
-      analysis.hotspots.slice(0, 3).forEach(hotspot => {
+      analysis.hotspots.slice(0, 3).forEach((hotspot) => {
         html += `<div style="margin-left: 10px;">${hotspot.site}: ${hotspot.percentage.toFixed(1)}%</div>`;
       });
     }
-    
+
     // Recommendations
     if (analysis.recommendations.length > 0) {
       html += '<div style="margin: 5px 0; color: #fa0;">Recommendations:</div>';
-      analysis.recommendations.slice(0, 3).forEach(rec => {
+      analysis.recommendations.slice(0, 3).forEach((rec) => {
         html += `<div style="margin-left: 10px; font-size: 9px; color: #fa0;">• ${rec.message}</div>`;
       });
     }
-    
+
     html += '</div>';
     content.innerHTML = html;
   }
