@@ -30,6 +30,7 @@ This modern edition maintains the original gameplay while upgrading the codebase
 - **Save System**: Automatic saves with import/export functionality
 - **Version Management**: Semantic versioning with automated releases
 - **PWA Support**: Service Worker for offline play
+- **Keyboard Shortcuts**: Quick actions for power users (press ? in-game)
 
 ## 🛠️ Development
 
@@ -260,6 +261,21 @@ UniversalPaperclips.debug.setLogLevel('debug'); // Change log level
 // Game control
 UniversalPaperclips.debug.reset();              // Reset game (with confirmation)
 ```
+
+## ⌨️ Keyboard Shortcuts
+
+Press `?` in-game to see all available shortcuts:
+
+- **Space** - Make paperclip
+- **W** - Buy wire
+- **A** - Buy auto-clipper
+- **M** - Buy marketing
+- **[** - Lower price
+- **]** - Raise price
+- **Q** - Quantum compute
+- **Ctrl+S** - Save game
+- **Ctrl+Shift+D** - Toggle dev dashboard
+- **?** - Show keyboard shortcuts
 
 ## 🎯 Roadmap
 
