@@ -29,5 +29,6 @@
   "globals": {
     "requestAnimationFrame": "readonly",
     "cancelAnimationFrame": "readonly"
-  }
+  },
+  "ignorePatterns": ["jest.config.js", "rollup.config.js", "babel.config.js"]
 }
