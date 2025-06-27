@@ -27,7 +27,7 @@ This modern edition maintains the original gameplay while upgrading the codebase
 - **Automated Testing**: 102 unit tests with Jest
 - **Code Quality**: ESLint, Prettier, and pre-commit hooks
 - **CI/CD**: GitHub Actions for testing and deployment
-- **Save System**: Automatic saves with import/export functionality
+- **Save System**: Multiple save slots (5) with import/export functionality
 - **Version Management**: Semantic versioning with automated releases
 - **PWA Support**: Service Worker for offline play
 - **Keyboard Shortcuts**: Quick actions for power users (press ? in-game)
@@ -276,6 +276,7 @@ Press `?` in-game to see all available shortcuts:
 - **Ctrl+S** - Save game
 - **Ctrl+Shift+D** - Toggle dev dashboard
 - **?** - Show keyboard shortcuts
+- **Ctrl+Shift+S** - Open save slots manager
 
 ## 🎯 Roadmap
 

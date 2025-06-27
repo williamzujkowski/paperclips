@@ -2,6 +2,8 @@
  * GameState class - Manages all game state in a centralized, encapsulated manner
  * Replaces global variables with proper state management
  */
+import { saveSlotManager } from './saveSlots.js';
+
 export class GameState {
   constructor() {
     // Observers for state changes
@@ -201,7 +203,7 @@ export class GameState {
   }
 
   /**
-   * Save game state to localStorage
+   * Save game state to current slot
    */
   save() {
     try {
@@ -222,8 +224,12 @@ export class GameState {
           meta: this.meta,
         },
       };
-      localStorage.setItem('universalPaperclipsSave', JSON.stringify(saveData));
-      return true;
+
+      // Initialize save slots if needed
+      saveSlotManager.initialize();
+
+      // Save to current slot
+      return saveSlotManager.saveToSlot(saveData);
     } catch (error) {
       console.error('Failed to save game:', error);
       return false;
@@ -231,16 +237,26 @@ export class GameState {
   }
 
   /**
-   * Load game state from localStorage
+   * Load game state from current slot
    */
-  load() {
+  load(slot = null) {
     try {
-      const saveData = localStorage.getItem('universalPaperclipsSave');
-      if (!saveData) {
-        return false;
+      // Initialize save slots if needed
+      saveSlotManager.initialize();
+
+      // Migrate old save if it exists
+      const oldSave = localStorage.getItem('universalPaperclipsSave');
+      if (oldSave) {
+        saveSlotManager.migrateOldSave();
       }
 
-      const parsed = JSON.parse(saveData);
+      // Load from specified slot or current slot
+      const targetSlot = slot || saveSlotManager.currentSlot;
+      const parsed = saveSlotManager.loadFromSlot(targetSlot);
+
+      if (!parsed) {
+        return false;
+      }
 
       // Validate save data
       if (!parsed.state || !parsed.version) {
@@ -280,26 +296,80 @@ export class GameState {
   /**
    * Export save data as string for sharing
    */
-  exportSave() {
-    const saveData = localStorage.getItem('universalPaperclipsSave');
-    if (!saveData) {
-      return null;
-    }
-    return btoa(saveData);
+  exportSave(slot = null) {
+    const targetSlot = slot || saveSlotManager.currentSlot;
+    return saveSlotManager.exportSlot(targetSlot);
   }
 
   /**
    * Import save data from string
    */
-  importSave(encodedSave) {
+  importSave(encodedSave, slot = null) {
     try {
-      const saveData = atob(encodedSave);
-      localStorage.setItem('universalPaperclipsSave', saveData);
-      return this.load();
+      const targetSlot = slot || saveSlotManager.currentSlot;
+      const success = saveSlotManager.importToSlot(targetSlot, encodedSave);
+      if (success) {
+        return this.load(targetSlot);
+      }
+      return false;
     } catch (error) {
       console.error('Failed to import save:', error);
       return false;
     }
+  }
+
+  /**
+   * Get all save slots information
+   */
+  getAllSlots() {
+    saveSlotManager.initialize();
+    return saveSlotManager.getAllSlots();
+  }
+
+  /**
+   * Switch to a different save slot
+   */
+  switchSlot(slot) {
+    if (slot < 1 || slot > saveSlotManager.maxSlots) {
+      return false;
+    }
+
+    // Save current game before switching
+    this.save();
+
+    // Switch to new slot
+    saveSlotManager.setCurrentSlot(slot);
+
+    // Load the new slot (or reset if empty)
+    const loaded = this.load(slot);
+    if (!loaded) {
+      // If slot is empty, reset to new game
+      this.reset();
+    }
+
+    return true;
+  }
+
+  /**
+   * Delete a save slot
+   */
+  deleteSlot(slot) {
+    return saveSlotManager.deleteSlot(slot);
+  }
+
+  /**
+   * Copy current slot to another slot
+   */
+  copyToSlot(toSlot) {
+    const fromSlot = saveSlotManager.currentSlot;
+    return saveSlotManager.copySlot(fromSlot, toSlot);
+  }
+
+  /**
+   * Get current slot number
+   */
+  getCurrentSlot() {
+    return saveSlotManager.currentSlot;
   }
 
   /**

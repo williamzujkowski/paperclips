@@ -4,6 +4,38 @@
 
 import { GameState } from '../../src/game/core/gameState.js';
 
+// Mock the saveSlots module
+jest.mock('../../src/game/core/saveSlots.js', () => ({
+  saveSlotManager: {
+    initialize: jest.fn(),
+    currentSlot: 1,
+    maxSlots: 5,
+    saveToSlot: jest.fn(() => true),
+    loadFromSlot: jest.fn((slot) => {
+      if (slot === 1 && window.mockSlotData) {
+        return window.mockSlotData;
+      }
+      return null;
+    }),
+    exportSlot: jest.fn((slot) => {
+      if (slot === 1 && window.mockSlotData) {
+        return btoa(JSON.stringify(window.mockSlotData));
+      }
+      return null;
+    }),
+    importToSlot: jest.fn(() => true),
+    setCurrentSlot: jest.fn(() => true),
+    getAllSlots: jest.fn(() => [
+      { slot: 1, active: true, empty: false, info: { clips: 0 } },
+      { slot: 2, active: false, empty: true, info: null },
+      { slot: 3, active: false, empty: true, info: null },
+      { slot: 4, active: false, empty: true, info: null },
+      { slot: 5, active: false, empty: true, info: null },
+    ]),
+    migrateOldSave: jest.fn(() => false),
+  },
+}));
+
 describe('GameState', () => {
   let gameState;
 
@@ -97,18 +129,20 @@ describe('GameState', () => {
 
   describe('save/load functionality', () => {
     it('should save state to localStorage', () => {
+      const { saveSlotManager } = require('../../src/game/core/saveSlots.js');
+
       gameState.set('resources.clips', 1000);
       gameState.set('market.demand', 25);
-      
+
       const result = gameState.save();
       expect(result).toBe(true);
-      expect(localStorage.setItem).toHaveBeenCalled();
+      expect(saveSlotManager.saveToSlot).toHaveBeenCalled();
 
-      const savedData = JSON.parse(localStorage.setItem.mock.calls[0][1]);
-      expect(savedData.version).toBe('2.0.0');
-      expect(savedData.timestamp).toBeDefined();
-      expect(savedData.state.resources.clips).toBe(1000);
-      expect(savedData.state.market.demand).toBe(25);
+      const saveData = saveSlotManager.saveToSlot.mock.calls[0][0];
+      expect(saveData.version).toBe('2.0.0');
+      expect(saveData.timestamp).toBeDefined();
+      expect(saveData.state.resources.clips).toBe(1000);
+      expect(saveData.state.market.demand).toBe(25);
     });
 
     it('should load state from localStorage', () => {
@@ -122,33 +156,37 @@ describe('GameState', () => {
         },
       };
 
-      localStorage.getItem.mockReturnValue(JSON.stringify(saveData));
-      
+      // Set up the mock to return our save data
+      window.mockSlotData = saveData;
+
       const result = gameState.load();
       expect(result).toBe(true);
       expect(gameState.resources.clips).toBe(5000);
       expect(gameState.resources.funds).toBe(100);
       expect(gameState.market.demand).toBe(50);
       expect(gameState.computing.trust).toBe(10);
+
+      // Clean up
+      window.mockSlotData = null;
     });
 
     it('should handle missing save data', () => {
       localStorage.getItem.mockReturnValue(null);
-      
+
       const result = gameState.load();
       expect(result).toBe(false);
     });
 
     it('should handle corrupted save data', () => {
       localStorage.getItem.mockReturnValue('invalid json');
-      
+
       const result = gameState.load();
       expect(result).toBe(false);
     });
 
     it('should validate save data format', () => {
       localStorage.getItem.mockReturnValue(JSON.stringify({ invalid: 'data' }));
-      
+
       const result = gameState.load();
       expect(result).toBe(false);
     });
@@ -168,18 +206,23 @@ describe('GameState', () => {
     });
 
     it('should save after reset', () => {
+      const { saveSlotManager } = require('../../src/game/core/saveSlots.js');
       gameState.reset();
-      expect(localStorage.setItem).toHaveBeenCalled();
+      expect(saveSlotManager.saveToSlot).toHaveBeenCalled();
     });
   });
 
   describe('import/export functionality', () => {
     it('should export save data as base64 string', () => {
-      const saveData = JSON.stringify({ test: 'data' });
-      localStorage.getItem.mockReturnValue(saveData);
+      const saveData = { test: 'data' };
+
+      window.mockSlotData = saveData;
 
       const exported = gameState.exportSave();
-      expect(exported).toBe(btoa(saveData));
+      expect(exported).toBe(btoa(JSON.stringify(saveData)));
+
+      // Clean up
+      window.mockSlotData = null;
     });
 
     it('should return null if no save exists', () => {
@@ -199,12 +242,17 @@ describe('GameState', () => {
       };
       const encoded = btoa(JSON.stringify(saveData));
 
+      // Set up mock to return the data after import
+      window.mockSlotData = saveData;
+
       const result = gameState.importSave(encoded);
       expect(result).toBe(true);
-      expect(localStorage.setItem).toHaveBeenCalledWith(
-        'universalPaperclipsSave',
-        JSON.stringify(saveData)
-      );
+
+      const { saveSlotManager } = require('../../src/game/core/saveSlots.js');
+      expect(saveSlotManager.importToSlot).toHaveBeenCalledWith(1, encoded);
+
+      // Clean up
+      window.mockSlotData = null;
     });
 
     it('should handle invalid import data', () => {

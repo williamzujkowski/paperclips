@@ -109,7 +109,7 @@ Modernize the Universal Paperclips codebase while preserving gameplay and mainta
 - [ ] Implement achievement system
 - [ ] Add statistics tracking
 - [ ] Create mod support system
-- [ ] Add multiple save slots
+- [x] Add multiple save slots (5 slots with UI, import/export per slot)
 - [ ] Implement cloud saves
 - [x] Add keyboard shortcuts (Space, W, A, M, [, ], Q, Ctrl+S, ?)
 - [ ] Improve mobile responsiveness

@@ -15,6 +15,7 @@ import { projectsSystem } from './game/systems/projects.js';
 import { uiRenderer } from './game/ui/renderer.js';
 import { setupEventHandlers } from './game/ui/events.js';
 import { devDashboard } from './game/ui/devDashboard.js';
+import { saveSlotUI } from './game/ui/saveSlotUI.js';
 
 // Game initialization
 async function initGame() {
@@ -108,6 +109,7 @@ async function initGame() {
   // Set up UI event handlers with error handling
   try {
     setupEventHandlers();
+    saveSlotUI.initialize();
   } catch (error) {
     errorHandler.handleError(error, 'initGame.setupEventHandlers');
   }
