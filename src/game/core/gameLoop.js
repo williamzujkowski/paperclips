@@ -124,7 +124,7 @@ export class GameLoop {
   update(deltaTime) {
     // Increment tick counter
     gameState.increment('ui.ticks');
-    
+
     // Call all registered update handlers
     for (const handler of this.updateHandlers) {
       try {

@@ -219,7 +219,7 @@ export class GameState {
       }
 
       const parsed = JSON.parse(saveData);
-      
+
       // Validate save data
       if (!parsed.state || !parsed.version) {
         console.warn('Invalid save data format');

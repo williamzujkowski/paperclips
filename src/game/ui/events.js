@@ -16,17 +16,17 @@ export function setupEventHandlers() {
       uiRenderer.flashElement('clips', '#90EE90');
     }
   });
-  
+
   // Lower Price button
   bindButton('btnLowerPrice', () => {
     marketSystem.adjustPrice('lower');
   });
-  
+
   // Raise Price button
   bindButton('btnRaisePrice', () => {
     marketSystem.adjustPrice('raise');
   });
-  
+
   // Buy Wire button
   bindButton('btnBuyWire', () => {
     const bought = marketSystem.buyWire(1000);
@@ -34,7 +34,7 @@ export function setupEventHandlers() {
       uiRenderer.flashElement('wire', '#90EE90');
     }
   });
-  
+
   // Buy Marketing button
   bindButton('btnMarketing', () => {
     const bought = marketSystem.buyMarketing();
@@ -42,7 +42,7 @@ export function setupEventHandlers() {
       uiRenderer.flashElement('marketingLvl', '#90EE90');
     }
   });
-  
+
   // Buy Auto-Clipper button
   bindButton('btnBuyAutoClipper', () => {
     const bought = productionSystem.buyAutoClipper();
@@ -50,7 +50,7 @@ export function setupEventHandlers() {
       uiRenderer.flashElement('clipmakerLevel', '#90EE90');
     }
   });
-  
+
   // Buy Mega-Clipper button
   bindButton('btnBuyMegaClipper', () => {
     const bought = productionSystem.buyMegaClipper();
@@ -58,31 +58,31 @@ export function setupEventHandlers() {
       uiRenderer.flashElement('megaClipperLevel', '#90EE90');
     }
   });
-  
+
   // Add Processor button
   bindButton('btnAddProc', () => {
     const trust = gameState.get('computing.trust');
     const processors = gameState.get('computing.processors');
     const memory = gameState.get('computing.memory');
-    
+
     if (trust > processors + memory - 2) {
       gameState.increment('computing.processors');
       uiRenderer.flashElement('processors', '#90EE90');
     }
   });
-  
+
   // Add Memory button
   bindButton('btnAddMem', () => {
     const trust = gameState.get('computing.trust');
     const processors = gameState.get('computing.processors');
     const memory = gameState.get('computing.memory');
-    
+
     if (trust > processors + memory - 2) {
       gameState.increment('computing.memory');
       uiRenderer.flashElement('memory', '#90EE90');
     }
   });
-  
+
   // Save Game button
   bindButton('btnSave', () => {
     const saved = gameState.save();
@@ -92,7 +92,7 @@ export function setupEventHandlers() {
       uiRenderer.showNotification('Save failed!', 2000);
     }
   });
-  
+
   // Load Game button
   bindButton('btnLoad', () => {
     const loaded = gameState.load();
@@ -103,7 +103,7 @@ export function setupEventHandlers() {
       uiRenderer.showNotification('No save found!', 2000);
     }
   });
-  
+
   // Reset Game button
   bindButton('btnReset', () => {
     if (confirm('Are you sure you want to reset your game? This cannot be undone!')) {
@@ -111,7 +111,7 @@ export function setupEventHandlers() {
       location.reload();
     }
   });
-  
+
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     // Ctrl+S to save
@@ -122,7 +122,7 @@ export function setupEventHandlers() {
         uiRenderer.showNotification('Game saved!', 1000);
       }
     }
-    
+
     // Space to make paperclip (when button is visible)
     if (e.key === ' ' && !e.target.matches('input, textarea')) {
       e.preventDefault();
@@ -147,4 +147,3 @@ function bindButton(buttonId, handler) {
     setTimeout(() => bindButton(buttonId, handler), 100);
   }
 }
-

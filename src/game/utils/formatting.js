@@ -47,7 +47,7 @@ function abbreviateNumber(num, decimals = 0) {
   const precision = Math.pow(10, decimals);
   const scaled = num / Math.pow(10, order * 3);
   const rounded = Math.round(scaled * precision) / precision;
-  
+
   return rounded.toFixed(decimals) + suffix;
 }
 
@@ -98,17 +98,17 @@ export function parseFormattedNumber(str) {
 
   // Handle abbreviations
   const abbrevMap = {
-    'K': 1e3,
-    'M': 1e6,
-    'B': 1e9,
-    'T': 1e12,
-    'q': 1e15,
-    'Q': 1e18,
-    's': 1e21,
-    'S': 1e24,
-    'o': 1e27,
-    'n': 1e30,
-    'd': 1e33,
+    K: 1e3,
+    M: 1e6,
+    B: 1e9,
+    T: 1e12,
+    q: 1e15,
+    Q: 1e18,
+    s: 1e21,
+    S: 1e24,
+    o: 1e27,
+    n: 1e30,
+    d: 1e33,
   };
 
   for (const [suffix, multiplier] of Object.entries(abbrevMap)) {

@@ -47,12 +47,7 @@ export const PHASE = {
 };
 
 // Swarm gift thresholds
-export const SWARM_GIFTS = [
-  1000000,
-  1000000000,
-  1000000000000,
-  1000000000000000,
-];
+export const SWARM_GIFTS = [1000000, 1000000000, 1000000000000, 1000000000000000];
 
 // Number formatting thresholds
 export const NOTATION_THRESHOLD = 1e6;
@@ -139,8 +134,8 @@ export const RISK_LEVELS = {
   },
   HIGH: {
     name: 'high',
-    variance: 0.30,
-    returnMultiplier: 1.10,
+    variance: 0.3,
+    returnMultiplier: 1.1,
   },
 };
 

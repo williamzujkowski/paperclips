@@ -16,13 +16,13 @@ export class ProductionSystem {
   update(deltaTime) {
     // Calculate clip production rate
     this.updateClipRate();
-    
+
     // Process automated production
     this.processAutomatedProduction(deltaTime);
-    
+
     // Update wire consumption
     this.updateWireConsumption();
-    
+
     // Update factory systems if unlocked
     if (gameState.get('flags.factory')) {
       this.updateFactoryProduction(deltaTime);
@@ -34,21 +34,21 @@ export class ProductionSystem {
    */
   updateClipRate() {
     let rate = 0;
-    
+
     // Add clipmaker production
     const clipmakerLevel = gameState.get('production.clipmakerLevel');
     const clipperBoost = gameState.get('production.clipperBoost');
     if (clipmakerLevel > 0) {
       rate += clipmakerLevel * clipperBoost;
     }
-    
+
     // Add megaclipper production
     const megaClipperLevel = gameState.get('production.megaClipperLevel');
     const megaClipperBoost = gameState.get('production.megaClipperBoost');
     if (megaClipperLevel > 0) {
       rate += megaClipperLevel * megaClipperBoost * 500;
     }
-    
+
     gameState.set('production.clipRate', rate);
     gameState.set('production.clipRateTemp', rate);
   }
@@ -59,12 +59,12 @@ export class ProductionSystem {
   processAutomatedProduction(deltaTime) {
     const clipRate = gameState.get('production.clipRate');
     const wire = gameState.get('resources.wire');
-    
+
     if (clipRate > 0 && wire > 0) {
       // Calculate clips to produce this tick
       const clipsToMake = (clipRate * deltaTime) / 1000;
       const wireNeeded = Math.ceil(clipsToMake);
-      
+
       if (wire >= wireNeeded) {
         // Produce clips
         gameState.increment('resources.clips', clipsToMake);
@@ -85,18 +85,18 @@ export class ProductionSystem {
    */
   makeClip() {
     const wire = gameState.get('resources.wire');
-    
+
     if (wire >= 1) {
       gameState.increment('resources.clips');
       gameState.increment('resources.unusedClips');
       gameState.decrement('resources.wire');
-      
+
       // Track manual clip production for achievements
       gameState.increment('meta.manualClips');
-      
+
       return true;
     }
-    
+
     return false;
   }
 
@@ -106,21 +106,21 @@ export class ProductionSystem {
   buyAutoClipper() {
     const funds = gameState.get('resources.funds');
     const cost = gameState.get('market.clipperCost');
-    
+
     if (funds >= cost) {
       gameState.decrement('resources.funds', cost);
       gameState.increment('production.clipmakerLevel');
-      
+
       // Increase cost for next clipper
       const newCost = Math.ceil(cost * 1.1);
       gameState.set('market.clipperCost', newCost);
-      
+
       // Update clip rate
       this.updateClipRate();
-      
+
       return true;
     }
-    
+
     return false;
   }
 
@@ -130,21 +130,21 @@ export class ProductionSystem {
   buyMegaClipper() {
     const funds = gameState.get('resources.funds');
     const cost = gameState.get('market.megaClipperCost');
-    
+
     if (funds >= cost) {
       gameState.decrement('resources.funds', cost);
       gameState.increment('production.megaClipperLevel');
-      
+
       // Increase cost for next mega-clipper
       const newCost = Math.ceil(cost * 1.12);
       gameState.set('market.megaClipperCost', newCost);
-      
+
       // Update clip rate
       this.updateClipRate();
-      
+
       return true;
     }
-    
+
     return false;
   }
 
@@ -154,7 +154,7 @@ export class ProductionSystem {
   updateWireConsumption() {
     const clipRate = gameState.get('production.clipRate');
     const wireConsumptionRate = clipRate; // 1 wire per clip
-    
+
     gameState.set('production.wireConsumptionRate', wireConsumptionRate);
   }
 
@@ -165,14 +165,11 @@ export class ProductionSystem {
     const factoryLevel = gameState.get('infrastructure.factoryLevel');
     const factoryBoost = gameState.get('production.factoryBoost');
     const availableMatter = gameState.get('resources.availableMatter');
-    
+
     if (factoryLevel > 0 && availableMatter > 0) {
       const productionRate = factoryLevel * factoryBoost;
-      const matterToProcess = Math.min(
-        (productionRate * deltaTime) / 1000,
-        availableMatter,
-      );
-      
+      const matterToProcess = Math.min((productionRate * deltaTime) / 1000, availableMatter);
+
       if (matterToProcess > 0) {
         gameState.decrement('resources.availableMatter', matterToProcess);
         gameState.increment('resources.processedMatter', matterToProcess);
@@ -213,7 +210,7 @@ export class ProductionSystem {
         gameState.set('production.droneBoost', multiplier);
         break;
     }
-    
+
     // Recalculate rates
     this.updateClipRate();
   }

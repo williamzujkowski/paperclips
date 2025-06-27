@@ -29,30 +29,30 @@ export class UIRenderer {
     this.elements.funds = document.getElementById('funds');
     this.elements.wire = document.getElementById('wire');
     this.elements.unsoldClips = document.getElementById('unsoldClips');
-    
+
     // Production displays
     this.elements.clipRate = document.getElementById('clipRate');
     this.elements.clipmakerLevel = document.getElementById('clipmakerLevel');
     this.elements.megaClipperLevel = document.getElementById('megaClipperLevel');
-    
+
     // Market displays
     this.elements.demand = document.getElementById('demand');
     this.elements.margin = document.getElementById('margin');
     this.elements.marketingLvl = document.getElementById('marketingLvl');
     this.elements.wireCost = document.getElementById('wireCost');
-    
+
     // Computing displays
     this.elements.operations = document.getElementById('operations');
     this.elements.trust = document.getElementById('trust');
     this.elements.processors = document.getElementById('processors');
     this.elements.memory = document.getElementById('memory');
     this.elements.creativity = document.getElementById('creativity');
-    
+
     // Infrastructure displays
     this.elements.factoryLevel = document.getElementById('factoryLevel');
     this.elements.harvesterLevel = document.getElementById('harvesterLevel');
     this.elements.wireDroneLevel = document.getElementById('wireDroneLevel');
-    
+
     // Display sections
     this.elements.businessDisplay = document.getElementById('businessDisplay');
     this.elements.manufacturingDisplay = document.getElementById('manufacturingDisplay');
@@ -71,19 +71,19 @@ export class UIRenderer {
 
     // Update resources
     this.updateResources(state);
-    
+
     // Update production
     this.updateProduction(state);
-    
+
     // Update market
     this.updateMarket(state);
-    
+
     // Update computing
     this.updateComputing(state);
-    
+
     // Update infrastructure
     this.updateInfrastructure(state);
-    
+
     // Update display visibility
     this.updateDisplayVisibility(state);
   }
@@ -176,16 +176,16 @@ export class UIRenderer {
   updateDisplayVisibility(state) {
     // Business display (always visible)
     this.setDisplayVisible('businessDisplay', true);
-    
+
     // Manufacturing display (when auto-clippers available)
     this.setDisplayVisible('manufacturingDisplay', state.flags.autoClipper);
-    
+
     // Computational display (when trust unlocked)
     this.setDisplayVisible('computationalDisplay', state.flags.trust);
-    
+
     // Projects display (when projects available)
     this.setDisplayVisible('projectsDisplay', state.flags.projects);
-    
+
     // Space display (when space exploration unlocked)
     this.setDisplayVisible('spaceDisplay', state.flags.space);
   }
@@ -208,15 +208,15 @@ export class UIRenderer {
     const notification = document.createElement('div');
     notification.className = 'notification';
     notification.textContent = message;
-    
+
     // Add to page
     document.body.appendChild(notification);
-    
+
     // Fade in
     setTimeout(() => {
       notification.classList.add('visible');
     }, 10);
-    
+
     // Remove after duration
     setTimeout(() => {
       notification.classList.remove('visible');
@@ -235,14 +235,14 @@ export class UIRenderer {
     if (makeClipBtn) {
       makeClipBtn.disabled = state.resources.wire < 1;
     }
-    
+
     // Buy Wire button
     const buyWireBtn = document.getElementById('btnBuyWire');
     if (buyWireBtn) {
       const wireCost = state.market.wireCost;
       buyWireBtn.disabled = state.resources.funds < wireCost;
     }
-    
+
     // Buy Auto-Clipper button
     const buyClipperBtn = document.getElementById('btnBuyAutoClipper');
     if (buyClipperBtn) {
@@ -259,11 +259,11 @@ export class UIRenderer {
     if (!element) {
       return;
     }
-    
+
     const originalColor = element.style.backgroundColor;
     element.style.backgroundColor = color;
     element.style.transition = 'background-color 0.3s';
-    
+
     setTimeout(() => {
       element.style.backgroundColor = originalColor;
     }, 300);

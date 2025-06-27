@@ -14,7 +14,7 @@ import { setupEventHandlers } from './game/ui/events.js';
 function initGame() {
   console.log('Universal Paperclips - Modern Edition');
   console.log('Original by Frank Lantz and Bennett Foddy');
-  
+
   // Try to load saved game
   const loaded = gameState.load();
   if (loaded) {
@@ -22,34 +22,34 @@ function initGame() {
   } else {
     console.log('Starting new game');
   }
-  
+
   // Register update handlers
   gameLoop.addUpdateHandler((deltaTime, state) => {
     const currentTime = Date.now();
-    
+
     // Update game systems
     productionSystem.update(deltaTime);
     marketSystem.update(deltaTime, currentTime);
-    
+
     // Update elapsed time
     state.increment('ui.elapsedTime', deltaTime);
   });
-  
+
   // Register render handlers
   gameLoop.addRenderHandler((state) => {
     uiRenderer.render(state);
     uiRenderer.updateButtonStates(state);
   });
-  
+
   // Set up UI event handlers
   setupEventHandlers();
-  
+
   // Start the game loop
   gameLoop.start();
-  
+
   // Initial render
   uiRenderer.render(gameState);
-  
+
   // Set up autosave
   setInterval(() => {
     gameState.save();
@@ -79,7 +79,7 @@ window.UniversalPaperclips = {
     addWire: (amount) => gameState.increment('resources.wire', amount),
     unlockAll: () => {
       // Unlock all features for testing
-      Object.keys(gameState.flags).forEach(flag => {
+      Object.keys(gameState.flags).forEach((flag) => {
         gameState.set(`flags.${flag}`, true);
       });
     },
