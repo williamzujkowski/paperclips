@@ -60,11 +60,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jgmize/paperclips.git"
+    "url": "git+https://github.com/williamzujkowski/paperclips.git"
   },
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/jgmize/paperclips/issues"
+    "url": "https://github.com/williamzujkowski/paperclips/issues"
   },
-  "homepage": "https://github.com/jgmize/paperclips#readme"
+  "homepage": "https://github.com/williamzujkowski/paperclips#readme"
 }

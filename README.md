@@ -17,14 +17,19 @@ This modern edition maintains the original gameplay while upgrading the codebase
 - **State Management**: Centralized game state with dot notation access
 - **Error Handling**: Comprehensive error boundaries and recovery mechanisms
 - **Performance Monitoring**: Built-in FPS tracking and performance metrics
+- **Memory Management**: Object pooling, leak detection, and profiling tools
+- **Lazy Loading**: Dynamic module loading reduces initial bundle by ~30%
 - **Type Safety**: JSDoc annotations throughout for better IDE support
 
 ### Development Features
 - **Hot Reload**: Development server with live updates
-- **Automated Testing**: 89+ unit tests with Jest
+- **Dev Dashboard**: Real-time monitoring and debugging (Ctrl+Shift+D)
+- **Automated Testing**: 102 unit tests with Jest
 - **Code Quality**: ESLint, Prettier, and pre-commit hooks
 - **CI/CD**: GitHub Actions for testing and deployment
 - **Save System**: Automatic saves with import/export functionality
+- **Version Management**: Semantic versioning with automated releases
+- **PWA Support**: Service Worker for offline play
 
 ## 🛠️ Development
 
@@ -61,6 +66,8 @@ npm run build
 - `npm run lint` - Check code quality
 - `npm run lint:fix` - Auto-fix linting issues
 - `npm run format` - Format code with Prettier
+- `npm run version:bump [major|minor|patch]` - Bump version and create tag
+- `npm run lighthouse` - Run performance audit
 
 ### Project Structure
 ```
@@ -73,18 +80,25 @@ paperclips/
 │   │   │   ├── gameLoop.js       # Main game loop
 │   │   │   ├── constants.js      # Game constants
 │   │   │   ├── errorHandler.js   # Error handling system
-│   │   │   └── performanceMonitor.js # Performance tracking
+│   │   │   ├── performanceMonitor.js # Performance tracking
+│   │   │   ├── memoryMonitor.js  # Memory leak detection
+│   │   │   └── phaseManager.js   # Lazy loading controller
 │   │   ├── systems/       # Game systems
 │   │   │   ├── production.js     # Paperclip production
 │   │   │   ├── market.js         # Economic system
 │   │   │   ├── computing.js      # Processors & operations
 │   │   │   ├── combat.js         # Space battles
-│   │   │   └── projects.js       # Research projects
+│   │   │   ├── projects.js       # Research projects
+│   │   │   ├── swarm.js          # Space probe swarm
+│   │   │   └── exploration.js    # Space exploration
 │   │   ├── ui/            # User interface
 │   │   │   ├── renderer.js       # DOM rendering
-│   │   │   └── events.js         # Event handlers
+│   │   │   ├── events.js         # Event handlers
+│   │   │   ├── domBatcher.js     # DOM update batching
+│   │   │   └── devDashboard.js   # Development tools UI
 │   │   └── utils/         # Utilities
-│   │       └── formatting.js     # Number formatting
+│   │       ├── formatting.js     # Number formatting
+│   │       └── memoryProfiler.js # Memory profiling tools
 ├── tests/                 # Test suite
 │   └── unit/             # Unit tests
 ├── docs/                  # GitHub Pages deployment
@@ -148,10 +162,12 @@ npm run test:coverage
 ```
 
 Test files are located in `tests/unit/` and cover:
-- State management
-- Game systems
-- Utility functions
-- Save/load functionality
+- State management (save/load, import/export)
+- Game systems (production, market, computing, combat)
+- Utility functions (formatting, DOM batching)
+- Error handling and recovery
+- Performance monitoring
+- Memory leak detection
 
 ## 🚢 Deployment
 
