@@ -4,6 +4,7 @@
  */
 
 import { errorHandler } from './errorHandler.js';
+import { memoryMonitor } from './memoryMonitor.js';
 
 /**
  * @class PerformanceMonitor
@@ -218,15 +219,27 @@ export class PerformanceMonitor {
    */
   getReport() {
     const m = this.metrics;
-    return `
+    const memStats = memoryMonitor.getStats();
+    const memTrend = memoryMonitor.getTrend();
+    
+    let report = `
 Performance Report:
   FPS: ${m.fps.toFixed(1)} (min: ${m.minFps.toFixed(1)})
   Avg Frame Time: ${m.avgFrameTime.toFixed(2)}ms
   Max Frame Time: ${m.maxFrameTime.toFixed(2)}ms
   Update Time: ${m.updateTime.toFixed(2)}ms
   Render Time: ${m.renderTime.toFixed(2)}ms
-  Memory Usage: ${m.memoryUsage.toFixed(1)}MB
-    `.trim();
+  Memory Usage: ${m.memoryUsage.toFixed(1)}MB`;
+  
+    if (memStats.current) {
+      report += `
+  Memory Details:
+    Used: ${memStats.current.usedMB}MB (${memStats.current.usagePercent}%)
+    Trend: ${memTrend}
+    Tracked Objects: ${memStats.trackedObjects}`;
+    }
+    
+    return report.trim();
   }
 
   /**

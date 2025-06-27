@@ -1,5 +1,24 @@
 <html>
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Universal Paperclips</title>
+        
+        <!-- Content Security Policy -->
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'self';
+            script-src 'self' 'unsafe-inline' 'unsafe-eval';
+            style-src 'self' 'unsafe-inline';
+            img-src 'self' data:;
+            connect-src 'self';
+            font-src 'self';
+            object-src 'none';
+            media-src 'self';
+            base-uri 'self';
+            frame-ancestors 'none';
+            upgrade-insecure-requests;
+        ">
+        
         <link rel="stylesheet" type="text/css" href="interface.css" />
     </head>
     
@@ -710,7 +729,7 @@
             
         </div>
             
-        </br> 
+        <br /> 
             
         Cost: <span id="farmCost">0</span> clips<br />
         <br />
@@ -737,7 +756,7 @@
             
         </div>    
         
-        </br>     
+        <br />     
             
         Cost: <span id="batteryCost">0</span> clips<br />
         <br />     

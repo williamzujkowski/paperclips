@@ -170,6 +170,32 @@ git commit -m "Deploy to GitHub Pages"
 git push
 ```
 
+### Version Management
+
+The project uses semantic versioning (major.minor.patch):
+
+```bash
+# Show current version
+npm run version:current
+
+# List all version tags
+npm run version:list
+
+# Bump version and create tag
+npm run version:bump patch    # 2.0.0 → 2.0.1
+npm run version:bump minor    # 2.0.0 → 2.1.0
+npm run version:bump major    # 2.0.0 → 3.0.0
+
+# Push tags to trigger release
+git push && git push --tags
+```
+
+When a version tag is pushed, GitHub Actions automatically:
+- Runs tests
+- Creates a GitHub release
+- Generates changelog from commits
+- Uploads build artifacts
+
 ## 🛡️ Security
 
 - No external dependencies in production

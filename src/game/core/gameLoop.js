@@ -7,6 +7,9 @@ import { gameState } from './gameState.js';
 import { DISPLAY_UPDATE_INTERVAL, AUTOSAVE_INTERVAL } from './constants.js';
 import { errorHandler } from './errorHandler.js';
 import { performanceMonitor } from './performanceMonitor.js';
+import { memoryMonitor } from './memoryMonitor.js';
+import { uiRenderer } from '../ui/renderer.js';
+import { domBatcher } from '../ui/domBatcher.js';
 
 export class GameLoop {
   constructor() {
@@ -14,9 +17,11 @@ export class GameLoop {
     this.lastUpdate = Date.now();
     this.lastRender = Date.now();
     this.lastAutosave = Date.now();
+    this.lastCleanup = Date.now();
     this.updateHandlers = [];
     this.renderHandlers = [];
     this.animationFrameId = null;
+    this.cleanupInterval = 60000; // Cleanup every 60 seconds
   }
 
   /**
@@ -101,6 +106,7 @@ export class GameLoop {
     const updateDelta = now - this.lastUpdate;
     const renderDelta = now - this.lastRender;
     const autosaveDelta = now - this.lastAutosave;
+    const cleanupDelta = now - this.lastCleanup;
 
     // Update game state (variable rate based on actual time passed)
     if (updateDelta > 0) {
@@ -118,6 +124,12 @@ export class GameLoop {
     if (autosaveDelta >= AUTOSAVE_INTERVAL) {
       this.autosave();
       this.lastAutosave = now;
+    }
+
+    // Cleanup periodically
+    if (cleanupDelta >= this.cleanupInterval) {
+      this.cleanup();
+      this.lastCleanup = now;
     }
 
     // Record frame for performance monitoring
@@ -195,6 +207,41 @@ export class GameLoop {
    */
   isRunning() {
     return this.running;
+  }
+
+  /**
+   * Perform periodic cleanup tasks
+   */
+  cleanup() {
+    try {
+      // Clean up stale DOM references
+      const cleanedElements = uiRenderer.cleanupStaleElements();
+      if (cleanedElements > 0) {
+        errorHandler.debug(`Cleaned ${cleanedElements} stale DOM references`);
+      }
+
+      // Clear DOM batcher cache if it's getting too large
+      const cacheStats = domBatcher.getCacheStats();
+      if (cacheStats.size > 500) {
+        domBatcher.clearCache();
+        errorHandler.debug('Cleared DOM batcher cache');
+      }
+
+      // Check memory trend
+      const memStats = memoryMonitor.getStats();
+      if (memStats.issues.length > 0) {
+        errorHandler.warn('Memory issues detected', memStats.issues);
+      }
+
+      // Force GC if memory usage is high and GC is available
+      if (memStats.current && memStats.current.usagePercent > 80) {
+        if (memoryMonitor.forceGC()) {
+          errorHandler.info('Triggered garbage collection due to high memory usage');
+        }
+      }
+    } catch (error) {
+      errorHandler.handleError(error, 'gameLoop.cleanup');
+    }
   }
 }
 

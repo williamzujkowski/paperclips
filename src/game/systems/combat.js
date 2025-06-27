@@ -3,6 +3,8 @@
  */
 
 import { gameState } from '../core/gameState.js';
+import { memoryMonitor } from '../core/memoryMonitor.js';
+import { memoryProfiler } from '../utils/memoryProfiler.js';
 
 /**
  * Represents a single battle
@@ -71,6 +73,22 @@ export class CombatSystem {
     this.nextBattleId = 1;
     this.battleUpdateInterval = 100; // Update battles every 100ms
     this.lastBattleUpdate = 0;
+    
+    // Create object pool for Battle objects
+    this.battlePool = memoryProfiler.createObjectPool(
+      'Battle',
+      () => new Battle(0, 0, 0), // Factory
+      (battle) => { // Reset function
+        battle.id = 0;
+        battle.probes = 0;
+        battle.drifters = 0;
+        battle.probeLosses = 0;
+        battle.drifterLosses = 0;
+        battle.duration = 0;
+        battle.status = 'active';
+      },
+      50 // Max pool size
+    );
   }
 
   /**
@@ -119,10 +137,22 @@ export class CombatSystem {
     }
 
     const battleId = this.nextBattleId++;
-    const battle = new Battle(battleId, probeCount, drifterCount);
+    
+    // Get battle from pool instead of creating new
+    const battle = this.battlePool.get();
+    battle.id = battleId;
+    battle.probes = probeCount;
+    battle.drifters = drifterCount;
+    battle.probeLosses = 0;
+    battle.drifterLosses = 0;
+    battle.duration = 0;
+    battle.status = 'active';
 
     this.battles.set(battleId, battle);
     gameState.set('combat.battleID', battleId);
+    
+    // Track battle object for memory monitoring
+    memoryMonitor.trackObject(`battle-${battleId}`, battle);
 
     // Update battle array for UI
     this.updateBattleArray();
@@ -162,9 +192,16 @@ export class CombatSystem {
       }
     }
 
-    // Remove finished battles
+    // Remove finished battles and return to pool
     for (const id of finishedBattles) {
+      const battle = this.battles.get(id);
+      if (battle) {
+        // Return battle to pool
+        this.battlePool.release(battle);
+      }
       this.battles.delete(id);
+      // Untrack battle object
+      memoryMonitor.untrackObject(`battle-${id}`);
     }
 
     // Update battle array

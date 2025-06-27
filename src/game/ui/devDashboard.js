@@ -6,6 +6,8 @@
 import { gameState } from '../core/gameState.js';
 import { errorHandler } from '../core/errorHandler.js';
 import { performanceMonitor } from '../core/performanceMonitor.js';
+import { memoryMonitor } from '../core/memoryMonitor.js';
+import { memoryProfiler } from '../utils/memoryProfiler.js';
 import { domBatcher } from './domBatcher.js';
 import { formatNumber } from '../utils/formatting.js';
 
@@ -97,6 +99,8 @@ export class DevDashboard {
     this.createStatePanel();
     this.createErrorPanel();
     this.createDOMPanel();
+    this.createMemoryPanel();
+    this.createProfilerPanel();
     this.createControlsPanel();
 
     // Add to document
@@ -170,6 +174,52 @@ export class DevDashboard {
     `;
     this.container.appendChild(panel);
     this.panels.dom = panel;
+  }
+
+  /**
+   * Create memory monitoring panel
+   * @private
+   */
+  createMemoryPanel() {
+    const panel = document.createElement('div');
+    panel.className = 'dev-panel';
+    panel.style.cssText = 'margin-bottom: 10px; padding: 5px; border: 1px solid #0f0;';
+    panel.innerHTML = `
+      <h4 style="margin: 0 0 5px 0; color: #0f0;">MEMORY</h4>
+      <div id="devMemoryContent" style="font-size: 11px;">
+        <div id="devMemoryStats"></div>
+        <div style="margin-top: 5px;">
+          <button id="devStartMemory" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Start Monitor</button>
+          <button id="devStopMemory" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Stop Monitor</button>
+          <button id="devForceGC" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Force GC</button>
+        </div>
+      </div>
+    `;
+    this.container.appendChild(panel);
+    this.panels.memory = panel;
+  }
+
+  /**
+   * Create memory profiler panel
+   * @private
+   */
+  createProfilerPanel() {
+    const panel = document.createElement('div');
+    panel.className = 'dev-panel';
+    panel.style.cssText = 'margin-bottom: 10px; padding: 5px; border: 1px solid #0f0;';
+    panel.innerHTML = `
+      <h4 style="margin: 0 0 5px 0; color: #0f0;">PROFILER</h4>
+      <div id="devProfilerContent" style="font-size: 11px;">
+        <div id="devProfilerStats"></div>
+        <div style="margin-top: 5px;">
+          <button id="devAnalyzeProfile" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Analyze</button>
+          <button id="devResetProfile" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Reset</button>
+          <button id="devExportProfile" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Export</button>
+        </div>
+      </div>
+    `;
+    this.container.appendChild(panel);
+    this.panels.profiler = panel;
   }
 
   /**
@@ -258,6 +308,49 @@ export class DevDashboard {
       URL.revokeObjectURL(url);
       errorHandler.debug('Game state exported');
     });
+
+    // Memory monitoring controls
+    document.getElementById('devStartMemory').addEventListener('click', () => {
+      memoryMonitor.start();
+      errorHandler.debug('Memory monitoring started');
+    });
+
+    document.getElementById('devStopMemory').addEventListener('click', () => {
+      memoryMonitor.stop();
+      errorHandler.debug('Memory monitoring stopped');
+    });
+
+    document.getElementById('devForceGC').addEventListener('click', () => {
+      if (memoryMonitor.forceGC()) {
+        errorHandler.debug('Garbage collection triggered');
+      } else {
+        errorHandler.warn('GC not available - run Chrome with --expose-gc flag');
+      }
+    });
+
+    // Profiler controls
+    document.getElementById('devAnalyzeProfile').addEventListener('click', () => {
+      const analysis = memoryProfiler.analyzePatterns();
+      console.log('Memory Analysis:', analysis);
+      errorHandler.debug('Memory analysis logged to console');
+    });
+
+    document.getElementById('devResetProfile').addEventListener('click', () => {
+      memoryProfiler.reset();
+      errorHandler.debug('Profiler data reset');
+    });
+
+    document.getElementById('devExportProfile').addEventListener('click', () => {
+      const report = memoryProfiler.generateReport();
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'memory-profile.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+      errorHandler.debug('Profile report exported');
+    });
   }
 
   /**
@@ -273,6 +366,8 @@ export class DevDashboard {
     this.updateStatePanel();
     this.updateErrorPanel();
     this.updateDOMPanel();
+    this.updateMemoryPanel();
+    this.updateProfilerPanel();
   }
 
   /**
@@ -357,6 +452,77 @@ export class DevDashboard {
       <div>Render Updates: ${renderer ? renderer.updateCount : 0}</div>
       <div>Batching: ${domBatcher.enabled ? 'Enabled' : 'Disabled'}</div>
     `;
+  }
+
+  /**
+   * Update memory panel
+   * @private
+   */
+  updateMemoryPanel() {
+    const content = document.getElementById('devMemoryStats');
+    const stats = memoryMonitor.getStats();
+    
+    if (!stats.current) {
+      content.innerHTML = '<div style="color: #999;">Memory API not available</div>';
+      return;
+    }
+    
+    const trend = memoryMonitor.getTrend();
+    const trendColor = trend === 'growing' ? '#fa0' : trend === 'shrinking' ? '#0f0' : '#999';
+    
+    let html = `
+      <div>Used: ${stats.current.usedMB} MB (${stats.current.usagePercent}%)</div>
+      <div>Total: ${stats.current.totalMB} MB | Limit: ${stats.current.limitMB} MB</div>
+      <div>Trend: <span style="color: ${trendColor}">${trend}</span></div>
+      <div>Tracked Objects: ${stats.trackedObjects}</div>
+    `;
+    
+    if (stats.issues.length > 0) {
+      html += '<div style="margin-top: 5px; color: #fa0;">Recent Issues:</div>';
+      stats.issues.slice(-3).forEach(issue => {
+        html += `<div style="font-size: 10px; color: #fa0;">- ${issue.type}: ${JSON.stringify(issue.details)}</div>`;
+      });
+    }
+    
+    content.innerHTML = html;
+  }
+
+  /**
+   * Update profiler panel
+   * @private
+   */
+  updateProfilerPanel() {
+    const content = document.getElementById('devProfilerStats');
+    const analysis = memoryProfiler.analyzePatterns();
+    
+    let html = '<div style="font-size: 10px;">';
+    
+    // Object pools
+    if (Object.keys(analysis.pools).length > 0) {
+      html += '<div style="margin-bottom: 5px;">Object Pools:</div>';
+      for (const [type, stats] of Object.entries(analysis.pools)) {
+        html += `<div style="margin-left: 10px;">${type}: ${stats.reuseRate} reuse (${stats.inUse}/${stats.poolSize})</div>`;
+      }
+    }
+    
+    // Hotspots
+    if (analysis.hotspots.length > 0) {
+      html += '<div style="margin: 5px 0;">Allocation Hotspots:</div>';
+      analysis.hotspots.slice(0, 3).forEach(hotspot => {
+        html += `<div style="margin-left: 10px;">${hotspot.site}: ${hotspot.percentage.toFixed(1)}%</div>`;
+      });
+    }
+    
+    // Recommendations
+    if (analysis.recommendations.length > 0) {
+      html += '<div style="margin: 5px 0; color: #fa0;">Recommendations:</div>';
+      analysis.recommendations.slice(0, 3).forEach(rec => {
+        html += `<div style="margin-left: 10px; font-size: 9px; color: #fa0;">• ${rec.message}</div>`;
+      });
+    }
+    
+    html += '</div>';
+    content.innerHTML = html;
   }
 
   /**

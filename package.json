@@ -15,7 +15,11 @@
     "format:check": "prettier --check \"src/**/*.{js,html,css}\"",
     "serve:legacy": "cd docs && python3 -m http.server 8000",
     "pre-commit": "lint-staged",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "version:bump": "node scripts/version.js bump",
+    "version:list": "node scripts/version.js list",
+    "version:current": "node scripts/version.js current",
+    "lighthouse": "node scripts/lighthouse.js"
   },
   "keywords": [
     "game",

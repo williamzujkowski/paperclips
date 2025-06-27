@@ -137,11 +137,13 @@ if (document.readyState === 'loading') {
 
 // Import performance monitor for debugging
 import { performanceMonitor } from './game/core/performanceMonitor.js';
+import { memoryMonitor } from './game/core/memoryMonitor.js';
 
 // Export for debugging in console
 window.UniversalPaperclips = {
   errorHandler,
   performanceMonitor,
+  memoryMonitor,
   devDashboard,
   phaseManager,
   gameState,
@@ -177,6 +179,12 @@ window.UniversalPaperclips = {
     getPerformance: () => performanceMonitor.getReport(),
     resetPerformance: () => performanceMonitor.reset(),
     setLogLevel: (level) => errorHandler.setLogLevel(level),
+    // Memory debugging
+    getMemory: () => memoryMonitor.getStats(),
+    getMemoryReport: () => memoryMonitor.generateReport(),
+    startMemoryMonitor: () => memoryMonitor.start(),
+    stopMemoryMonitor: () => memoryMonitor.stop(),
+    forceGC: () => memoryMonitor.forceGC(),
   },
 };
 

@@ -1,4 +1,4 @@
-import { e as errorHandler, g as gameState } from './phase-space-675f4e58.js';
+import { e as errorHandler, g as gameState } from './phase-space-84f5c071.js';
 
 /**
  * Game constants and configuration values
@@ -13,6 +13,352 @@ const DISPLAY_UPDATE_INTERVAL = 16; // ~60fps
 // Number formatting thresholds
 const NOTATION_THRESHOLD = 1e6;
 const SCIENTIFIC_THRESHOLD = 1e21;
+
+/**
+ * Memory Monitor - Tracks memory usage and identifies potential leaks
+ * @module MemoryMonitor
+ */
+
+
+/**
+ * @class MemoryMonitor
+ * @description Monitors memory usage, tracks object allocations, and detects potential memory leaks.
+ * Provides insights into memory patterns and helps optimize memory usage.
+ */
+class MemoryMonitor {
+  /**
+   * Creates a new MemoryMonitor instance
+   * @constructor
+   */
+  constructor() {
+    /** @type {boolean} Whether monitoring is enabled */
+    this.enabled = false;
+    /** @type {number} Monitoring interval in ms */
+    this.monitoringInterval = 5000;
+    /** @type {number|null} Interval timer ID */
+    this.intervalId = null;
+    /** @type {Array<Object>} Memory usage samples */
+    this.samples = [];
+    /** @type {number} Maximum samples to keep */
+    this.maxSamples = 100;
+    /** @type {Map<string, WeakRef>} Tracked objects for leak detection */
+    this.trackedObjects = new Map();
+    /** @type {Map<string, number>} Object allocation counts */
+    this.allocationCounts = new Map();
+    /** @type {number} Baseline memory usage */
+    this.baselineMemory = 0;
+    /** @type {number} Memory growth threshold (MB) */
+    this.growthThreshold = 50;
+    /** @type {Array<Object>} Detected memory issues */
+    this.issues = [];
+  }
+
+  /**
+   * Start memory monitoring
+   * @returns {void}
+   */
+  start() {
+    if (this.enabled) {
+      return;
+    }
+    this.enabled = true;
+    this.baselineMemory = this.getCurrentMemory();
+    errorHandler.info('Memory monitoring started');
+
+    // Take initial sample
+    this.takeSample();
+
+    // Start periodic monitoring
+    this.intervalId = setInterval(() => {
+      this.takeSample();
+      this.analyzeMemory();
+    }, this.monitoringInterval);
+  }
+
+  /**
+   * Stop memory monitoring
+   * @returns {void}
+   */
+  stop() {
+    if (!this.enabled) {
+      return;
+    }
+    this.enabled = false;
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+    errorHandler.info('Memory monitoring stopped');
+  }
+
+  /**
+   * Get current memory usage
+   * @returns {Object|null} Memory info or null if not available
+   * @private
+   */
+  getCurrentMemory() {
+    if (performance.memory) {
+      return {
+        totalJSHeapSize: performance.memory.totalJSHeapSize,
+        usedJSHeapSize: performance.memory.usedJSHeapSize,
+        jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Take a memory sample
+   * @private
+   */
+  takeSample() {
+    const memory = this.getCurrentMemory();
+    if (!memory) {
+      return;
+    }
+    const sample = {
+      timestamp: Date.now(),
+      memory: memory,
+      usedMB: memory.usedJSHeapSize / (1024 * 1024),
+      totalMB: memory.totalJSHeapSize / (1024 * 1024),
+      limitMB: memory.jsHeapSizeLimit / (1024 * 1024)
+    };
+    this.samples.push(sample);
+
+    // Keep only recent samples
+    if (this.samples.length > this.maxSamples) {
+      this.samples.shift();
+    }
+  }
+
+  /**
+   * Analyze memory patterns
+   * @private
+   */
+  analyzeMemory() {
+    if (this.samples.length < 2) {
+      return;
+    }
+    const recent = this.samples[this.samples.length - 1];
+    const baseline = this.samples[0];
+
+    // Check for memory growth
+    const growthMB = recent.usedMB - baseline.usedMB;
+    if (growthMB > this.growthThreshold) {
+      this.reportIssue('memory-growth', {
+        growthMB: growthMB.toFixed(2),
+        duration: recent.timestamp - baseline.timestamp,
+        currentMB: recent.usedMB.toFixed(2)
+      });
+    }
+
+    // Check for high memory usage
+    const usagePercent = recent.usedMB / recent.limitMB * 100;
+    if (usagePercent > 80) {
+      this.reportIssue('high-memory', {
+        usagePercent: usagePercent.toFixed(1),
+        usedMB: recent.usedMB.toFixed(2),
+        limitMB: recent.limitMB.toFixed(2)
+      });
+    }
+
+    // Check tracked objects for leaks
+    this.checkTrackedObjects();
+  }
+
+  /**
+   * Track an object for leak detection
+   * @param {string} id - Unique identifier for the object
+   * @param {Object} obj - Object to track
+   * @returns {void}
+   */
+  trackObject(id, obj) {
+    try {
+      this.trackedObjects.set(id, new WeakRef(obj));
+      this.incrementAllocation(obj.constructor.name);
+    } catch (error) {
+      errorHandler.debug(`Failed to track object ${id}:`, error);
+    }
+  }
+
+  /**
+   * Untrack an object
+   * @param {string} id - Object identifier
+   * @returns {void}
+   */
+  untrackObject(id) {
+    this.trackedObjects.delete(id);
+  }
+
+  /**
+   * Check tracked objects for potential leaks
+   * @private
+   */
+  checkTrackedObjects() {
+    const alive = [];
+    const dead = [];
+    for (const [id, ref] of this.trackedObjects) {
+      const obj = ref.deref();
+      if (obj) {
+        alive.push(id);
+      } else {
+        dead.push(id);
+        this.trackedObjects.delete(id);
+      }
+    }
+
+    // Report if too many objects are still alive
+    if (alive.length > 1000) {
+      this.reportIssue('object-leak', {
+        aliveCount: alive.length,
+        deadCount: dead.length,
+        totalTracked: this.trackedObjects.size
+      });
+    }
+  }
+
+  /**
+   * Increment allocation count for a type
+   * @param {string} type - Object type name
+   * @private
+   */
+  incrementAllocation(type) {
+    const count = this.allocationCounts.get(type) || 0;
+    this.allocationCounts.set(type, count + 1);
+  }
+
+  /**
+   * Report a memory issue
+   * @param {string} type - Issue type
+   * @param {Object} details - Issue details
+   * @private
+   */
+  reportIssue(type, details) {
+    const issue = {
+      type,
+      timestamp: Date.now(),
+      details
+    };
+    this.issues.push(issue);
+
+    // Keep only recent issues
+    if (this.issues.length > 50) {
+      this.issues.shift();
+    }
+    errorHandler.warn(`Memory issue detected: ${type}`, details);
+  }
+
+  /**
+   * Get memory statistics
+   * @returns {Object} Memory statistics
+   */
+  getStats() {
+    const current = this.getCurrentMemory();
+    const recentSamples = this.samples.slice(-10);
+    return {
+      enabled: this.enabled,
+      current: current ? {
+        usedMB: (current.usedJSHeapSize / (1024 * 1024)).toFixed(2),
+        totalMB: (current.totalJSHeapSize / (1024 * 1024)).toFixed(2),
+        limitMB: (current.jsHeapSizeLimit / (1024 * 1024)).toFixed(2),
+        usagePercent: (current.usedJSHeapSize / current.jsHeapSizeLimit * 100).toFixed(1)
+      } : null,
+      samples: recentSamples,
+      trackedObjects: this.trackedObjects.size,
+      allocations: Object.fromEntries(this.allocationCounts),
+      issues: this.issues.slice(-10)
+    };
+  }
+
+  /**
+   * Get memory trend
+   * @returns {string} Trend indicator (stable, growing, shrinking)
+   */
+  getTrend() {
+    if (this.samples.length < 5) {
+      return 'unknown';
+    }
+    const recent = this.samples.slice(-5);
+    const first = recent[0].usedMB;
+    const last = recent[recent.length - 1].usedMB;
+    const diff = last - first;
+    if (Math.abs(diff) < 1) {
+      return 'stable';
+    } else if (diff > 0) {
+      return 'growing';
+    } else {
+      return 'shrinking';
+    }
+  }
+
+  /**
+   * Force garbage collection (if available)
+   * @returns {boolean} Whether GC was triggered
+   */
+  forceGC() {
+    if (window.gc) {
+      try {
+        window.gc();
+        errorHandler.info('Garbage collection triggered');
+        return true;
+      } catch (error) {
+        errorHandler.debug('Failed to trigger GC:', error);
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Clear all monitoring data
+   * @returns {void}
+   */
+  reset() {
+    this.samples = [];
+    this.trackedObjects.clear();
+    this.allocationCounts.clear();
+    this.issues = [];
+    this.baselineMemory = this.getCurrentMemory();
+  }
+
+  /**
+   * Generate memory report
+   * @returns {string} Formatted memory report
+   */
+  generateReport() {
+    const stats = this.getStats();
+    const trend = this.getTrend();
+    let report = '=== Memory Report ===\n';
+    report += `Status: ${this.enabled ? 'Monitoring' : 'Stopped'}\n`;
+    report += `Trend: ${trend}\n\n`;
+    if (stats.current) {
+      report += 'Current Usage:\n';
+      report += `  Used: ${stats.current.usedMB} MB\n`;
+      report += `  Total: ${stats.current.totalMB} MB\n`;
+      report += `  Limit: ${stats.current.limitMB} MB\n`;
+      report += `  Usage: ${stats.current.usagePercent}%\n\n`;
+    }
+    if (stats.trackedObjects > 0) {
+      report += `Tracked Objects: ${stats.trackedObjects}\n\n`;
+    }
+    if (Object.keys(stats.allocations).length > 0) {
+      report += 'Allocations:\n';
+      for (const [type, count] of Object.entries(stats.allocations)) {
+        report += `  ${type}: ${count}\n`;
+      }
+      report += '\n';
+    }
+    if (stats.issues.length > 0) {
+      report += 'Recent Issues:\n';
+      for (const issue of stats.issues) {
+        report += `  ${issue.type}: ${JSON.stringify(issue.details)}\n`;
+      }
+    }
+    return report;
+  }
+}
+
+// Create singleton instance
+const memoryMonitor = new MemoryMonitor();
 
 /**
  * Performance monitoring system
@@ -235,15 +581,24 @@ class PerformanceMonitor {
    */
   getReport() {
     const m = this.metrics;
-    return `
+    const memStats = memoryMonitor.getStats();
+    const memTrend = memoryMonitor.getTrend();
+    let report = `
 Performance Report:
   FPS: ${m.fps.toFixed(1)} (min: ${m.minFps.toFixed(1)})
   Avg Frame Time: ${m.avgFrameTime.toFixed(2)}ms
   Max Frame Time: ${m.maxFrameTime.toFixed(2)}ms
   Update Time: ${m.updateTime.toFixed(2)}ms
   Render Time: ${m.renderTime.toFixed(2)}ms
-  Memory Usage: ${m.memoryUsage.toFixed(1)}MB
-    `.trim();
+  Memory Usage: ${m.memoryUsage.toFixed(1)}MB`;
+    if (memStats.current) {
+      report += `
+  Memory Details:
+    Used: ${memStats.current.usedMB}MB (${memStats.current.usagePercent}%)
+    Trend: ${memTrend}
+    Tracked Objects: ${memStats.trackedObjects}`;
+    }
+    return report.trim();
   }
 
   /**
@@ -290,6 +645,738 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Number formatting utilities
+ */
+
+
+/**
+ * Format a number for display with appropriate notation
+ */
+function formatNumber(num, decimals = 0) {
+  if (typeof num !== 'number' || isNaN(num)) {
+    return '0';
+  }
+
+  // Handle negative numbers
+  const negative = num < 0;
+  num = Math.abs(num);
+  let result;
+  if (num < 1000) {
+    // For small numbers
+    if (decimals > 0) {
+      result = num.toFixed(decimals);
+    } else {
+      result = Math.round(num).toString();
+    }
+  } else if (num < NOTATION_THRESHOLD) {
+    // Regular notation for smaller numbers
+    if (decimals > 0) {
+      // Format with commas and decimals
+      const parts = num.toFixed(decimals).split('.');
+      parts[0] = parseInt(parts[0]).toLocaleString();
+      result = parts.join('.');
+    } else {
+      result = Math.floor(num).toLocaleString();
+    }
+  } else if (num < SCIENTIFIC_THRESHOLD) {
+    // Use abbreviations for millions, billions, etc.
+    result = abbreviateNumber(num, decimals);
+  } else {
+    // Scientific notation for very large numbers
+    result = num.toExponential(decimals);
+  }
+  return negative ? '-' + result : result;
+}
+
+/**
+ * Abbreviate large numbers (K, M, B, T, etc.)
+ */
+function abbreviateNumber(num, decimals = 0) {
+  const abbrev = ['', 'K', 'M', 'B', 'T', 'q', 'Q', 's', 'S', 'o', 'n', 'd'];
+  const unrangifiedOrder = Math.floor(Math.log10(Math.abs(num)) / 3);
+  const order = Math.max(0, Math.min(unrangifiedOrder, abbrev.length - 1));
+  const suffix = abbrev[order];
+  const scaled = num / Math.pow(10, order * 3);
+
+  // For default formatting with no decimals specified, show decimals only if needed
+  if (decimals === 0 && scaled === Math.floor(scaled)) {
+    return scaled.toString() + suffix;
+  }
+
+  // Otherwise format with specified decimals
+  return scaled.toFixed(decimals || 1) + suffix;
+}
+
+/**
+ * DOM Batching system for efficient updates
+ * @module DOMBatcher
+ */
+
+
+/**
+ * @class DOMBatcher
+ * @description Batches DOM updates to minimize reflows and repaints.
+ * Uses requestAnimationFrame to schedule updates at optimal times.
+ */
+class DOMBatcher {
+  /**
+   * Creates a new DOMBatcher instance
+   * @constructor
+   */
+  constructor() {
+    /** @type {Map<string, Function>} Pending DOM updates */
+    this.pendingUpdates = new Map();
+    /** @type {Map<string, Function>} Pending style updates */
+    this.pendingStyles = new Map();
+    /** @type {Map<string, Function>} Pending class updates */
+    this.pendingClasses = new Map();
+    /** @type {Set<string>} Elements to show/hide */
+    this.pendingVisibility = new Set();
+    /** @type {number|null} Current animation frame ID */
+    this.frameId = null;
+    /** @type {boolean} Whether batching is enabled */
+    this.enabled = true;
+    /** @type {Map<string, HTMLElement>} Element cache */
+    this.elementCache = new Map();
+    /** @type {number} Cache hit/miss statistics */
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+  }
+
+  /**
+   * Get element by ID with caching
+   * @param {string} elementId - Element ID
+   * @returns {HTMLElement|null} The element or null
+   * @private
+   */
+  getElement(elementId) {
+    let element = this.elementCache.get(elementId);
+    if (!element || !document.body.contains(element)) {
+      element = document.getElementById(elementId);
+      if (element) {
+        this.elementCache.set(elementId, element);
+        this.cacheMisses++;
+      }
+    } else {
+      this.cacheHits++;
+    }
+    return element;
+  }
+
+  /**
+   * Queue a text content update
+   * @param {string} elementId - Element ID
+   * @param {string} text - New text content
+   * @returns {void}
+   */
+  updateText(elementId, text) {
+    if (!this.enabled) {
+      const element = this.getElement(elementId);
+      if (element && element.textContent !== text) {
+        element.textContent = text;
+      }
+      return;
+    }
+    this.pendingUpdates.set(elementId, () => {
+      const element = this.getElement(elementId);
+      if (element && element.textContent !== text) {
+        element.textContent = text;
+      }
+    });
+    this.scheduleUpdate();
+  }
+
+  /**
+   * Queue an innerHTML update
+   * @param {string} elementId - Element ID
+   * @param {string} html - New HTML content
+   * @returns {void}
+   */
+  updateHTML(elementId, html) {
+    if (!this.enabled) {
+      const element = this.getElement(elementId);
+      if (element && element.innerHTML !== html) {
+        element.innerHTML = html;
+      }
+      return;
+    }
+    this.pendingUpdates.set(elementId, () => {
+      const element = this.getElement(elementId);
+      if (element && element.innerHTML !== html) {
+        element.innerHTML = html;
+      }
+    });
+    this.scheduleUpdate();
+  }
+
+  /**
+   * Queue a style update
+   * @param {string} elementId - Element ID
+   * @param {Object} styles - Style properties to update
+   * @returns {void}
+   */
+  updateStyles(elementId, styles) {
+    if (!this.enabled) {
+      const element = this.getElement(elementId);
+      if (element) {
+        Object.assign(element.style, styles);
+      }
+      return;
+    }
+    this.pendingStyles.set(elementId, () => {
+      const element = this.getElement(elementId);
+      if (element) {
+        Object.assign(element.style, styles);
+      }
+    });
+    this.scheduleUpdate();
+  }
+
+  /**
+   * Queue a class list update
+   * @param {string} elementId - Element ID
+   * @param {Object} classes - Classes to add/remove {add: [], remove: []}
+   * @returns {void}
+   */
+  updateClasses(elementId, classes) {
+    if (!this.enabled) {
+      const element = this.getElement(elementId);
+      if (element) {
+        if (classes.add) {
+          element.classList.add(...classes.add);
+        }
+        if (classes.remove) {
+          element.classList.remove(...classes.remove);
+        }
+      }
+      return;
+    }
+    this.pendingClasses.set(elementId, () => {
+      const element = this.getElement(elementId);
+      if (element) {
+        if (classes.add) {
+          element.classList.add(...classes.add);
+        }
+        if (classes.remove) {
+          element.classList.remove(...classes.remove);
+        }
+      }
+    });
+    this.scheduleUpdate();
+  }
+
+  /**
+   * Queue visibility update
+   * @param {string} elementId - Element ID
+   * @param {boolean} visible - Whether element should be visible
+   * @returns {void}
+   */
+  updateVisibility(elementId, visible) {
+    if (!this.enabled) {
+      const element = this.getElement(elementId);
+      if (element) {
+        element.style.display = visible ? '' : 'none';
+      }
+      return;
+    }
+    this.pendingVisibility.add(JSON.stringify({
+      elementId,
+      visible
+    }));
+    this.scheduleUpdate();
+  }
+
+  /**
+   * Schedule a batch update
+   * @private
+   */
+  scheduleUpdate() {
+    if (this.frameId !== null) {
+      return; // Update already scheduled
+    }
+    this.frameId = requestAnimationFrame(() => {
+      this.flush();
+    });
+  }
+
+  /**
+   * Flush all pending updates
+   * @returns {void}
+   */
+  flush() {
+    try {
+      // Clear frame ID first
+      this.frameId = null;
+
+      // Batch write operations (mutate)
+      // Note: Read operations would go first if we needed measurements
+
+      // 1. Update visibility first (can affect layout)
+      for (const data of this.pendingVisibility) {
+        const {
+          elementId,
+          visible
+        } = JSON.parse(data);
+        const element = this.getElement(elementId);
+        if (element) {
+          element.style.display = visible ? '' : 'none';
+        }
+      }
+      this.pendingVisibility.clear();
+
+      // 2. Update styles (can affect layout)
+      for (const [, updateFn] of this.pendingStyles) {
+        updateFn();
+      }
+      this.pendingStyles.clear();
+
+      // 3. Update classes (can affect layout)
+      for (const [, updateFn] of this.pendingClasses) {
+        updateFn();
+      }
+      this.pendingClasses.clear();
+
+      // 4. Update content last (least likely to affect other elements)
+      for (const [, updateFn] of this.pendingUpdates) {
+        updateFn();
+      }
+      this.pendingUpdates.clear();
+    } catch (error) {
+      errorHandler.handleError(error, 'domBatcher.flush');
+    }
+  }
+
+  /**
+   * Enable or disable batching
+   * @param {boolean} enabled - Whether to enable batching
+   * @returns {void}
+   */
+  setEnabled(enabled) {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.flush(); // Flush any pending updates
+    }
+  }
+
+  /**
+   * Clear element cache
+   * @returns {void}
+   */
+  clearCache() {
+    this.elementCache.clear();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+  }
+
+  /**
+   * Get cache statistics
+   * @returns {Object} Cache statistics
+   */
+  getCacheStats() {
+    const total = this.cacheHits + this.cacheMisses;
+    return {
+      hits: this.cacheHits,
+      misses: this.cacheMisses,
+      hitRate: total > 0 ? (this.cacheHits / total * 100).toFixed(2) + '%' : '0%',
+      size: this.elementCache.size
+    };
+  }
+
+  /**
+   * Batch multiple updates together
+   * @param {Function} updateFn - Function containing multiple updates
+   * @returns {void}
+   */
+  batch(updateFn) {
+    const wasEnabled = this.enabled;
+    this.enabled = true;
+    try {
+      updateFn();
+    } catch (error) {
+      errorHandler.handleError(error, 'domBatcher.batch');
+    } finally {
+      if (!wasEnabled) {
+        this.flush();
+        this.enabled = false;
+      }
+    }
+  }
+
+  /**
+   * Read layout property safely
+   * @param {string} elementId - Element ID
+   * @param {string} property - Property to read
+   * @returns {*} Property value
+   */
+  read(elementId, property) {
+    const element = this.getElement(elementId);
+    if (!element) {
+      return null;
+    }
+
+    // Common layout properties that trigger reflow
+    const layoutProperties = ['offsetWidth', 'offsetHeight', 'offsetTop', 'offsetLeft', 'clientWidth', 'clientHeight', 'clientTop', 'clientLeft', 'scrollWidth', 'scrollHeight', 'scrollTop', 'scrollLeft', 'getBoundingClientRect'];
+    if (layoutProperties.includes(property)) {
+      // These properties trigger reflow, so flush pending updates first
+      this.flush();
+    }
+    if (property === 'getBoundingClientRect') {
+      return element.getBoundingClientRect();
+    }
+    return element[property];
+  }
+}
+
+// Create singleton instance
+const domBatcher = new DOMBatcher();
+
+// Export for debugging
+if (typeof window !== 'undefined') {
+  window.UniversalPaperclipsDOMBatcher = domBatcher;
+}
+
+/**
+ * UI Renderer - handles all display updates and DOM manipulation
+ * @module UIRenderer
+ */
+
+
+/**
+ * @class UIRenderer
+ * @description Manages UI updates with efficient DOM batching and caching.
+ */
+class UIRenderer {
+  /**
+   * Creates a new UIRenderer instance
+   * @constructor
+   */
+  constructor() {
+    /** @type {Object} Cached DOM elements */
+    this.elements = {};
+    /** @type {Object} Last rendered values for change detection */
+    this.lastValues = {};
+    /** @type {boolean} Whether renderer is initialized */
+    this.initialized = false;
+    /** @type {number} Update counter for debugging */
+    this.updateCount = 0;
+  }
+
+  /**
+   * Initialize UI elements cache
+   */
+  init() {
+    // Cache commonly used DOM elements
+    this.cacheElements();
+    this.initialized = true;
+  }
+
+  /**
+   * Cache DOM element references
+   */
+  cacheElements() {
+    // Resource displays
+    this.elements.clips = document.getElementById('clips');
+    this.elements.funds = document.getElementById('funds');
+    this.elements.wire = document.getElementById('wire');
+    this.elements.unsoldClips = document.getElementById('unsoldClips');
+
+    // Production displays
+    this.elements.clipRate = document.getElementById('clipRate');
+    this.elements.clipmakerLevel = document.getElementById('clipmakerLevel');
+    this.elements.megaClipperLevel = document.getElementById('megaClipperLevel');
+
+    // Market displays
+    this.elements.demand = document.getElementById('demand');
+    this.elements.margin = document.getElementById('margin');
+    this.elements.marketingLvl = document.getElementById('marketingLvl');
+    this.elements.wireCost = document.getElementById('wireCost');
+
+    // Computing displays
+    this.elements.operations = document.getElementById('operations');
+    this.elements.trust = document.getElementById('trust');
+    this.elements.processors = document.getElementById('processors');
+    this.elements.memory = document.getElementById('memory');
+    this.elements.creativity = document.getElementById('creativity');
+
+    // Infrastructure displays
+    this.elements.factoryLevel = document.getElementById('factoryLevel');
+    this.elements.harvesterLevel = document.getElementById('harvesterLevel');
+    this.elements.wireDroneLevel = document.getElementById('wireDroneLevel');
+
+    // Display sections
+    this.elements.businessDisplay = document.getElementById('businessDisplay');
+    this.elements.manufacturingDisplay = document.getElementById('manufacturingDisplay');
+    this.elements.computationalDisplay = document.getElementById('computationalDisplay');
+    this.elements.projectsDisplay = document.getElementById('projectsDisplay');
+    this.elements.spaceDisplay = document.getElementById('spaceDisplay');
+  }
+
+  /**
+   * Main render function - updates all UI elements
+   * @param {Object} state - Current game state
+   * @returns {void}
+   */
+  render(state) {
+    if (!this.initialized) {
+      this.init();
+    }
+
+    // Batch all DOM updates together
+    domBatcher.batch(() => {
+      try {
+        // Update resources
+        this.updateResources(state);
+
+        // Update production
+        this.updateProduction(state);
+
+        // Update market
+        this.updateMarket(state);
+
+        // Update computing
+        this.updateComputing(state);
+
+        // Update infrastructure
+        this.updateInfrastructure(state);
+
+        // Update display visibility
+        this.updateDisplayVisibility(state);
+      } catch (error) {
+        errorHandler.handleError(error, 'uiRenderer.render');
+      }
+    });
+  }
+
+  /**
+   * Update resource displays
+   */
+  updateResources(state) {
+    this.updateElement('clips', state.resources.clips);
+    this.updateElement('funds', state.resources.funds, true);
+    this.updateElement('wire', state.resources.wire);
+    this.updateElement('unsoldClips', state.resources.unsoldClips);
+  }
+
+  /**
+   * Update production displays
+   */
+  updateProduction(state) {
+    this.updateElement('clipRate', state.production.clipRate);
+    this.updateElement('clipmakerLevel', state.production.clipmakerLevel);
+    this.updateElement('megaClipperLevel', state.production.megaClipperLevel);
+  }
+
+  /**
+   * Update market displays
+   */
+  updateMarket(state) {
+    this.updateElement('demand', state.market.demand, false, 1);
+    this.updateElement('margin', state.market.margin, true);
+    this.updateElement('marketingLvl', state.market.marketingLvl);
+    this.updateElement('wireCost', state.market.wireCost, true);
+  }
+
+  /**
+   * Update computing displays
+   */
+  updateComputing(state) {
+    this.updateElement('operations', state.computing.operations);
+    this.updateElement('trust', state.computing.trust);
+    this.updateElement('processors', state.computing.processors);
+    this.updateElement('memory', state.computing.memory);
+    this.updateElement('creativity', state.computing.creativity);
+  }
+
+  /**
+   * Update infrastructure displays
+   */
+  updateInfrastructure(state) {
+    if (state.flags.factory) {
+      this.updateElement('factoryLevel', state.infrastructure.factoryLevel);
+    }
+    if (state.flags.harvester) {
+      this.updateElement('harvesterLevel', state.infrastructure.harvesterLevel);
+    }
+    if (state.flags.wireDrone) {
+      this.updateElement('wireDroneLevel', state.infrastructure.wireDroneLevel);
+    }
+  }
+
+  /**
+   * Update a single element if value changed
+   */
+  updateElement(elementId, value, isCurrency = false, decimals = 0) {
+    // Check if value has changed
+    if (this.lastValues[elementId] === value) {
+      return;
+    }
+    const element = this.elements[elementId];
+    if (!element) {
+      return;
+    }
+
+    // Format value
+    let displayValue;
+    if (isCurrency) {
+      displayValue = '$' + formatNumber(value, decimals);
+    } else {
+      displayValue = formatNumber(value, decimals);
+    }
+
+    // Update element using DOM batcher
+    domBatcher.updateText(elementId, displayValue);
+    this.lastValues[elementId] = value;
+    this.updateCount++;
+  }
+
+  /**
+   * Update display section visibility
+   */
+  updateDisplayVisibility(state) {
+    // Business display (always visible)
+    this.setDisplayVisible('businessDisplay', true);
+
+    // Manufacturing display (when auto-clippers available)
+    this.setDisplayVisible('manufacturingDisplay', state.flags.autoClipper);
+
+    // Computational display (when trust unlocked)
+    this.setDisplayVisible('computationalDisplay', state.flags.trust);
+
+    // Projects display (when projects available)
+    this.setDisplayVisible('projectsDisplay', state.flags.projects);
+
+    // Space display (when space exploration unlocked)
+    this.setDisplayVisible('spaceDisplay', state.flags.space);
+  }
+
+  /**
+   * Set display visibility
+   */
+  setDisplayVisible(displayId, visible) {
+    // Update visibility through DOM batcher
+    // Note: Using inline update for display blocks since they need 'block' not ''
+    const element = this.elements[displayId];
+    if (element) {
+      domBatcher.updateStyles(displayId, {
+        display: visible ? 'block' : 'none'
+      });
+    }
+  }
+
+  /**
+   * Show notification message
+   */
+  showNotification(message, duration = 3000) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Fade in
+    setTimeout(() => {
+      notification.classList.add('visible');
+    }, 10);
+
+    // Remove after duration
+    setTimeout(() => {
+      notification.classList.remove('visible');
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 300);
+    }, duration);
+  }
+
+  /**
+   * Update button states (enabled/disabled)
+   */
+  updateButtonStates(state) {
+    // Make Paperclip button
+    const makeClipBtn = document.getElementById('btnMakePaperclip');
+    if (makeClipBtn) {
+      makeClipBtn.disabled = state.resources.wire < 1;
+    }
+
+    // Buy Wire button
+    const buyWireBtn = document.getElementById('btnBuyWire');
+    if (buyWireBtn) {
+      const wireCost = state.market.wireCost;
+      buyWireBtn.disabled = state.resources.funds < wireCost;
+    }
+
+    // Buy Auto-Clipper button
+    const buyClipperBtn = document.getElementById('btnBuyAutoClipper');
+    if (buyClipperBtn) {
+      const clipperCost = state.market.clipperCost;
+      buyClipperBtn.disabled = state.resources.funds < clipperCost;
+    }
+  }
+
+  /**
+   * Flash an element to draw attention
+   */
+  /**
+   * Flash element with color animation
+   * @param {string} elementId - Element to flash
+   * @param {string} [color='#ffff00'] - Flash color
+   * @returns {void}
+   */
+  flashElement(elementId, color = '#ffff00') {
+    const element = this.elements[elementId] || document.getElementById(elementId);
+    if (!element) {
+      return;
+    }
+    const originalColor = element.style.backgroundColor;
+
+    // Use DOM batcher for style updates
+    domBatcher.updateStyles(elementId, {
+      backgroundColor: color,
+      transition: 'background-color 0.3s'
+    });
+    setTimeout(() => {
+      domBatcher.updateStyles(elementId, {
+        backgroundColor: originalColor
+      });
+    }, 300);
+  }
+
+  /**
+   * Clean up cached elements that are no longer in DOM
+   * @returns {number} Number of cleaned elements
+   */
+  cleanupStaleElements() {
+    let cleaned = 0;
+    for (const [key, element] of Object.entries(this.elements)) {
+      if (element && !document.body.contains(element)) {
+        this.elements[key] = null;
+        cleaned++;
+      }
+    }
+    return cleaned;
+  }
+
+  /**
+   * Clear all cached data
+   */
+  reset() {
+    this.elements = {};
+    this.lastValues = {};
+    this.updateCount = 0;
+    this.initialized = false;
+  }
+}
+
+// Create singleton instance
+const uiRenderer = new UIRenderer();
+
+// Export for debugging
+if (typeof window !== 'undefined') {
+  window.UniversalPaperclipsRenderer = uiRenderer;
+}
+
+/**
  * Main game loop controller
  * Handles game updates, rendering, and timing
  */
@@ -300,9 +1387,11 @@ class GameLoop {
     this.lastUpdate = Date.now();
     this.lastRender = Date.now();
     this.lastAutosave = Date.now();
+    this.lastCleanup = Date.now();
     this.updateHandlers = [];
     this.renderHandlers = [];
     this.animationFrameId = null;
+    this.cleanupInterval = 60000; // Cleanup every 60 seconds
   }
 
   /**
@@ -385,6 +1474,7 @@ class GameLoop {
     const updateDelta = now - this.lastUpdate;
     const renderDelta = now - this.lastRender;
     const autosaveDelta = now - this.lastAutosave;
+    const cleanupDelta = now - this.lastCleanup;
 
     // Update game state (variable rate based on actual time passed)
     if (updateDelta > 0) {
@@ -402,6 +1492,12 @@ class GameLoop {
     if (autosaveDelta >= AUTOSAVE_INTERVAL) {
       this.autosave();
       this.lastAutosave = now;
+    }
+
+    // Cleanup periodically
+    if (cleanupDelta >= this.cleanupInterval) {
+      this.cleanup();
+      this.lastCleanup = now;
     }
 
     // Record frame for performance monitoring
@@ -479,6 +1575,41 @@ class GameLoop {
    */
   isRunning() {
     return this.running;
+  }
+
+  /**
+   * Perform periodic cleanup tasks
+   */
+  cleanup() {
+    try {
+      // Clean up stale DOM references
+      const cleanedElements = uiRenderer.cleanupStaleElements();
+      if (cleanedElements > 0) {
+        errorHandler.debug(`Cleaned ${cleanedElements} stale DOM references`);
+      }
+
+      // Clear DOM batcher cache if it's getting too large
+      const cacheStats = domBatcher.getCacheStats();
+      if (cacheStats.size > 500) {
+        domBatcher.clearCache();
+        errorHandler.debug('Cleared DOM batcher cache');
+      }
+
+      // Check memory trend
+      const memStats = memoryMonitor.getStats();
+      if (memStats.issues.length > 0) {
+        errorHandler.warn('Memory issues detected', memStats.issues);
+      }
+
+      // Force GC if memory usage is high and GC is available
+      if (memStats.current && memStats.current.usagePercent > 80) {
+        if (memoryMonitor.forceGC()) {
+          errorHandler.info('Triggered garbage collection due to high memory usage');
+        }
+      }
+    } catch (error) {
+      errorHandler.handleError(error, 'gameLoop.cleanup');
+    }
   }
 }
 
@@ -639,10 +1770,10 @@ class PhaseManager {
           module = await Promise.resolve().then(function () { return combat; });
           break;
         case 'swarm':
-          module = await import('./phase-space-675f4e58.js').then(function (n) { return n.s; });
+          module = await import('./phase-space-84f5c071.js').then(function (n) { return n.s; });
           break;
         case 'exploration':
-          module = await import('./phase-space-675f4e58.js').then(function (n) { return n.a; });
+          module = await import('./phase-space-84f5c071.js').then(function (n) { return n.a; });
           break;
         // TODO: Implement these modules
         // case 'strategic':
@@ -733,6 +1864,328 @@ class PhaseManager {
 const phaseManager = new PhaseManager();
 
 /**
+ * Memory Profiler - Tools for memory profiling and analysis
+ * @module MemoryProfiler
+ */
+
+
+/**
+ * @class MemoryProfiler
+ * @description Provides tools for profiling memory usage and identifying allocation hotspots
+ */
+class MemoryProfiler {
+  constructor() {
+    this.profiles = new Map();
+    this.allocationSites = new Map();
+    this.objectPools = new Map();
+  }
+
+  /**
+   * Start profiling a specific operation
+   * @param {string} name - Profile name
+   * @returns {Function} Stop function to call when done
+   */
+  startProfile(name) {
+    const startMemory = this.getMemorySnapshot();
+    const startTime = performance.now();
+    return () => {
+      const endTime = performance.now();
+      const endMemory = this.getMemorySnapshot();
+      const profile = {
+        name,
+        duration: endTime - startTime,
+        memoryDelta: endMemory.used - startMemory.used,
+        allocations: this.allocationSites.get(name) || 0,
+        timestamp: Date.now()
+      };
+      if (!this.profiles.has(name)) {
+        this.profiles.set(name, []);
+      }
+      this.profiles.get(name).push(profile);
+
+      // Keep only recent profiles
+      const profiles = this.profiles.get(name);
+      if (profiles.length > 100) {
+        profiles.shift();
+      }
+      return profile;
+    };
+  }
+
+  /**
+   * Get memory snapshot
+   * @returns {Object} Memory snapshot
+   * @private
+   */
+  getMemorySnapshot() {
+    if (performance.memory) {
+      return {
+        used: performance.memory.usedJSHeapSize,
+        total: performance.memory.totalJSHeapSize,
+        limit: performance.memory.jsHeapSizeLimit
+      };
+    }
+    return {
+      used: 0,
+      total: 0,
+      limit: 0
+    };
+  }
+
+  /**
+   * Track allocation at a specific site
+   * @param {string} site - Allocation site identifier
+   * @param {number} count - Number of allocations
+   */
+  trackAllocation(site, count = 1) {
+    const current = this.allocationSites.get(site) || 0;
+    this.allocationSites.set(site, current + count);
+  }
+
+  /**
+   * Get allocation hotspots
+   * @param {number} limit - Number of top sites to return
+   * @returns {Array} Top allocation sites
+   */
+  getHotspots(limit = 10) {
+    const sites = Array.from(this.allocationSites.entries());
+    sites.sort((a, b) => b[1] - a[1]);
+    return sites.slice(0, limit).map(([site, count]) => ({
+      site,
+      count,
+      percentage: count / this.getTotalAllocations() * 100
+    }));
+  }
+
+  /**
+   * Get total allocations
+   * @returns {number} Total allocation count
+   * @private
+   */
+  getTotalAllocations() {
+    let total = 0;
+    for (const count of this.allocationSites.values()) {
+      total += count;
+    }
+    return total;
+  }
+
+  /**
+   * Create object pool for frequent allocations
+   * @param {string} type - Object type
+   * @param {Function} factory - Factory function to create new objects
+   * @param {Function} reset - Reset function to clear object state
+   * @param {number} maxSize - Maximum pool size
+   * @returns {Object} Pool interface
+   */
+  createObjectPool(type, factory, reset, maxSize = 100) {
+    const pool = {
+      available: [],
+      inUse: new Set(),
+      factory,
+      reset,
+      maxSize,
+      stats: {
+        created: 0,
+        reused: 0,
+        returned: 0
+      }
+    };
+    this.objectPools.set(type, pool);
+    return {
+      get: () => this.getFromPool(type),
+      release: obj => this.releaseToPool(type, obj),
+      getStats: () => pool.stats
+    };
+  }
+
+  /**
+   * Get object from pool
+   * @param {string} type - Pool type
+   * @returns {Object} Object from pool
+   * @private
+   */
+  getFromPool(type) {
+    const pool = this.objectPools.get(type);
+    if (!pool) {
+      throw new Error(`Object pool '${type}' not found`);
+    }
+    let obj;
+    if (pool.available.length > 0) {
+      obj = pool.available.pop();
+      pool.stats.reused++;
+    } else {
+      obj = pool.factory();
+      pool.stats.created++;
+    }
+    pool.inUse.add(obj);
+    return obj;
+  }
+
+  /**
+   * Release object back to pool
+   * @param {string} type - Pool type
+   * @param {Object} obj - Object to release
+   * @private
+   */
+  releaseToPool(type, obj) {
+    const pool = this.objectPools.get(type);
+    if (!pool) {
+      throw new Error(`Object pool '${type}' not found`);
+    }
+    if (!pool.inUse.has(obj)) {
+      errorHandler.warn(`Object not from pool '${type}'`);
+      return;
+    }
+    pool.inUse.delete(obj);
+    pool.reset(obj);
+    if (pool.available.length < pool.maxSize) {
+      pool.available.push(obj);
+      pool.stats.returned++;
+    }
+  }
+
+  /**
+   * Analyze memory usage patterns
+   * @returns {Object} Analysis results
+   */
+  analyzePatterns() {
+    const results = {
+      profiles: {},
+      hotspots: this.getHotspots(),
+      pools: {},
+      recommendations: []
+    };
+
+    // Analyze profiles
+    for (const [name, profiles] of this.profiles.entries()) {
+      if (profiles.length > 0) {
+        const avgMemory = profiles.reduce((sum, p) => sum + p.memoryDelta, 0) / profiles.length;
+        const avgDuration = profiles.reduce((sum, p) => sum + p.duration, 0) / profiles.length;
+        results.profiles[name] = {
+          count: profiles.length,
+          avgMemoryDelta: avgMemory,
+          avgDuration: avgDuration,
+          memoryPerMs: avgMemory / avgDuration
+        };
+
+        // Generate recommendations
+        if (avgMemory > 1024 * 1024) {
+          // > 1MB
+          results.recommendations.push({
+            type: 'high-memory',
+            target: name,
+            message: `Operation '${name}' allocates ${(avgMemory / 1024 / 1024).toFixed(2)}MB on average`
+          });
+        }
+      }
+    }
+
+    // Analyze pools
+    for (const [type, pool] of this.objectPools.entries()) {
+      const reuseRate = pool.stats.reused / (pool.stats.created + pool.stats.reused) * 100;
+      results.pools[type] = {
+        ...pool.stats,
+        reuseRate: reuseRate.toFixed(1) + '%',
+        poolSize: pool.available.length,
+        inUse: pool.inUse.size
+      };
+      if (reuseRate < 50) {
+        results.recommendations.push({
+          type: 'low-reuse',
+          target: type,
+          message: `Pool '${type}' has low reuse rate (${reuseRate.toFixed(1)}%)`
+        });
+      }
+    }
+
+    // Check for allocation hotspots
+    for (const hotspot of results.hotspots) {
+      if (hotspot.percentage > 20) {
+        results.recommendations.push({
+          type: 'hotspot',
+          target: hotspot.site,
+          message: `Site '${hotspot.site}' accounts for ${hotspot.percentage.toFixed(1)}% of allocations`
+        });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Generate profiling report
+   * @returns {string} Formatted report
+   */
+  generateReport() {
+    const analysis = this.analyzePatterns();
+    let report = '=== Memory Profiling Report ===\n\n';
+
+    // Profile results
+    if (Object.keys(analysis.profiles).length > 0) {
+      report += 'Operation Profiles:\n';
+      for (const [name, stats] of Object.entries(analysis.profiles)) {
+        report += `  ${name}:\n`;
+        report += `    Calls: ${stats.count}\n`;
+        report += `    Avg Memory: ${(stats.avgMemoryDelta / 1024).toFixed(2)} KB\n`;
+        report += `    Avg Duration: ${stats.avgDuration.toFixed(2)} ms\n`;
+        report += `    Memory/ms: ${(stats.memoryPerMs / 1024).toFixed(2)} KB/ms\n`;
+      }
+      report += '\n';
+    }
+
+    // Allocation hotspots
+    if (analysis.hotspots.length > 0) {
+      report += 'Allocation Hotspots:\n';
+      for (const hotspot of analysis.hotspots) {
+        report += `  ${hotspot.site}: ${hotspot.count} (${hotspot.percentage.toFixed(1)}%)\n`;
+      }
+      report += '\n';
+    }
+
+    // Object pools
+    if (Object.keys(analysis.pools).length > 0) {
+      report += 'Object Pools:\n';
+      for (const [type, stats] of Object.entries(analysis.pools)) {
+        report += `  ${type}:\n`;
+        report += `    Created: ${stats.created}\n`;
+        report += `    Reused: ${stats.reused}\n`;
+        report += `    Reuse Rate: ${stats.reuseRate}\n`;
+        report += `    Pool Size: ${stats.poolSize}\n`;
+        report += `    In Use: ${stats.inUse}\n`;
+      }
+      report += '\n';
+    }
+
+    // Recommendations
+    if (analysis.recommendations.length > 0) {
+      report += 'Recommendations:\n';
+      for (const rec of analysis.recommendations) {
+        report += `  [${rec.type}] ${rec.message}\n`;
+      }
+    }
+    return report;
+  }
+
+  /**
+   * Reset profiler data
+   */
+  reset() {
+    this.profiles.clear();
+    this.allocationSites.clear();
+
+    // Clear pool stats but keep pools
+    for (const pool of this.objectPools.values()) {
+      pool.stats.created = 0;
+      pool.stats.reused = 0;
+      pool.stats.returned = 0;
+    }
+  }
+}
+
+// Create singleton instance
+const memoryProfiler = new MemoryProfiler();
+
+/**
  * Production system - handles paperclip manufacturing and automation
  */
 
@@ -746,6 +2199,8 @@ class ProductionSystem {
    * Update production rates and process automated production
    */
   update(deltaTime) {
+    const stopProfile = memoryProfiler.startProfile('production.update');
+
     // Calculate clip production rate
     this.updateClipRate();
 
@@ -759,6 +2214,7 @@ class ProductionSystem {
     if (gameState.get('flags.factory')) {
       this.updateFactoryProduction(deltaTime);
     }
+    stopProfile();
   }
 
   /**
@@ -1546,6 +3002,21 @@ class CombatSystem {
     this.nextBattleId = 1;
     this.battleUpdateInterval = 100; // Update battles every 100ms
     this.lastBattleUpdate = 0;
+
+    // Create object pool for Battle objects
+    this.battlePool = memoryProfiler.createObjectPool('Battle', () => new Battle(0, 0, 0),
+    // Factory
+    battle => {
+      // Reset function
+      battle.id = 0;
+      battle.probes = 0;
+      battle.drifters = 0;
+      battle.probeLosses = 0;
+      battle.drifterLosses = 0;
+      battle.duration = 0;
+      battle.status = 'active';
+    }, 50 // Max pool size
+    );
   }
 
   /**
@@ -1592,9 +3063,21 @@ class CombatSystem {
       return null;
     }
     const battleId = this.nextBattleId++;
-    const battle = new Battle(battleId, probeCount, drifterCount);
+
+    // Get battle from pool instead of creating new
+    const battle = this.battlePool.get();
+    battle.id = battleId;
+    battle.probes = probeCount;
+    battle.drifters = drifterCount;
+    battle.probeLosses = 0;
+    battle.drifterLosses = 0;
+    battle.duration = 0;
+    battle.status = 'active';
     this.battles.set(battleId, battle);
     gameState.set('combat.battleID', battleId);
+
+    // Track battle object for memory monitoring
+    memoryMonitor.trackObject(`battle-${battleId}`, battle);
 
     // Update battle array for UI
     this.updateBattleArray();
@@ -1631,9 +3114,16 @@ class CombatSystem {
       }
     }
 
-    // Remove finished battles
+    // Remove finished battles and return to pool
     for (const id of finishedBattles) {
+      const battle = this.battles.get(id);
+      if (battle) {
+        // Return battle to pool
+        this.battlePool.release(battle);
+      }
       this.battles.delete(id);
+      // Untrack battle object
+      memoryMonitor.untrackObject(`battle-${id}`);
     }
 
     // Update battle array
@@ -2085,713 +3575,6 @@ class ProjectsSystem {
 const projectsSystem = new ProjectsSystem();
 
 /**
- * Number formatting utilities
- */
-
-
-/**
- * Format a number for display with appropriate notation
- */
-function formatNumber(num, decimals = 0) {
-  if (typeof num !== 'number' || isNaN(num)) {
-    return '0';
-  }
-
-  // Handle negative numbers
-  const negative = num < 0;
-  num = Math.abs(num);
-  let result;
-  if (num < 1000) {
-    // For small numbers
-    if (decimals > 0) {
-      result = num.toFixed(decimals);
-    } else {
-      result = Math.round(num).toString();
-    }
-  } else if (num < NOTATION_THRESHOLD) {
-    // Regular notation for smaller numbers
-    if (decimals > 0) {
-      // Format with commas and decimals
-      const parts = num.toFixed(decimals).split('.');
-      parts[0] = parseInt(parts[0]).toLocaleString();
-      result = parts.join('.');
-    } else {
-      result = Math.floor(num).toLocaleString();
-    }
-  } else if (num < SCIENTIFIC_THRESHOLD) {
-    // Use abbreviations for millions, billions, etc.
-    result = abbreviateNumber(num, decimals);
-  } else {
-    // Scientific notation for very large numbers
-    result = num.toExponential(decimals);
-  }
-  return negative ? '-' + result : result;
-}
-
-/**
- * Abbreviate large numbers (K, M, B, T, etc.)
- */
-function abbreviateNumber(num, decimals = 0) {
-  const abbrev = ['', 'K', 'M', 'B', 'T', 'q', 'Q', 's', 'S', 'o', 'n', 'd'];
-  const unrangifiedOrder = Math.floor(Math.log10(Math.abs(num)) / 3);
-  const order = Math.max(0, Math.min(unrangifiedOrder, abbrev.length - 1));
-  const suffix = abbrev[order];
-  const scaled = num / Math.pow(10, order * 3);
-
-  // For default formatting with no decimals specified, show decimals only if needed
-  if (decimals === 0 && scaled === Math.floor(scaled)) {
-    return scaled.toString() + suffix;
-  }
-
-  // Otherwise format with specified decimals
-  return scaled.toFixed(decimals || 1) + suffix;
-}
-
-/**
- * DOM Batching system for efficient updates
- * @module DOMBatcher
- */
-
-
-/**
- * @class DOMBatcher
- * @description Batches DOM updates to minimize reflows and repaints.
- * Uses requestAnimationFrame to schedule updates at optimal times.
- */
-class DOMBatcher {
-  /**
-   * Creates a new DOMBatcher instance
-   * @constructor
-   */
-  constructor() {
-    /** @type {Map<string, Function>} Pending DOM updates */
-    this.pendingUpdates = new Map();
-    /** @type {Map<string, Function>} Pending style updates */
-    this.pendingStyles = new Map();
-    /** @type {Map<string, Function>} Pending class updates */
-    this.pendingClasses = new Map();
-    /** @type {Set<string>} Elements to show/hide */
-    this.pendingVisibility = new Set();
-    /** @type {number|null} Current animation frame ID */
-    this.frameId = null;
-    /** @type {boolean} Whether batching is enabled */
-    this.enabled = true;
-    /** @type {Map<string, HTMLElement>} Element cache */
-    this.elementCache = new Map();
-    /** @type {number} Cache hit/miss statistics */
-    this.cacheHits = 0;
-    this.cacheMisses = 0;
-  }
-
-  /**
-   * Get element by ID with caching
-   * @param {string} elementId - Element ID
-   * @returns {HTMLElement|null} The element or null
-   * @private
-   */
-  getElement(elementId) {
-    let element = this.elementCache.get(elementId);
-    if (!element || !document.body.contains(element)) {
-      element = document.getElementById(elementId);
-      if (element) {
-        this.elementCache.set(elementId, element);
-        this.cacheMisses++;
-      }
-    } else {
-      this.cacheHits++;
-    }
-    return element;
-  }
-
-  /**
-   * Queue a text content update
-   * @param {string} elementId - Element ID
-   * @param {string} text - New text content
-   * @returns {void}
-   */
-  updateText(elementId, text) {
-    if (!this.enabled) {
-      const element = this.getElement(elementId);
-      if (element && element.textContent !== text) {
-        element.textContent = text;
-      }
-      return;
-    }
-    this.pendingUpdates.set(elementId, () => {
-      const element = this.getElement(elementId);
-      if (element && element.textContent !== text) {
-        element.textContent = text;
-      }
-    });
-    this.scheduleUpdate();
-  }
-
-  /**
-   * Queue an innerHTML update
-   * @param {string} elementId - Element ID
-   * @param {string} html - New HTML content
-   * @returns {void}
-   */
-  updateHTML(elementId, html) {
-    if (!this.enabled) {
-      const element = this.getElement(elementId);
-      if (element && element.innerHTML !== html) {
-        element.innerHTML = html;
-      }
-      return;
-    }
-    this.pendingUpdates.set(elementId, () => {
-      const element = this.getElement(elementId);
-      if (element && element.innerHTML !== html) {
-        element.innerHTML = html;
-      }
-    });
-    this.scheduleUpdate();
-  }
-
-  /**
-   * Queue a style update
-   * @param {string} elementId - Element ID
-   * @param {Object} styles - Style properties to update
-   * @returns {void}
-   */
-  updateStyles(elementId, styles) {
-    if (!this.enabled) {
-      const element = this.getElement(elementId);
-      if (element) {
-        Object.assign(element.style, styles);
-      }
-      return;
-    }
-    this.pendingStyles.set(elementId, () => {
-      const element = this.getElement(elementId);
-      if (element) {
-        Object.assign(element.style, styles);
-      }
-    });
-    this.scheduleUpdate();
-  }
-
-  /**
-   * Queue a class list update
-   * @param {string} elementId - Element ID
-   * @param {Object} classes - Classes to add/remove {add: [], remove: []}
-   * @returns {void}
-   */
-  updateClasses(elementId, classes) {
-    if (!this.enabled) {
-      const element = this.getElement(elementId);
-      if (element) {
-        if (classes.add) {
-          element.classList.add(...classes.add);
-        }
-        if (classes.remove) {
-          element.classList.remove(...classes.remove);
-        }
-      }
-      return;
-    }
-    this.pendingClasses.set(elementId, () => {
-      const element = this.getElement(elementId);
-      if (element) {
-        if (classes.add) {
-          element.classList.add(...classes.add);
-        }
-        if (classes.remove) {
-          element.classList.remove(...classes.remove);
-        }
-      }
-    });
-    this.scheduleUpdate();
-  }
-
-  /**
-   * Queue visibility update
-   * @param {string} elementId - Element ID
-   * @param {boolean} visible - Whether element should be visible
-   * @returns {void}
-   */
-  updateVisibility(elementId, visible) {
-    if (!this.enabled) {
-      const element = this.getElement(elementId);
-      if (element) {
-        element.style.display = visible ? '' : 'none';
-      }
-      return;
-    }
-    this.pendingVisibility.add(JSON.stringify({
-      elementId,
-      visible
-    }));
-    this.scheduleUpdate();
-  }
-
-  /**
-   * Schedule a batch update
-   * @private
-   */
-  scheduleUpdate() {
-    if (this.frameId !== null) {
-      return; // Update already scheduled
-    }
-    this.frameId = requestAnimationFrame(() => {
-      this.flush();
-    });
-  }
-
-  /**
-   * Flush all pending updates
-   * @returns {void}
-   */
-  flush() {
-    try {
-      // Clear frame ID first
-      this.frameId = null;
-
-      // Batch write operations (mutate)
-      // Note: Read operations would go first if we needed measurements
-
-      // 1. Update visibility first (can affect layout)
-      for (const data of this.pendingVisibility) {
-        const {
-          elementId,
-          visible
-        } = JSON.parse(data);
-        const element = this.getElement(elementId);
-        if (element) {
-          element.style.display = visible ? '' : 'none';
-        }
-      }
-      this.pendingVisibility.clear();
-
-      // 2. Update styles (can affect layout)
-      for (const [, updateFn] of this.pendingStyles) {
-        updateFn();
-      }
-      this.pendingStyles.clear();
-
-      // 3. Update classes (can affect layout)
-      for (const [, updateFn] of this.pendingClasses) {
-        updateFn();
-      }
-      this.pendingClasses.clear();
-
-      // 4. Update content last (least likely to affect other elements)
-      for (const [, updateFn] of this.pendingUpdates) {
-        updateFn();
-      }
-      this.pendingUpdates.clear();
-    } catch (error) {
-      errorHandler.handleError(error, 'domBatcher.flush');
-    }
-  }
-
-  /**
-   * Enable or disable batching
-   * @param {boolean} enabled - Whether to enable batching
-   * @returns {void}
-   */
-  setEnabled(enabled) {
-    this.enabled = enabled;
-    if (!enabled) {
-      this.flush(); // Flush any pending updates
-    }
-  }
-
-  /**
-   * Clear element cache
-   * @returns {void}
-   */
-  clearCache() {
-    this.elementCache.clear();
-    this.cacheHits = 0;
-    this.cacheMisses = 0;
-  }
-
-  /**
-   * Get cache statistics
-   * @returns {Object} Cache statistics
-   */
-  getCacheStats() {
-    const total = this.cacheHits + this.cacheMisses;
-    return {
-      hits: this.cacheHits,
-      misses: this.cacheMisses,
-      hitRate: total > 0 ? (this.cacheHits / total * 100).toFixed(2) + '%' : '0%',
-      size: this.elementCache.size
-    };
-  }
-
-  /**
-   * Batch multiple updates together
-   * @param {Function} updateFn - Function containing multiple updates
-   * @returns {void}
-   */
-  batch(updateFn) {
-    const wasEnabled = this.enabled;
-    this.enabled = true;
-    try {
-      updateFn();
-    } catch (error) {
-      errorHandler.handleError(error, 'domBatcher.batch');
-    } finally {
-      if (!wasEnabled) {
-        this.flush();
-        this.enabled = false;
-      }
-    }
-  }
-
-  /**
-   * Read layout property safely
-   * @param {string} elementId - Element ID
-   * @param {string} property - Property to read
-   * @returns {*} Property value
-   */
-  read(elementId, property) {
-    const element = this.getElement(elementId);
-    if (!element) {
-      return null;
-    }
-
-    // Common layout properties that trigger reflow
-    const layoutProperties = ['offsetWidth', 'offsetHeight', 'offsetTop', 'offsetLeft', 'clientWidth', 'clientHeight', 'clientTop', 'clientLeft', 'scrollWidth', 'scrollHeight', 'scrollTop', 'scrollLeft', 'getBoundingClientRect'];
-    if (layoutProperties.includes(property)) {
-      // These properties trigger reflow, so flush pending updates first
-      this.flush();
-    }
-    if (property === 'getBoundingClientRect') {
-      return element.getBoundingClientRect();
-    }
-    return element[property];
-  }
-}
-
-// Create singleton instance
-const domBatcher = new DOMBatcher();
-
-// Export for debugging
-if (typeof window !== 'undefined') {
-  window.UniversalPaperclipsDOMBatcher = domBatcher;
-}
-
-/**
- * UI Renderer - handles all display updates and DOM manipulation
- * @module UIRenderer
- */
-
-
-/**
- * @class UIRenderer
- * @description Manages UI updates with efficient DOM batching and caching.
- */
-class UIRenderer {
-  /**
-   * Creates a new UIRenderer instance
-   * @constructor
-   */
-  constructor() {
-    /** @type {Object} Cached DOM elements */
-    this.elements = {};
-    /** @type {Object} Last rendered values for change detection */
-    this.lastValues = {};
-    /** @type {boolean} Whether renderer is initialized */
-    this.initialized = false;
-    /** @type {number} Update counter for debugging */
-    this.updateCount = 0;
-  }
-
-  /**
-   * Initialize UI elements cache
-   */
-  init() {
-    // Cache commonly used DOM elements
-    this.cacheElements();
-    this.initialized = true;
-  }
-
-  /**
-   * Cache DOM element references
-   */
-  cacheElements() {
-    // Resource displays
-    this.elements.clips = document.getElementById('clips');
-    this.elements.funds = document.getElementById('funds');
-    this.elements.wire = document.getElementById('wire');
-    this.elements.unsoldClips = document.getElementById('unsoldClips');
-
-    // Production displays
-    this.elements.clipRate = document.getElementById('clipRate');
-    this.elements.clipmakerLevel = document.getElementById('clipmakerLevel');
-    this.elements.megaClipperLevel = document.getElementById('megaClipperLevel');
-
-    // Market displays
-    this.elements.demand = document.getElementById('demand');
-    this.elements.margin = document.getElementById('margin');
-    this.elements.marketingLvl = document.getElementById('marketingLvl');
-    this.elements.wireCost = document.getElementById('wireCost');
-
-    // Computing displays
-    this.elements.operations = document.getElementById('operations');
-    this.elements.trust = document.getElementById('trust');
-    this.elements.processors = document.getElementById('processors');
-    this.elements.memory = document.getElementById('memory');
-    this.elements.creativity = document.getElementById('creativity');
-
-    // Infrastructure displays
-    this.elements.factoryLevel = document.getElementById('factoryLevel');
-    this.elements.harvesterLevel = document.getElementById('harvesterLevel');
-    this.elements.wireDroneLevel = document.getElementById('wireDroneLevel');
-
-    // Display sections
-    this.elements.businessDisplay = document.getElementById('businessDisplay');
-    this.elements.manufacturingDisplay = document.getElementById('manufacturingDisplay');
-    this.elements.computationalDisplay = document.getElementById('computationalDisplay');
-    this.elements.projectsDisplay = document.getElementById('projectsDisplay');
-    this.elements.spaceDisplay = document.getElementById('spaceDisplay');
-  }
-
-  /**
-   * Main render function - updates all UI elements
-   * @param {Object} state - Current game state
-   * @returns {void}
-   */
-  render(state) {
-    if (!this.initialized) {
-      this.init();
-    }
-
-    // Batch all DOM updates together
-    domBatcher.batch(() => {
-      try {
-        // Update resources
-        this.updateResources(state);
-
-        // Update production
-        this.updateProduction(state);
-
-        // Update market
-        this.updateMarket(state);
-
-        // Update computing
-        this.updateComputing(state);
-
-        // Update infrastructure
-        this.updateInfrastructure(state);
-
-        // Update display visibility
-        this.updateDisplayVisibility(state);
-      } catch (error) {
-        errorHandler.handleError(error, 'uiRenderer.render');
-      }
-    });
-  }
-
-  /**
-   * Update resource displays
-   */
-  updateResources(state) {
-    this.updateElement('clips', state.resources.clips);
-    this.updateElement('funds', state.resources.funds, true);
-    this.updateElement('wire', state.resources.wire);
-    this.updateElement('unsoldClips', state.resources.unsoldClips);
-  }
-
-  /**
-   * Update production displays
-   */
-  updateProduction(state) {
-    this.updateElement('clipRate', state.production.clipRate);
-    this.updateElement('clipmakerLevel', state.production.clipmakerLevel);
-    this.updateElement('megaClipperLevel', state.production.megaClipperLevel);
-  }
-
-  /**
-   * Update market displays
-   */
-  updateMarket(state) {
-    this.updateElement('demand', state.market.demand, false, 1);
-    this.updateElement('margin', state.market.margin, true);
-    this.updateElement('marketingLvl', state.market.marketingLvl);
-    this.updateElement('wireCost', state.market.wireCost, true);
-  }
-
-  /**
-   * Update computing displays
-   */
-  updateComputing(state) {
-    this.updateElement('operations', state.computing.operations);
-    this.updateElement('trust', state.computing.trust);
-    this.updateElement('processors', state.computing.processors);
-    this.updateElement('memory', state.computing.memory);
-    this.updateElement('creativity', state.computing.creativity);
-  }
-
-  /**
-   * Update infrastructure displays
-   */
-  updateInfrastructure(state) {
-    if (state.flags.factory) {
-      this.updateElement('factoryLevel', state.infrastructure.factoryLevel);
-    }
-    if (state.flags.harvester) {
-      this.updateElement('harvesterLevel', state.infrastructure.harvesterLevel);
-    }
-    if (state.flags.wireDrone) {
-      this.updateElement('wireDroneLevel', state.infrastructure.wireDroneLevel);
-    }
-  }
-
-  /**
-   * Update a single element if value changed
-   */
-  updateElement(elementId, value, isCurrency = false, decimals = 0) {
-    // Check if value has changed
-    if (this.lastValues[elementId] === value) {
-      return;
-    }
-    const element = this.elements[elementId];
-    if (!element) {
-      return;
-    }
-
-    // Format value
-    let displayValue;
-    if (isCurrency) {
-      displayValue = '$' + formatNumber(value, decimals);
-    } else {
-      displayValue = formatNumber(value, decimals);
-    }
-
-    // Update element using DOM batcher
-    domBatcher.updateText(elementId, displayValue);
-    this.lastValues[elementId] = value;
-    this.updateCount++;
-  }
-
-  /**
-   * Update display section visibility
-   */
-  updateDisplayVisibility(state) {
-    // Business display (always visible)
-    this.setDisplayVisible('businessDisplay', true);
-
-    // Manufacturing display (when auto-clippers available)
-    this.setDisplayVisible('manufacturingDisplay', state.flags.autoClipper);
-
-    // Computational display (when trust unlocked)
-    this.setDisplayVisible('computationalDisplay', state.flags.trust);
-
-    // Projects display (when projects available)
-    this.setDisplayVisible('projectsDisplay', state.flags.projects);
-
-    // Space display (when space exploration unlocked)
-    this.setDisplayVisible('spaceDisplay', state.flags.space);
-  }
-
-  /**
-   * Set display visibility
-   */
-  setDisplayVisible(displayId, visible) {
-    // Update visibility through DOM batcher
-    // Note: Using inline update for display blocks since they need 'block' not ''
-    const element = this.elements[displayId];
-    if (element) {
-      domBatcher.updateStyles(displayId, {
-        display: visible ? 'block' : 'none'
-      });
-    }
-  }
-
-  /**
-   * Show notification message
-   */
-  showNotification(message, duration = 3000) {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.textContent = message;
-
-    // Add to page
-    document.body.appendChild(notification);
-
-    // Fade in
-    setTimeout(() => {
-      notification.classList.add('visible');
-    }, 10);
-
-    // Remove after duration
-    setTimeout(() => {
-      notification.classList.remove('visible');
-      setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 300);
-    }, duration);
-  }
-
-  /**
-   * Update button states (enabled/disabled)
-   */
-  updateButtonStates(state) {
-    // Make Paperclip button
-    const makeClipBtn = document.getElementById('btnMakePaperclip');
-    if (makeClipBtn) {
-      makeClipBtn.disabled = state.resources.wire < 1;
-    }
-
-    // Buy Wire button
-    const buyWireBtn = document.getElementById('btnBuyWire');
-    if (buyWireBtn) {
-      const wireCost = state.market.wireCost;
-      buyWireBtn.disabled = state.resources.funds < wireCost;
-    }
-
-    // Buy Auto-Clipper button
-    const buyClipperBtn = document.getElementById('btnBuyAutoClipper');
-    if (buyClipperBtn) {
-      const clipperCost = state.market.clipperCost;
-      buyClipperBtn.disabled = state.resources.funds < clipperCost;
-    }
-  }
-
-  /**
-   * Flash an element to draw attention
-   */
-  /**
-   * Flash element with color animation
-   * @param {string} elementId - Element to flash
-   * @param {string} [color='#ffff00'] - Flash color
-   * @returns {void}
-   */
-  flashElement(elementId, color = '#ffff00') {
-    const element = this.elements[elementId] || document.getElementById(elementId);
-    if (!element) {
-      return;
-    }
-    const originalColor = element.style.backgroundColor;
-
-    // Use DOM batcher for style updates
-    domBatcher.updateStyles(elementId, {
-      backgroundColor: color,
-      transition: 'background-color 0.3s'
-    });
-    setTimeout(() => {
-      domBatcher.updateStyles(elementId, {
-        backgroundColor: originalColor
-      });
-    }, 300);
-  }
-}
-
-// Create singleton instance
-const uiRenderer = new UIRenderer();
-
-// Export for debugging
-if (typeof window !== 'undefined') {
-  window.UniversalPaperclipsRenderer = uiRenderer;
-}
-
-/**
  * UI Event Handlers
  * Sets up all button clicks and user interactions
  */
@@ -3026,6 +3809,8 @@ class DevDashboard {
     this.createStatePanel();
     this.createErrorPanel();
     this.createDOMPanel();
+    this.createMemoryPanel();
+    this.createProfilerPanel();
     this.createControlsPanel();
 
     // Add to document
@@ -3099,6 +3884,52 @@ class DevDashboard {
     `;
     this.container.appendChild(panel);
     this.panels.dom = panel;
+  }
+
+  /**
+   * Create memory monitoring panel
+   * @private
+   */
+  createMemoryPanel() {
+    const panel = document.createElement('div');
+    panel.className = 'dev-panel';
+    panel.style.cssText = 'margin-bottom: 10px; padding: 5px; border: 1px solid #0f0;';
+    panel.innerHTML = `
+      <h4 style="margin: 0 0 5px 0; color: #0f0;">MEMORY</h4>
+      <div id="devMemoryContent" style="font-size: 11px;">
+        <div id="devMemoryStats"></div>
+        <div style="margin-top: 5px;">
+          <button id="devStartMemory" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Start Monitor</button>
+          <button id="devStopMemory" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Stop Monitor</button>
+          <button id="devForceGC" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Force GC</button>
+        </div>
+      </div>
+    `;
+    this.container.appendChild(panel);
+    this.panels.memory = panel;
+  }
+
+  /**
+   * Create memory profiler panel
+   * @private
+   */
+  createProfilerPanel() {
+    const panel = document.createElement('div');
+    panel.className = 'dev-panel';
+    panel.style.cssText = 'margin-bottom: 10px; padding: 5px; border: 1px solid #0f0;';
+    panel.innerHTML = `
+      <h4 style="margin: 0 0 5px 0; color: #0f0;">PROFILER</h4>
+      <div id="devProfilerContent" style="font-size: 11px;">
+        <div id="devProfilerStats"></div>
+        <div style="margin-top: 5px;">
+          <button id="devAnalyzeProfile" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Analyze</button>
+          <button id="devResetProfile" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Reset</button>
+          <button id="devExportProfile" style="background: #001; border: 1px solid #0f0; color: #0f0; cursor: pointer; padding: 3px;">Export</button>
+        </div>
+      </div>
+    `;
+    this.container.appendChild(panel);
+    this.panels.profiler = panel;
   }
 
   /**
@@ -3186,6 +4017,47 @@ class DevDashboard {
       URL.revokeObjectURL(url);
       errorHandler.debug('Game state exported');
     });
+
+    // Memory monitoring controls
+    document.getElementById('devStartMemory').addEventListener('click', () => {
+      memoryMonitor.start();
+      errorHandler.debug('Memory monitoring started');
+    });
+    document.getElementById('devStopMemory').addEventListener('click', () => {
+      memoryMonitor.stop();
+      errorHandler.debug('Memory monitoring stopped');
+    });
+    document.getElementById('devForceGC').addEventListener('click', () => {
+      if (memoryMonitor.forceGC()) {
+        errorHandler.debug('Garbage collection triggered');
+      } else {
+        errorHandler.warn('GC not available - run Chrome with --expose-gc flag');
+      }
+    });
+
+    // Profiler controls
+    document.getElementById('devAnalyzeProfile').addEventListener('click', () => {
+      const analysis = memoryProfiler.analyzePatterns();
+      console.log('Memory Analysis:', analysis);
+      errorHandler.debug('Memory analysis logged to console');
+    });
+    document.getElementById('devResetProfile').addEventListener('click', () => {
+      memoryProfiler.reset();
+      errorHandler.debug('Profiler data reset');
+    });
+    document.getElementById('devExportProfile').addEventListener('click', () => {
+      const report = memoryProfiler.generateReport();
+      const blob = new Blob([report], {
+        type: 'text/plain'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'memory-profile.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+      errorHandler.debug('Profile report exported');
+    });
   }
 
   /**
@@ -3200,6 +4072,8 @@ class DevDashboard {
     this.updateStatePanel();
     this.updateErrorPanel();
     this.updateDOMPanel();
+    this.updateMemoryPanel();
+    this.updateProfilerPanel();
   }
 
   /**
@@ -3275,6 +4149,70 @@ class DevDashboard {
       <div>Render Updates: ${renderer ? renderer.updateCount : 0}</div>
       <div>Batching: ${domBatcher.enabled ? 'Enabled' : 'Disabled'}</div>
     `;
+  }
+
+  /**
+   * Update memory panel
+   * @private
+   */
+  updateMemoryPanel() {
+    const content = document.getElementById('devMemoryStats');
+    const stats = memoryMonitor.getStats();
+    if (!stats.current) {
+      content.innerHTML = '<div style="color: #999;">Memory API not available</div>';
+      return;
+    }
+    const trend = memoryMonitor.getTrend();
+    const trendColor = trend === 'growing' ? '#fa0' : trend === 'shrinking' ? '#0f0' : '#999';
+    let html = `
+      <div>Used: ${stats.current.usedMB} MB (${stats.current.usagePercent}%)</div>
+      <div>Total: ${stats.current.totalMB} MB | Limit: ${stats.current.limitMB} MB</div>
+      <div>Trend: <span style="color: ${trendColor}">${trend}</span></div>
+      <div>Tracked Objects: ${stats.trackedObjects}</div>
+    `;
+    if (stats.issues.length > 0) {
+      html += '<div style="margin-top: 5px; color: #fa0;">Recent Issues:</div>';
+      stats.issues.slice(-3).forEach(issue => {
+        html += `<div style="font-size: 10px; color: #fa0;">- ${issue.type}: ${JSON.stringify(issue.details)}</div>`;
+      });
+    }
+    content.innerHTML = html;
+  }
+
+  /**
+   * Update profiler panel
+   * @private
+   */
+  updateProfilerPanel() {
+    const content = document.getElementById('devProfilerStats');
+    const analysis = memoryProfiler.analyzePatterns();
+    let html = '<div style="font-size: 10px;">';
+
+    // Object pools
+    if (Object.keys(analysis.pools).length > 0) {
+      html += '<div style="margin-bottom: 5px;">Object Pools:</div>';
+      for (const [type, stats] of Object.entries(analysis.pools)) {
+        html += `<div style="margin-left: 10px;">${type}: ${stats.reuseRate} reuse (${stats.inUse}/${stats.poolSize})</div>`;
+      }
+    }
+
+    // Hotspots
+    if (analysis.hotspots.length > 0) {
+      html += '<div style="margin: 5px 0;">Allocation Hotspots:</div>';
+      analysis.hotspots.slice(0, 3).forEach(hotspot => {
+        html += `<div style="margin-left: 10px;">${hotspot.site}: ${hotspot.percentage.toFixed(1)}%</div>`;
+      });
+    }
+
+    // Recommendations
+    if (analysis.recommendations.length > 0) {
+      html += '<div style="margin: 5px 0; color: #fa0;">Recommendations:</div>';
+      analysis.recommendations.slice(0, 3).forEach(rec => {
+        html += `<div style="margin-left: 10px; font-size: 9px; color: #fa0;">• ${rec.message}</div>`;
+      });
+    }
+    html += '</div>';
+    content.innerHTML = html;
   }
 
   /**
@@ -3462,6 +4400,7 @@ if (document.readyState === 'loading') {
 window.UniversalPaperclips = {
   errorHandler,
   performanceMonitor,
+  memoryMonitor,
   devDashboard,
   phaseManager,
   gameState,
@@ -3496,7 +4435,13 @@ window.UniversalPaperclips = {
     clearErrors: () => errorHandler.clearErrorLog(),
     getPerformance: () => performanceMonitor.getReport(),
     resetPerformance: () => performanceMonitor.reset(),
-    setLogLevel: level => errorHandler.setLogLevel(level)
+    setLogLevel: level => errorHandler.setLogLevel(level),
+    // Memory debugging
+    getMemory: () => memoryMonitor.getStats(),
+    getMemoryReport: () => memoryMonitor.generateReport(),
+    startMemoryMonitor: () => memoryMonitor.start(),
+    stopMemoryMonitor: () => memoryMonitor.stop(),
+    forceGC: () => memoryMonitor.forceGC()
   }
 };
 errorHandler.info('Game loaded. Use window.UniversalPaperclips.debug for debugging tools.');

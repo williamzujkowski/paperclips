@@ -1,5 +1,36 @@
 <html>
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Universal Paperclips - Modern</title>
+        <meta name="description" content="A game about making paperclips. An incremental game by Frank Lantz and Bennett Foddy.">
+        
+        <!-- Preconnect to improve performance -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+        
+        <!-- Preload critical resources -->
+        <link rel="preload" href="interface.css" as="style">
+        <link rel="preload" href="js/game.min.js" as="script">
+        
+        <!-- Web App Manifest -->
+        <link rel="manifest" href="/manifest.json">
+        <meta name="theme-color" content="#00ff00">
+        
+        <!-- Content Security Policy -->
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'self';
+            script-src 'self' 'unsafe-eval';
+            style-src 'self' 'unsafe-inline';
+            img-src 'self' data:;
+            connect-src 'self';
+            font-src 'self';
+            object-src 'none';
+            media-src 'self';
+            base-uri 'self';
+            frame-ancestors 'none';
+            upgrade-insecure-requests;
+        ">
+        
         <link rel="stylesheet" type="text/css" href="interface.css" />
     </head>
     
@@ -898,11 +929,21 @@
             
             
         </div>
-        </div><!-- Close rightColumn -->
         </div><!-- Close page -->
         
         <!-- Modern ES Module version with lazy loading -->
         <script type="module" src="js/game.js"></script>
+        
+        <!-- Register Service Worker for offline support -->
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(registration => console.log('SW registered:', registration))
+                        .catch(err => console.log('SW registration failed:', err));
+                });
+            }
+        </script>
         
     </body>
 </html>

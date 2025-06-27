@@ -3,6 +3,7 @@
  */
 
 import { gameState } from '../core/gameState.js';
+import { memoryProfiler } from '../utils/memoryProfiler.js';
 
 export class ProductionSystem {
   constructor() {
@@ -14,6 +15,8 @@ export class ProductionSystem {
    * Update production rates and process automated production
    */
   update(deltaTime) {
+    const stopProfile = memoryProfiler.startProfile('production.update');
+    
     // Calculate clip production rate
     this.updateClipRate();
 
@@ -27,6 +30,8 @@ export class ProductionSystem {
     if (gameState.get('flags.factory')) {
       this.updateFactoryProduction(deltaTime);
     }
+    
+    stopProfile();
   }
 
   /**

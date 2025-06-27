@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "PREV_TAG=$PREV_TAG" >> $GITHUB_OUTPUT
+      
+      - name: Generate changelog
+        id: changelog
+        run: |
+          if [ -z "${{ steps.prev_tag.outputs.PREV_TAG }}" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s" --no-merges ${{ steps.prev_tag.outputs.PREV_TAG }}..HEAD)
+          fi
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## What's Changed
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            ## Play the Game
+            🎮 [Play Universal Paperclips](https://williamzujkowski.github.io/paperclips/)
+            
+            ## Full Changelog
+            ${{ steps.prev_tag.outputs.PREV_TAG }}...${{ github.ref }}
+          draft: false
+          prerelease: false
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ steps.get_version.outputs.VERSION }}
+          path: |
+            docs/js/
+            docs/index_modern.html
+            docs/build-info.json

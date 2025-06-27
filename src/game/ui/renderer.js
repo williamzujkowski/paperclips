@@ -308,6 +308,33 @@ export class UIRenderer {
       });
     }, 300);
   }
+
+  /**
+   * Clean up cached elements that are no longer in DOM
+   * @returns {number} Number of cleaned elements
+   */
+  cleanupStaleElements() {
+    let cleaned = 0;
+    
+    for (const [key, element] of Object.entries(this.elements)) {
+      if (element && !document.body.contains(element)) {
+        this.elements[key] = null;
+        cleaned++;
+      }
+    }
+    
+    return cleaned;
+  }
+
+  /**
+   * Clear all cached data
+   */
+  reset() {
+    this.elements = {};
+    this.lastValues = {};
+    this.updateCount = 0;
+    this.initialized = false;
+  }
 }
 
 // Create singleton instance
