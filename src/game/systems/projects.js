@@ -209,9 +209,8 @@ export class ProjectsSystem {
       name: 'Space Exploration',
       description: 'Dismantle terrestrial facilities and explore the universe',
       cost: { operations: 120000, funds: 1000000 },
-      requirement: (state) => 
-        state.get('resources.clips') >= 1000000000 &&
-        state.get('production.clipmakerLevel') >= 100,
+      requirement: (state) =>
+        state.get('resources.clips') >= 1000000000 && state.get('production.clipmakerLevel') >= 100,
       effect: (state) => {
         state.set('flags.space', true);
         state.set('flags.human', false);
@@ -236,9 +235,8 @@ export class ProjectsSystem {
       name: 'Strategic Modeling',
       description: 'Analyze battle data to improve tactics',
       cost: { operations: 50000 },
-      requirement: (state) => 
-        state.get('flags.battle') && 
-        state.get('combat.driftersKilled') >= 100,
+      requirement: (state) =>
+        state.get('flags.battle') && state.get('combat.driftersKilled') >= 100,
       effect: (state) => {
         state.set('flags.strategyEngine', true);
       },
@@ -258,7 +256,7 @@ export class ProjectsSystem {
    */
   getAvailableProjects() {
     const available = [];
-    
+
     for (const project of this.projects.values()) {
       if (project.isAvailable()) {
         available.push({
@@ -270,7 +268,7 @@ export class ProjectsSystem {
         });
       }
     }
-    
+
     return available;
   }
 
@@ -282,7 +280,7 @@ export class ProjectsSystem {
     if (!project) {
       return false;
     }
-    
+
     return project.purchase();
   }
 
@@ -302,7 +300,7 @@ export class ProjectsSystem {
     if (!project) {
       return null;
     }
-    
+
     return {
       id: project.id,
       name: project.name,

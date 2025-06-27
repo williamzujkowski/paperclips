@@ -32,10 +32,10 @@ export class ComputingSystem {
   update(deltaTime) {
     // Generate operations
     this.generateOperations(deltaTime);
-    
+
     // Generate creativity
     this.generateCreativity(deltaTime);
-    
+
     // Process quantum computing if available
     if (gameState.get('flags.quantum')) {
       this.updateQuantumComputing(deltaTime);
@@ -51,15 +51,15 @@ export class ComputingSystem {
   generateOperations(deltaTime) {
     const processors = gameState.get('computing.processors');
     const memory = gameState.get('computing.memory');
-    
+
     if (processors > 0) {
       // Operations generated per second = processors * memory
       const opsPerSecond = processors * memory;
       const opsGenerated = (opsPerSecond * deltaTime) / 1000;
-      
+
       const currentOps = gameState.get('computing.operations');
       const maxOps = memory * 1000; // Max operations = memory * 1000
-      
+
       const newOps = Math.min(currentOps + opsGenerated, maxOps);
       gameState.set('computing.operations', newOps);
     }
@@ -74,13 +74,13 @@ export class ComputingSystem {
   generateCreativity(deltaTime) {
     const processors = gameState.get('computing.processors');
     const creativityOn = gameState.get('flags.creativity');
-    
+
     if (processors > 0 && creativityOn) {
       const creativitySpeed = gameState.get('computing.creativitySpeed') || this.creativityBaseRate;
       const creativityGenerated = (processors * creativitySpeed * deltaTime) / 1000;
-      
+
       gameState.increment('computing.creativity', creativityGenerated);
-      
+
       // Update creativity counter for display
       const counter = gameState.get('computing.creativityCounter') || 0;
       gameState.set('computing.creativityCounter', counter + creativityGenerated);
@@ -99,13 +99,13 @@ export class ComputingSystem {
     const trust = gameState.get('computing.trust');
     const processors = gameState.get('computing.processors');
     const memory = gameState.get('computing.memory');
-    
+
     // Can only add if total (processors + memory) < trust
     if (processors + memory < trust) {
       gameState.increment('computing.processors');
       return true;
     }
-    
+
     return false;
   }
 
@@ -121,13 +121,13 @@ export class ComputingSystem {
     const trust = gameState.get('computing.trust');
     const processors = gameState.get('computing.processors');
     const memory = gameState.get('computing.memory');
-    
+
     // Can only add if total (processors + memory) < trust
     if (processors + memory < trust) {
       gameState.increment('computing.memory');
       return true;
     }
-    
+
     return false;
   }
 
@@ -142,12 +142,12 @@ export class ComputingSystem {
    */
   spendOperations(amount) {
     const currentOps = gameState.get('computing.operations');
-    
+
     if (currentOps >= amount) {
       gameState.decrement('computing.operations', amount);
       return true;
     }
-    
+
     return false;
   }
 
@@ -162,12 +162,12 @@ export class ComputingSystem {
    */
   spendCreativity(amount) {
     const currentCreativity = gameState.get('computing.creativity');
-    
+
     if (currentCreativity >= amount) {
       gameState.decrement('computing.creativity', amount);
       return true;
     }
-    
+
     return false;
   }
 
@@ -180,11 +180,11 @@ export class ComputingSystem {
   updateQuantumComputing(deltaTime) {
     const qClock = gameState.get('computing.qClock') || 0;
     const nextQchip = gameState.get('computing.nextQchip') || 0;
-    
+
     // Increment quantum clock
     const newQClock = qClock + deltaTime;
     gameState.set('computing.qClock', newQClock);
-    
+
     // Check if time to generate quantum chip
     if (nextQchip > 0 && newQClock >= nextQchip) {
       this.generateQuantumChip();
@@ -202,22 +202,22 @@ export class ComputingSystem {
   startQuantumCompute() {
     const operations = gameState.get('computing.operations');
     const qChipCost = gameState.get('computing.qChipCost');
-    
+
     if (operations >= qChipCost) {
       gameState.decrement('computing.operations', qChipCost);
-      
+
       // Set next quantum chip time (random between 5-15 seconds)
       const computeTime = 5000 + Math.random() * 10000;
       gameState.set('computing.nextQchip', Date.now() + computeTime);
       gameState.set('computing.qClock', 0);
-      
+
       // Increase cost for next chip
       const newCost = Math.ceil(qChipCost * 1.5);
       gameState.set('computing.qChipCost', newCost);
-      
+
       return true;
     }
-    
+
     return false;
   }
 
@@ -229,25 +229,25 @@ export class ComputingSystem {
   generateQuantumChip() {
     // Quantum computing gives random boost to operations or creativity
     const result = Math.random();
-    
+
     if (result < 0.5) {
       // Boost operations
       const currentOps = gameState.get('computing.operations');
       const bonus = Math.floor(Math.random() * 10000) + 5000;
       gameState.set('computing.operations', currentOps + bonus);
-      
+
       // Reset quantum state
       gameState.set('computing.nextQchip', 0);
-      
+
       return { type: 'operations', amount: bonus };
     } else {
       // Boost creativity
       const bonus = Math.floor(Math.random() * 500) + 250;
       gameState.increment('computing.creativity', bonus);
-      
+
       // Reset quantum state
       gameState.set('computing.nextQchip', 0);
-      
+
       return { type: 'creativity', amount: bonus };
     }
   }
@@ -282,7 +282,7 @@ export class ComputingSystem {
    */
   addTrust(amount = 1) {
     gameState.increment('computing.trust', amount);
-    
+
     // Update max trust
     const currentMaxTrust = gameState.get('computing.maxTrust');
     const newTrust = gameState.get('computing.trust');

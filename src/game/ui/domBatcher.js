@@ -209,10 +209,8 @@ export class DOMBatcher {
       // Clear frame ID first
       this.frameId = null;
 
-      // Batch read operations first (measure)
-      const measurements = new Map();
-
-      // Then batch write operations (mutate)
+      // Batch write operations (mutate)
+      // Note: Read operations would go first if we needed measurements
 
       // 1. Update visibility first (can affect layout)
       for (const data of this.pendingVisibility) {
@@ -225,19 +223,19 @@ export class DOMBatcher {
       this.pendingVisibility.clear();
 
       // 2. Update styles (can affect layout)
-      for (const [elementId, updateFn] of this.pendingStyles) {
+      for (const [, updateFn] of this.pendingStyles) {
         updateFn();
       }
       this.pendingStyles.clear();
 
       // 3. Update classes (can affect layout)
-      for (const [elementId, updateFn] of this.pendingClasses) {
+      for (const [, updateFn] of this.pendingClasses) {
         updateFn();
       }
       this.pendingClasses.clear();
 
       // 4. Update content last (least likely to affect other elements)
-      for (const [elementId, updateFn] of this.pendingUpdates) {
+      for (const [, updateFn] of this.pendingUpdates) {
         updateFn();
       }
       this.pendingUpdates.clear();

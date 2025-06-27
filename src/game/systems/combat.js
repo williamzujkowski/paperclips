@@ -33,14 +33,8 @@ class Battle {
     const drifterAttack = drifterCombat * this.drifters * (attackSpeed / 1000);
 
     // Apply damage
-    const drifterCasualties = Math.min(
-      Math.ceil(probeAttack * deltaTime / 1000),
-      this.drifters,
-    );
-    const probeCasualties = Math.min(
-      Math.ceil(drifterAttack * deltaTime / 1000),
-      this.probes,
-    );
+    const drifterCasualties = Math.min(Math.ceil((probeAttack * deltaTime) / 1000), this.drifters);
+    const probeCasualties = Math.min(Math.ceil((drifterAttack * deltaTime) / 1000), this.probes);
 
     this.drifters -= drifterCasualties;
     this.probes -= probeCasualties;
@@ -118,7 +112,7 @@ export class CombatSystem {
    */
   startBattle(probeCount, drifterCount) {
     const maxBattles = gameState.get('combat.maxBattles') || 1;
-    
+
     // Check if we can start a new battle
     if (this.battles.size >= maxBattles) {
       return null;
@@ -126,13 +120,13 @@ export class CombatSystem {
 
     const battleId = this.nextBattleId++;
     const battle = new Battle(battleId, probeCount, drifterCount);
-    
+
     this.battles.set(battleId, battle);
     gameState.set('combat.battleID', battleId);
-    
+
     // Update battle array for UI
     this.updateBattleArray();
-    
+
     return battleId;
   }
 
@@ -142,16 +136,13 @@ export class CombatSystem {
   checkNewBattles() {
     const availableProbes = gameState.get('swarm.probeCount') || 0;
     const encounterRate = gameState.get('combat.encounterRate') || 0.01;
-    
+
     // Random encounter chance
     if (availableProbes > 0 && Math.random() < encounterRate) {
       // Generate drifter force
       const drifterCount = Math.floor(Math.random() * 100) + 10;
-      const probeCount = Math.min(
-        Math.floor(Math.random() * 50) + 10,
-        availableProbes,
-      );
-      
+      const probeCount = Math.min(Math.floor(Math.random() * 50) + 10, availableProbes);
+
       this.startBattle(probeCount, drifterCount);
     }
   }
@@ -161,21 +152,21 @@ export class CombatSystem {
    */
   cleanupBattles() {
     const finishedBattles = [];
-    
+
     for (const [id, battle] of this.battles.entries()) {
       if (battle.status !== 'active') {
         finishedBattles.push(id);
-        
+
         // Process battle results
         this.processBattleResults(battle);
       }
     }
-    
+
     // Remove finished battles
     for (const id of finishedBattles) {
       this.battles.delete(id);
     }
-    
+
     // Update battle array
     if (finishedBattles.length > 0) {
       this.updateBattleArray();
@@ -187,17 +178,17 @@ export class CombatSystem {
    */
   processBattleResults(battle) {
     const summary = battle.getSummary();
-    
+
     // Update statistics
     gameState.increment('combat.driftersKilled', summary.drifterLosses);
     gameState.decrement('swarm.probeCount', summary.probeLosses);
-    
+
     // Award honor for victories
     if (summary.status === 'victory') {
       const honorGained = Math.ceil(summary.drifterLosses / 10);
       gameState.increment('combat.honor', honorGained);
       gameState.increment('combat.honorCount', honorGained);
-      
+
       // Check for bonus honor
       if (summary.probeLosses === 0) {
         gameState.increment('combat.bonusHonor', 1);
@@ -211,11 +202,11 @@ export class CombatSystem {
    */
   updateBattleArray() {
     const battleArray = [];
-    
+
     for (const battle of this.battles.values()) {
       battleArray.push(battle.getSummary());
     }
-    
+
     gameState.set('combat.battles', battleArray);
   }
 
@@ -223,7 +214,7 @@ export class CombatSystem {
    * Get active battles
    */
   getActiveBattles() {
-    return Array.from(this.battles.values()).map(b => b.getSummary());
+    return Array.from(this.battles.values()).map((b) => b.getSummary());
   }
 
   /**
@@ -268,12 +259,12 @@ export class CombatSystem {
    */
   spendHonor(amount) {
     const currentHonor = gameState.get('combat.honor');
-    
+
     if (currentHonor >= amount) {
       gameState.decrement('combat.honor', amount);
       return true;
     }
-    
+
     return false;
   }
 }
