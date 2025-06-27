@@ -148,15 +148,3 @@ function bindButton(buttonId, handler) {
   }
 }
 
-/**
- * Helper function to bind change handlers to inputs
- */
-function bindInput(inputId, handler) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    input.addEventListener('change', handler);
-    input.addEventListener('input', handler);
-  } else {
-    setTimeout(() => bindInput(inputId, handler), 100);
-  }
-}

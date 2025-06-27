@@ -170,7 +170,7 @@ export class ProductionSystem {
       const productionRate = factoryLevel * factoryBoost;
       const matterToProcess = Math.min(
         (productionRate * deltaTime) / 1000,
-        availableMatter
+        availableMatter,
       );
       
       if (matterToProcess > 0) {

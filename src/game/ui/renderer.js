@@ -2,7 +2,6 @@
  * UI Renderer - handles all display updates and DOM manipulation
  */
 
-import { gameState } from '../core/gameState.js';
 import { formatNumber } from '../utils/formatting.js';
 
 export class UIRenderer {
@@ -257,7 +256,9 @@ export class UIRenderer {
    */
   flashElement(elementId, color = '#ffff00') {
     const element = this.elements[elementId] || document.getElementById(elementId);
-    if (!element) return;
+    if (!element) {
+      return;
+    }
     
     const originalColor = element.style.backgroundColor;
     element.style.backgroundColor = color;
