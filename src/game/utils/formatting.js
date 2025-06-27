@@ -55,12 +55,12 @@ function abbreviateNumber(num, decimals = 0) {
   const order = Math.max(0, Math.min(unrangifiedOrder, abbrev.length - 1));
   const suffix = abbrev[order];
   const scaled = num / Math.pow(10, order * 3);
-  
+
   // For default formatting with no decimals specified, show decimals only if needed
   if (decimals === 0 && scaled === Math.floor(scaled)) {
     return scaled.toString() + suffix;
   }
-  
+
   // Otherwise format with specified decimals
   return scaled.toFixed(decimals || 1) + suffix;
 }
@@ -113,7 +113,7 @@ export function parseFormattedNumber(str) {
 
   // Remove currency symbols and spaces
   str = str.replace(/[$,\s]/g, '');
-  
+
   // Check if empty after cleanup
   if (str === '') {
     return 0;
