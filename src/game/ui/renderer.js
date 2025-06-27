@@ -1,14 +1,30 @@
 /**
  * UI Renderer - handles all display updates and DOM manipulation
+ * @module UIRenderer
  */
 
 import { formatNumber } from '../utils/formatting.js';
+import { domBatcher } from './domBatcher.js';
+import { errorHandler } from '../core/errorHandler.js';
 
+/**
+ * @class UIRenderer
+ * @description Manages UI updates with efficient DOM batching and caching.
+ */
 export class UIRenderer {
+  /**
+   * Creates a new UIRenderer instance
+   * @constructor
+   */
   constructor() {
+    /** @type {Object} Cached DOM elements */
     this.elements = {};
+    /** @type {Object} Last rendered values for change detection */
     this.lastValues = {};
+    /** @type {boolean} Whether renderer is initialized */
     this.initialized = false;
+    /** @type {number} Update counter for debugging */
+    this.updateCount = 0;
   }
 
   /**
@@ -63,29 +79,38 @@ export class UIRenderer {
 
   /**
    * Main render function - updates all UI elements
+   * @param {Object} state - Current game state
+   * @returns {void}
    */
   render(state) {
     if (!this.initialized) {
       this.init();
     }
 
-    // Update resources
-    this.updateResources(state);
+    // Batch all DOM updates together
+    domBatcher.batch(() => {
+      try {
+        // Update resources
+        this.updateResources(state);
 
-    // Update production
-    this.updateProduction(state);
+        // Update production
+        this.updateProduction(state);
 
-    // Update market
-    this.updateMarket(state);
+        // Update market
+        this.updateMarket(state);
 
-    // Update computing
-    this.updateComputing(state);
+        // Update computing
+        this.updateComputing(state);
 
-    // Update infrastructure
-    this.updateInfrastructure(state);
+        // Update infrastructure
+        this.updateInfrastructure(state);
 
-    // Update display visibility
-    this.updateDisplayVisibility(state);
+        // Update display visibility
+        this.updateDisplayVisibility(state);
+      } catch (error) {
+        errorHandler.handleError(error, 'uiRenderer.render');
+      }
+    });
   }
 
   /**
@@ -165,9 +190,10 @@ export class UIRenderer {
       displayValue = formatNumber(value, decimals);
     }
 
-    // Update element
-    element.textContent = displayValue;
+    // Update element using DOM batcher
+    domBatcher.updateText(elementId, displayValue);
     this.lastValues[elementId] = value;
+    this.updateCount++;
   }
 
   /**
@@ -194,9 +220,11 @@ export class UIRenderer {
    * Set display visibility
    */
   setDisplayVisible(displayId, visible) {
+    // Update visibility through DOM batcher
+    // Note: Using inline update for display blocks since they need 'block' not ''
     const element = this.elements[displayId];
     if (element) {
-      element.style.display = visible ? 'block' : 'none';
+      domBatcher.updateStyles(displayId, { display: visible ? 'block' : 'none' });
     }
   }
 
@@ -254,6 +282,12 @@ export class UIRenderer {
   /**
    * Flash an element to draw attention
    */
+  /**
+   * Flash element with color animation
+   * @param {string} elementId - Element to flash
+   * @param {string} [color='#ffff00'] - Flash color
+   * @returns {void}
+   */
   flashElement(elementId, color = '#ffff00') {
     const element = this.elements[elementId] || document.getElementById(elementId);
     if (!element) {
@@ -261,14 +295,25 @@ export class UIRenderer {
     }
 
     const originalColor = element.style.backgroundColor;
-    element.style.backgroundColor = color;
-    element.style.transition = 'background-color 0.3s';
+
+    // Use DOM batcher for style updates
+    domBatcher.updateStyles(elementId, {
+      backgroundColor: color,
+      transition: 'background-color 0.3s',
+    });
 
     setTimeout(() => {
-      element.style.backgroundColor = originalColor;
+      domBatcher.updateStyles(elementId, {
+        backgroundColor: originalColor,
+      });
     }, 300);
   }
 }
 
 // Create singleton instance
 export const uiRenderer = new UIRenderer();
+
+// Export for debugging
+if (typeof window !== 'undefined') {
+  window.UniversalPaperclipsRenderer = uiRenderer;
+}

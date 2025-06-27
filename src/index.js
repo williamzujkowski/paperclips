@@ -13,6 +13,7 @@ import { combatSystem } from './game/systems/combat.js';
 import { projectsSystem } from './game/systems/projects.js';
 import { uiRenderer } from './game/ui/renderer.js';
 import { setupEventHandlers } from './game/ui/events.js';
+import { devDashboard } from './game/ui/devDashboard.js';
 
 // Game initialization
 function initGame() {
@@ -20,8 +21,14 @@ function initGame() {
   errorHandler.info('Original by Frank Lantz and Bennett Foddy');
 
   // Set error handler log level based on environment
-  const isDev = window.location.hostname === 'localhost';
+  const isDev =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   errorHandler.setLogLevel(isDev ? 'debug' : 'info');
+
+  // Initialize dev dashboard in development
+  if (isDev) {
+    devDashboard.init();
+  }
 
   // Try to load saved game
   try {
@@ -97,6 +104,7 @@ import { performanceMonitor } from './game/core/performanceMonitor.js';
 window.UniversalPaperclips = {
   errorHandler,
   performanceMonitor,
+  devDashboard,
   gameState,
   gameLoop,
   productionSystem,
