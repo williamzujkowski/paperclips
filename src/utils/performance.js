@@ -9,23 +9,27 @@
  * @param {Object} options - Options object
  * @returns {number} Request ID
  */
-export const requestIdleCallback = window.requestIdleCallback || function(callback, options) {
-  const start = Date.now();
-  return setTimeout(() => {
-    callback({
-      didTimeout: false,
-      timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
-    });
-  }, 1);
-};
+export const requestIdleCallback =
+  window.requestIdleCallback ||
+  function (callback, _options) {
+    const start = Date.now();
+    return setTimeout(() => {
+      callback({
+        didTimeout: false,
+        timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
+      });
+    }, 1);
+  };
 
 /**
  * Cancel idle callback polyfill
  * @param {number} id - Request ID to cancel
  */
-export const cancelIdleCallback = window.cancelIdleCallback || function(id) {
-  clearTimeout(id);
-};
+export const cancelIdleCallback =
+  window.cancelIdleCallback ||
+  function (id) {
+    clearTimeout(id);
+  };
 
 /**
  * Debounce function calls
@@ -53,11 +57,11 @@ export function debounce(func, wait) {
  */
 export function throttle(func, limit) {
   let inThrottle;
-  return function(...args) {
+  return function (...args) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 }
@@ -69,8 +73,8 @@ export function throttle(func, limit) {
 export function lazyLoadImages(selector = 'img[data-src]') {
   if ('IntersectionObserver' in window) {
     const images = document.querySelectorAll(selector);
-    const imageObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
+    const imageObserver = new IntersectionObserver((entries, _observer) => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const image = entry.target;
           image.src = image.dataset.src;
@@ -79,12 +83,12 @@ export function lazyLoadImages(selector = 'img[data-src]') {
         }
       });
     });
-    
-    images.forEach(img => imageObserver.observe(img));
+
+    images.forEach((img) => imageObserver.observe(img));
   } else {
     // Fallback for browsers without IntersectionObserver
     const images = document.querySelectorAll(selector);
-    images.forEach(img => {
+    images.forEach((img) => {
       img.src = img.dataset.src;
       img.removeAttribute('data-src');
     });
@@ -96,7 +100,7 @@ export function lazyLoadImages(selector = 'img[data-src]') {
  * @param {Array<Object>} resources - Array of resource objects
  */
 export function preloadResources(resources) {
-  resources.forEach(resource => {
+  resources.forEach((resource) => {
     const link = document.createElement('link');
     link.rel = 'preload';
     link.href = resource.href;
@@ -116,14 +120,17 @@ export function enablePassiveListeners() {
   let supportsPassive = false;
   try {
     const opts = Object.defineProperty({}, 'passive', {
-      get: function() {
+      get: function () {
         supportsPassive = true;
-      }
+        return true;
+      },
     });
     window.addEventListener('testPassive', null, opts);
     window.removeEventListener('testPassive', null, opts);
-  } catch (e) {}
-  
+  } catch (e) {
+    // Passive event listeners not supported
+  }
+
   return supportsPassive ? { passive: true } : false;
 }
 
@@ -136,8 +143,8 @@ export function batchDOM(reads, writes) {
   // Schedule reads for next frame
   requestAnimationFrame(() => {
     // Perform all reads
-    const readResults = reads.map(fn => fn());
-    
+    const readResults = reads.map((fn) => fn());
+
     // Schedule writes for next frame
     requestAnimationFrame(() => {
       // Perform all writes with read results
@@ -153,7 +160,7 @@ export class WorkerManager {
   constructor() {
     this.workers = new Map();
   }
-  
+
   /**
    * Create a worker from a function
    * @param {string} name - Worker name
@@ -166,7 +173,7 @@ export class WorkerManager {
     this.workers.set(name, worker);
     return worker;
   }
-  
+
   /**
    * Run a task in a worker
    * @param {string} name - Worker name
@@ -180,13 +187,13 @@ export class WorkerManager {
         reject(new Error(`Worker ${name} not found`));
         return;
       }
-      
+
       worker.onmessage = (e) => resolve(e.data);
       worker.onerror = reject;
       worker.postMessage(data);
     });
   }
-  
+
   /**
    * Terminate a worker
    * @param {string} name - Worker name
@@ -198,12 +205,12 @@ export class WorkerManager {
       this.workers.delete(name);
     }
   }
-  
+
   /**
    * Terminate all workers
    */
   terminateAll() {
-    this.workers.forEach(worker => worker.terminate());
+    this.workers.forEach((worker) => worker.terminate());
     this.workers.clear();
   }
 }
