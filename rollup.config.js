@@ -1,10 +1,10 @@
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-import babel from '@rollup/plugin-babel';
-import terser from '@rollup/plugin-terser';
+const { nodeResolve } = require('@rollup/plugin-node-resolve');
+const babel = require('@rollup/plugin-babel');
+const terser = require('@rollup/plugin-terser');
 
 const production = !process.env.ROLLUP_WATCH;
 
-export default {
+module.exports = {
   input: 'src/index.js',
   output: [
     {
