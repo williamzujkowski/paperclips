@@ -1,56 +1,342 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with the Universal Paperclips codebase.
 
 ## Project Overview
 
-This is Universal Paperclips, a browser-based incremental game by Frank Lantz and Bennett Foddy. The repository is a mirror of the original game from decisionproblem.com with some modifications:
-- Google Analytics removed
-- Cheats uncommented
-- Files moved to `docs/` folder for GitHub Pages hosting
+Universal Paperclips is a browser-based incremental game by Frank Lantz and Bennett Foddy. This repository contains a modernized version that maintains the original gameplay while upgrading the codebase with ES6 modules, comprehensive testing, and modern development practices.
 
-## Architecture
+**Live Game**: https://williamzujkowski.github.io/paperclips/
 
-The game is built with vanilla JavaScript, HTML, and CSS - no build tools or frameworks:
+## Current State
 
-- **docs/index.html** - Title screen that links to the game
-- **docs/index2.html** - Main game interface
-- **docs/main.js** (5,546 lines) - Core game logic and state management
-- **docs/projects.js** (2,452 lines) - Game projects/upgrades system
-- **docs/combat.js** (802 lines) - Space combat mechanics
-- **docs/globals.js** (182 lines) - Global variable declarations
-- **docs/interface.css** - Main game styling
-- **docs/titlescreen.css** - Title screen styling
+- ✅ Base game is functional with modernized code
+- ✅ Complete ES6 module architecture
+- ✅ Comprehensive test suite (89+ tests)
+- ✅ Error handling and performance monitoring
+- ✅ CI/CD pipeline with GitHub Actions
+- ✅ Pre-commit hooks with Husky
+- ✅ JSDoc documentation throughout
 
-The game follows an incremental/idle game pattern where players progress through phases:
-1. Manual paperclip production
-2. Automated production with auto-clippers
-3. Resource management and optimization
-4. Advanced projects and strategic decisions
-5. Space exploration and combat
+## Key Files & Structure
+
+```
+paperclips/
+├── src/                    # Modern source code
+│   ├── index.js           # Main entry point
+│   ├── game/
+│   │   ├── core/          # Core systems
+│   │   │   ├── gameState.js      # Centralized state management
+│   │   │   ├── gameLoop.js       # Main game loop
+│   │   │   ├── constants.js      # Game constants
+│   │   │   ├── errorHandler.js   # Error handling system
+│   │   │   └── performanceMonitor.js # Performance tracking
+│   │   ├── systems/       # Game systems
+│   │   │   ├── production.js     # Paperclip production
+│   │   │   ├── market.js         # Economic system
+│   │   │   ├── computing.js      # Processors & operations
+│   │   │   ├── combat.js         # Space battles
+│   │   │   └── projects.js       # Research projects
+│   │   ├── ui/            # User interface
+│   │   │   ├── renderer.js       # DOM rendering
+│   │   │   └── events.js         # Event handlers
+│   │   └── utils/         # Utilities
+│   │       └── formatting.js     # Number formatting
+├── tests/                 # Test suite
+│   └── unit/             # Unit tests for all systems
+├── docs/                  # GitHub Pages deployment
+│   ├── index.html        # Game HTML
+│   ├── js/               # Built JavaScript
+│   └── [legacy files]    # Original game files
+├── scripts/              # Build and dev scripts
+├── .github/              # CI/CD workflows
+│   ├── workflows/
+│   │   ├── test.yml     # Run tests on PR/push
+│   │   └── deploy.yml   # Deploy to GitHub Pages
+├── .husky/              # Git hooks
+├── package.json         # Dependencies and scripts
+├── rollup.config.js     # Build configuration
+├── jest.config.js       # Test configuration
+├── .eslintrc.js        # Linting rules
+└── .prettierrc         # Code formatting
+```
 
 ## Development Commands
 
 ```bash
-# Run local development server (serves from docs/ folder)
-./serve.sh
-# Access game at http://localhost:8000/index2.html
+# Install dependencies
+npm install
 
-# Mirror latest version from original source
-./mirror.sh
+# Start development server (with hot reload)
+npm run dev
+# Open http://localhost:8080
+
+# Build for production
+npm run build
+
+# Run tests
+npm test
+npm run test:watch     # Watch mode
+npm run test:coverage  # Coverage report
+
+# Code quality
+npm run lint          # Check for issues
+npm run lint:fix      # Auto-fix issues
+npm run format        # Format with Prettier
+
+# Deployment
+git add -A
+git commit -m "Your message"  # Pre-commit hooks run automatically
+git push                       # CI/CD deploys to GitHub Pages
 ```
 
-Note: The serve.sh script has an outdated path (cd src) - it should cd to docs/ instead.
+## Architecture Overview
 
-## Key Implementation Details
+The game has been modernized from a global variable-based architecture to a modular ES6 system.
 
-- All game state is managed through global variables declared in globals.js
-- The main game loop and UI updates are handled in main.js
-- Projects (upgrades/abilities) are defined in projects.js with cost, effect, and unlock conditions
-- Combat system in combat.js handles probe battles in space exploration phase
-- No external dependencies - uses only browser APIs
-- Cheats are available through browser console (previously commented out, now active)
+### Legacy Architecture (Original)
+- 200+ global variables
+- Direct DOM manipulation
+- Inline event handlers
+- No build process
+- No error handling
+- No tests
 
-## GitHub Pages Deployment
+### Modern Architecture (Current)
+- **ES6 Modules**: Clear separation of concerns
+- **State Management**: Centralized GameState class with dot notation access
+- **Game Systems**: Encapsulated systems for each game mechanic
+- **Error Handling**: Global error boundaries with automatic recovery
+- **Performance Monitoring**: FPS tracking and performance metrics
+- **Build Pipeline**: Rollup with tree-shaking and minification
+- **Test Suite**: Jest with 89+ unit tests
+- **Code Quality**: ESLint + Prettier with pre-commit hooks
+- **Type Safety**: JSDoc annotations throughout
+- **CI/CD**: Automated testing and deployment
 
-The game is deployed via GitHub Pages from the `docs/` folder on the master branch. Any changes to files in `docs/` will be reflected on the live site after pushing to GitHub.
+## Important Patterns
+
+### Adding New Features
+1. Create module in `src/game/systems/`
+2. Add state properties to GameState constructor
+3. Register update/render handlers in game loop
+4. Add UI elements to index.html
+5. Add event handlers in `src/game/ui/events.js`
+6. Write tests in `tests/unit/`
+7. Add JSDoc documentation
+
+### State Management
+```javascript
+// Get value
+const clips = gameState.get('resources.clips');
+
+// Set value
+gameState.set('resources.clips', 1000);
+
+// Increment/decrement
+gameState.increment('resources.clips', 10);
+gameState.decrement('resources.wire', 5);
+
+// Access nested properties
+const combat = gameState.get('combat.probeCombat');
+```
+
+### Error Handling
+```javascript
+// Log errors with context
+errorHandler.handleError(error, 'source.location', { extraData });
+
+// Create error boundary
+const safeFn = errorHandler.createErrorBoundary(riskyFn, 'functionName');
+
+// Log levels: debug, info, warn, error
+errorHandler.info('Game started');
+errorHandler.warn('Low performance detected');
+```
+
+### Performance Monitoring
+```javascript
+// Measure function performance
+performanceMonitor.measure(() => {
+  // expensive operation
+}, 'operationName');
+
+// Get performance report
+const report = performanceMonitor.getReport();
+```
+
+## Common Tasks
+
+### Run the modern game locally
+```bash
+npm run dev
+# Open http://localhost:8080
+# Changes auto-reload!
+```
+
+### Deploy to GitHub Pages
+```bash
+# Automatic deployment:
+git add -A
+git commit -m "Your changes"
+git push  # CI/CD handles the rest
+
+# Manual deployment:
+npm run build
+git add docs/
+git commit -m "Deploy to GitHub Pages"
+git push
+```
+
+### Debug in Browser Console
+```javascript
+// View game state
+UniversalPaperclips.debug.getState();
+
+// Add resources
+UniversalPaperclips.debug.addClips(10000);
+UniversalPaperclips.debug.addFunds(1000);
+
+// Check performance
+UniversalPaperclips.debug.getPerformance();
+
+// View errors
+UniversalPaperclips.debug.getErrors();
+
+// Change log level
+UniversalPaperclips.debug.setLogLevel('debug');
+```
+
+## Recent Accomplishments
+
+1. ✅ Extracted 200+ global variables into centralized GameState
+2. ✅ Converted all major systems to ES6 modules
+3. ✅ Added comprehensive test suite (89+ tests)
+4. ✅ Implemented error handling and recovery
+5. ✅ Added performance monitoring
+6. ✅ Set up CI/CD pipeline
+7. ✅ Added pre-commit hooks
+8. ✅ Documented with JSDoc
+9. ✅ Created save/load system with import/export
+
+## Next Steps
+
+1. **Optimize Render Performance**: Implement requestAnimationFrame batching
+2. **Add Hot Module Reload**: Improve development experience
+3. **Mobile Optimization**: Responsive design and touch controls
+4. **Accessibility**: ARIA labels and keyboard navigation
+5. **Achievement System**: Track player milestones
+6. **Cloud Saves**: Sync across devices
+7. **Mod Support**: Allow community extensions
+
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+```
+
+### Test Coverage
+- **GameState**: State management, save/load, import/export
+- **ProductionSystem**: Clip manufacturing, automation, costs
+- **MarketSystem**: Pricing, demand, marketing
+- **ComputingSystem**: Processors, memory, operations, quantum
+- **CombatSystem**: Battles, honor, upgrades
+- **Formatting**: Number formatting, currency, duration
+- **Error Handling**: Error boundaries, recovery
+- **Performance**: Metrics tracking, thresholds
+
+### Writing New Tests
+```javascript
+// tests/unit/newSystem.test.js
+import { NewSystem } from '../../src/game/systems/newSystem.js';
+import { gameState } from '../../src/game/core/gameState.js';
+
+describe('NewSystem', () => {
+  let system;
+  
+  beforeEach(() => {
+    system = new NewSystem();
+    gameState.reset();
+  });
+  
+  it('should do something', () => {
+    // Test implementation
+    expect(result).toBe(expected);
+  });
+});
+```
+
+## Known Issues
+
+1. Mobile responsiveness needs improvement
+2. Some legacy UI elements still use inline styles
+3. No keyboard shortcuts yet
+4. Performance on older devices not optimized
+
+## Resources
+
+- [Original Game](http://www.decisionproblem.com/paperclips/)
+- [GitHub Repository](https://github.com/williamzujkowski/paperclips)
+- [Live Game](https://williamzujkowski.github.io/paperclips/)
+- [Issue Tracker](https://github.com/williamzujkowski/paperclips/issues)
+
+## Performance Considerations
+
+- Game loop runs at 60 FPS with automatic throttling
+- UI updates are batched for performance
+- Save operations are debounced
+- Large numbers use efficient formatting
+- Memory leaks prevented with proper cleanup
+
+## Security Notes
+
+- No external dependencies in production
+- localStorage is the only persistence mechanism
+- All user input is sanitized
+- Error boundaries prevent crashes
+- CSP headers recommended for deployment
+
+## Commit Message Format
+
+When committing changes, follow this format:
+```
+<type>: <subject>
+
+<body>
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+Types: feat, fix, docs, style, refactor, test, chore
+
+## Working with Legacy Code
+
+The original game files are preserved in `docs/` directory:
+- `docs/main.js` - Original game logic (5,546 lines)
+- `docs/projects.js` - Original projects system (2,452 lines)
+- `docs/combat.js` - Original combat system (802 lines)
+- `docs/globals.js` - Original globals (182 lines)
+
+These files are not used by the modern version but are kept for reference.
+
+## Tips for Future Development
+
+1. **Always add tests** when adding new features
+2. **Use the error handler** for all try-catch blocks
+3. **Measure performance** for expensive operations
+4. **Document with JSDoc** for better IDE support
+5. **Follow the existing patterns** for consistency
+6. **Check the browser console** for debug tools
+7. **Run tests before committing** (pre-commit hook helps)
+8. **Update this file** when making architectural changes
+
+Remember: The goal is to maintain the original gameplay while providing a modern, maintainable codebase for future development.
