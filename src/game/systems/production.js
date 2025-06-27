@@ -193,7 +193,12 @@ export class ProductionSystem {
   }
 
   /**
-   * Apply production boost (from projects/upgrades)
+   * Apply production boost to specific producer type
+   * @param {string} type - Type of boost ('clipper', 'megaClipper', or 'factory')
+   * @param {number} multiplier - Boost multiplier to apply
+   * @returns {void}
+   * @example
+   * productionSystem.applyProductionBoost('clipper', 2.0); // Double clipper speed
    */
   applyProductionBoost(type, multiplier) {
     switch (type) {

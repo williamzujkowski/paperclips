@@ -963,6 +963,838 @@
   const marketSystem = new MarketSystem();
 
   /**
+   * Computing system - handles processors, memory, operations, and quantum computing
+   */
+
+  class ComputingSystem {
+    constructor() {
+      this.quantumComputeTimer = null;
+      this.lastQuantumCompute = 0;
+      this.creativityBaseRate = 0.001; // Base creativity generation rate
+    }
+
+    /**
+     * Update computing resources
+     */
+    update(deltaTime) {
+      // Generate operations
+      this.generateOperations(deltaTime);
+
+      // Generate creativity
+      this.generateCreativity(deltaTime);
+
+      // Process quantum computing if available
+      if (gameState.get('flags.quantum')) {
+        this.updateQuantumComputing(deltaTime);
+      }
+    }
+
+    /**
+     * Generate operations based on processor count
+     */
+    generateOperations(deltaTime) {
+      const processors = gameState.get('computing.processors');
+      const memory = gameState.get('computing.memory');
+      if (processors > 0) {
+        // Operations generated per second = processors * memory
+        const opsPerSecond = processors * memory;
+        const opsGenerated = opsPerSecond * deltaTime / 1000;
+        const currentOps = gameState.get('computing.operations');
+        const maxOps = memory * 1000; // Max operations = memory * 1000
+
+        const newOps = Math.min(currentOps + opsGenerated, maxOps);
+        gameState.set('computing.operations', newOps);
+      }
+    }
+
+    /**
+     * Generate creativity based on processor allocation
+     */
+    generateCreativity(deltaTime) {
+      const processors = gameState.get('computing.processors');
+      const creativityOn = gameState.get('flags.creativity');
+      if (processors > 0 && creativityOn) {
+        const creativitySpeed = gameState.get('computing.creativitySpeed') || this.creativityBaseRate;
+        const creativityGenerated = processors * creativitySpeed * deltaTime / 1000;
+        gameState.increment('computing.creativity', creativityGenerated);
+
+        // Update creativity counter for display
+        const counter = gameState.get('computing.creativityCounter') || 0;
+        gameState.set('computing.creativityCounter', counter + creativityGenerated);
+      }
+    }
+
+    /**
+     * Add a processor
+     */
+    addProcessor() {
+      const trust = gameState.get('computing.trust');
+      const processors = gameState.get('computing.processors');
+      const memory = gameState.get('computing.memory');
+
+      // Can only add if total (processors + memory) < trust
+      if (processors + memory < trust) {
+        gameState.increment('computing.processors');
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * Add memory
+     */
+    addMemory() {
+      const trust = gameState.get('computing.trust');
+      const processors = gameState.get('computing.processors');
+      const memory = gameState.get('computing.memory');
+
+      // Can only add if total (processors + memory) < trust
+      if (processors + memory < trust) {
+        gameState.increment('computing.memory');
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * Spend operations
+     */
+    spendOperations(amount) {
+      const currentOps = gameState.get('computing.operations');
+      if (currentOps >= amount) {
+        gameState.decrement('computing.operations', amount);
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * Spend creativity
+     */
+    spendCreativity(amount) {
+      const currentCreativity = gameState.get('computing.creativity');
+      if (currentCreativity >= amount) {
+        gameState.decrement('computing.creativity', amount);
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * Update quantum computing
+     */
+    updateQuantumComputing(deltaTime) {
+      const qClock = gameState.get('computing.qClock') || 0;
+      const nextQchip = gameState.get('computing.nextQchip') || 0;
+
+      // Increment quantum clock
+      const newQClock = qClock + deltaTime;
+      gameState.set('computing.qClock', newQClock);
+
+      // Check if time to generate quantum chip
+      if (nextQchip > 0 && newQClock >= nextQchip) {
+        this.generateQuantumChip();
+      }
+    }
+
+    /**
+     * Start quantum computation
+     */
+    startQuantumCompute() {
+      const operations = gameState.get('computing.operations');
+      const qChipCost = gameState.get('computing.qChipCost');
+      if (operations >= qChipCost) {
+        gameState.decrement('computing.operations', qChipCost);
+
+        // Set next quantum chip time (random between 5-15 seconds)
+        const computeTime = 5000 + Math.random() * 10000;
+        gameState.set('computing.nextQchip', Date.now() + computeTime);
+        gameState.set('computing.qClock', 0);
+
+        // Increase cost for next chip
+        const newCost = Math.ceil(qChipCost * 1.5);
+        gameState.set('computing.qChipCost', newCost);
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * Generate quantum chip result
+     */
+    generateQuantumChip() {
+      // Quantum computing gives random boost to operations or creativity
+      const result = Math.random();
+      if (result < 0.5) {
+        // Boost operations
+        const currentOps = gameState.get('computing.operations');
+        const bonus = Math.floor(Math.random() * 10000) + 5000;
+        gameState.set('computing.operations', currentOps + bonus);
+
+        // Reset quantum state
+        gameState.set('computing.nextQchip', 0);
+        return {
+          type: 'operations',
+          amount: bonus
+        };
+      } else {
+        // Boost creativity
+        const bonus = Math.floor(Math.random() * 500) + 250;
+        gameState.increment('computing.creativity', bonus);
+
+        // Reset quantum state
+        gameState.set('computing.nextQchip', 0);
+        return {
+          type: 'creativity',
+          amount: bonus
+        };
+      }
+    }
+
+    /**
+     * Get computing statistics
+     */
+    getComputingStats() {
+      return {
+        processors: gameState.get('computing.processors'),
+        memory: gameState.get('computing.memory'),
+        operations: gameState.get('computing.operations'),
+        maxOperations: gameState.get('computing.memory') * 1000,
+        creativity: gameState.get('computing.creativity'),
+        trust: gameState.get('computing.trust'),
+        maxTrust: gameState.get('computing.maxTrust'),
+        qChipCost: gameState.get('computing.qChipCost'),
+        quantumActive: gameState.get('computing.nextQchip') > 0
+      };
+    }
+
+    /**
+     * Add trust
+     */
+    addTrust(amount = 1) {
+      gameState.increment('computing.trust', amount);
+
+      // Update max trust
+      const currentMaxTrust = gameState.get('computing.maxTrust');
+      const newTrust = gameState.get('computing.trust');
+      if (newTrust > currentMaxTrust) {
+        gameState.set('computing.maxTrust', newTrust);
+      }
+    }
+
+    /**
+     * Set creativity generation speed
+     */
+    setCreativitySpeed(speed) {
+      gameState.set('computing.creativitySpeed', speed);
+    }
+  }
+
+  // Create singleton instance
+  const computingSystem = new ComputingSystem();
+
+  /**
+   * Combat system - handles space battles between probes and drifters
+   */
+
+
+  /**
+   * Represents a single battle
+   */
+  class Battle {
+    constructor(id, probes, drifters) {
+      this.id = id;
+      this.probes = probes;
+      this.drifters = drifters;
+      this.probeLosses = 0;
+      this.drifterLosses = 0;
+      this.duration = 0;
+      this.status = 'active'; // active, victory, defeat
+    }
+
+    /**
+     * Update battle state
+     */
+    update(deltaTime, probeCombat, drifterCombat, attackSpeed) {
+      if (this.status !== 'active') {
+        return;
+      }
+      this.duration += deltaTime;
+
+      // Calculate combat effectiveness
+      const probeAttack = probeCombat * this.probes * (attackSpeed / 1000);
+      const drifterAttack = drifterCombat * this.drifters * (attackSpeed / 1000);
+
+      // Apply damage
+      const drifterCasualties = Math.min(Math.ceil(probeAttack * deltaTime / 1000), this.drifters);
+      const probeCasualties = Math.min(Math.ceil(drifterAttack * deltaTime / 1000), this.probes);
+      this.drifters -= drifterCasualties;
+      this.probes -= probeCasualties;
+      this.drifterLosses += drifterCasualties;
+      this.probeLosses += probeCasualties;
+
+      // Check battle end conditions
+      if (this.drifters <= 0) {
+        this.status = 'victory';
+      } else if (this.probes <= 0) {
+        this.status = 'defeat';
+      }
+    }
+
+    /**
+     * Get battle summary
+     */
+    getSummary() {
+      return {
+        id: this.id,
+        probes: this.probes,
+        drifters: this.drifters,
+        probeLosses: this.probeLosses,
+        drifterLosses: this.drifterLosses,
+        duration: this.duration,
+        status: this.status
+      };
+    }
+  }
+  class CombatSystem {
+    constructor() {
+      this.battles = new Map();
+      this.nextBattleId = 1;
+      this.battleUpdateInterval = 100; // Update battles every 100ms
+      this.lastBattleUpdate = 0;
+    }
+
+    /**
+     * Update all active battles
+     */
+    update(deltaTime, currentTime) {
+      if (!gameState.get('flags.battle')) {
+        return;
+      }
+
+      // Update battles periodically
+      if (currentTime - this.lastBattleUpdate >= this.battleUpdateInterval) {
+        this.updateBattles(this.battleUpdateInterval);
+        this.lastBattleUpdate = currentTime;
+      }
+
+      // Check for new battles
+      this.checkNewBattles();
+
+      // Clean up finished battles
+      this.cleanupBattles();
+    }
+
+    /**
+     * Update all active battles
+     */
+    updateBattles(deltaTime) {
+      const probeCombat = gameState.get('combat.probeCombat') || 1;
+      const drifterCombat = gameState.get('combat.drifterCombat') || 1;
+      const attackSpeed = gameState.get('combat.attackSpeed') || 0.2;
+      for (const battle of this.battles.values()) {
+        battle.update(deltaTime, probeCombat, drifterCombat, attackSpeed);
+      }
+    }
+
+    /**
+     * Start a new battle
+     */
+    startBattle(probeCount, drifterCount) {
+      const maxBattles = gameState.get('combat.maxBattles') || 1;
+
+      // Check if we can start a new battle
+      if (this.battles.size >= maxBattles) {
+        return null;
+      }
+      const battleId = this.nextBattleId++;
+      const battle = new Battle(battleId, probeCount, drifterCount);
+      this.battles.set(battleId, battle);
+      gameState.set('combat.battleID', battleId);
+
+      // Update battle array for UI
+      this.updateBattleArray();
+      return battleId;
+    }
+
+    /**
+     * Check for new battles to start
+     */
+    checkNewBattles() {
+      const availableProbes = gameState.get('swarm.probeCount') || 0;
+      const encounterRate = gameState.get('combat.encounterRate') || 0.01;
+
+      // Random encounter chance
+      if (availableProbes > 0 && Math.random() < encounterRate) {
+        // Generate drifter force
+        const drifterCount = Math.floor(Math.random() * 100) + 10;
+        const probeCount = Math.min(Math.floor(Math.random() * 50) + 10, availableProbes);
+        this.startBattle(probeCount, drifterCount);
+      }
+    }
+
+    /**
+     * Clean up finished battles
+     */
+    cleanupBattles() {
+      const finishedBattles = [];
+      for (const [id, battle] of this.battles.entries()) {
+        if (battle.status !== 'active') {
+          finishedBattles.push(id);
+
+          // Process battle results
+          this.processBattleResults(battle);
+        }
+      }
+
+      // Remove finished battles
+      for (const id of finishedBattles) {
+        this.battles.delete(id);
+      }
+
+      // Update battle array
+      if (finishedBattles.length > 0) {
+        this.updateBattleArray();
+      }
+    }
+
+    /**
+     * Process results of a finished battle
+     */
+    processBattleResults(battle) {
+      const summary = battle.getSummary();
+
+      // Update statistics
+      gameState.increment('combat.driftersKilled', summary.drifterLosses);
+      gameState.decrement('swarm.probeCount', summary.probeLosses);
+
+      // Award honor for victories
+      if (summary.status === 'victory') {
+        const honorGained = Math.ceil(summary.drifterLosses / 10);
+        gameState.increment('combat.honor', honorGained);
+        gameState.increment('combat.honorCount', honorGained);
+
+        // Check for bonus honor
+        if (summary.probeLosses === 0) {
+          gameState.increment('combat.bonusHonor', 1);
+          gameState.increment('combat.honor', 1);
+        }
+      }
+    }
+
+    /**
+     * Update battle array for UI
+     */
+    updateBattleArray() {
+      const battleArray = [];
+      for (const battle of this.battles.values()) {
+        battleArray.push(battle.getSummary());
+      }
+      gameState.set('combat.battles', battleArray);
+    }
+
+    /**
+     * Get active battles
+     */
+    getActiveBattles() {
+      return Array.from(this.battles.values()).map(b => b.getSummary());
+    }
+
+    /**
+     * Get combat statistics
+     */
+    getCombatStats() {
+      return {
+        activeBattles: this.battles.size,
+        maxBattles: gameState.get('combat.maxBattles'),
+        driftersKilled: gameState.get('combat.driftersKilled'),
+        honor: gameState.get('combat.honor'),
+        bonusHonor: gameState.get('combat.bonusHonor'),
+        probeCombat: gameState.get('combat.probeCombat'),
+        drifterCombat: gameState.get('combat.drifterCombat'),
+        attackSpeed: gameState.get('combat.attackSpeed')
+      };
+    }
+
+    /**
+     * Upgrade probe combat capability
+     */
+    upgradeProbes(amount = 1) {
+      gameState.increment('combat.probeCombat', amount);
+    }
+
+    /**
+     * Set attack speed
+     */
+    setAttackSpeed(speed) {
+      gameState.set('combat.attackSpeed', speed);
+    }
+
+    /**
+     * Set max battles
+     */
+    setMaxBattles(max) {
+      gameState.set('combat.maxBattles', max);
+    }
+
+    /**
+     * Spend honor
+     */
+    spendHonor(amount) {
+      const currentHonor = gameState.get('combat.honor');
+      if (currentHonor >= amount) {
+        gameState.decrement('combat.honor', amount);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  // Create singleton instance
+  const combatSystem = new CombatSystem();
+
+  /**
+   * Projects system - handles upgrades, research, and special abilities
+   */
+
+
+  /**
+   * Represents a single project/upgrade
+   */
+  class Project {
+    constructor(config) {
+      this.id = config.id;
+      this.name = config.name;
+      this.description = config.description;
+      this.cost = config.cost || {}; // { operations: 100, creativity: 50 }
+      this.requirement = config.requirement || (() => true);
+      this.effect = config.effect || (() => {});
+      this.oneTime = config.oneTime !== false; // Default to one-time use
+      this.purchased = false;
+      this.visible = false;
+    }
+
+    /**
+     * Check if project requirements are met
+     */
+    isAvailable() {
+      if (this.purchased && this.oneTime) {
+        return false;
+      }
+      return this.requirement(gameState);
+    }
+
+    /**
+     * Check if player can afford the project
+     */
+    canAfford() {
+      for (const [resource, amount] of Object.entries(this.cost)) {
+        const path = this.getResourcePath(resource);
+        const current = gameState.get(path) || 0;
+        if (current < amount) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /**
+     * Purchase the project
+     */
+    purchase() {
+      if (!this.canAfford() || !this.isAvailable()) {
+        return false;
+      }
+
+      // Deduct costs
+      for (const [resource, amount] of Object.entries(this.cost)) {
+        const path = this.getResourcePath(resource);
+        gameState.decrement(path, amount);
+      }
+
+      // Apply effect
+      this.effect(gameState);
+
+      // Mark as purchased
+      this.purchased = true;
+      return true;
+    }
+
+    /**
+     * Get resource path for cost checking
+     */
+    getResourcePath(resource) {
+      const resourceMap = {
+        operations: 'computing.operations',
+        creativity: 'computing.creativity',
+        funds: 'resources.funds',
+        clips: 'resources.clips',
+        trust: 'computing.trust',
+        honor: 'combat.honor'
+      };
+      return resourceMap[resource] || resource;
+    }
+  }
+  class ProjectsSystem {
+    constructor() {
+      this.projects = new Map();
+      this.initializeProjects();
+    }
+
+    /**
+     * Initialize all game projects
+     */
+    initializeProjects() {
+      // Basic Projects
+      this.addProject({
+        id: 'improvedAutoclippers',
+        name: 'Improved AutoClippers',
+        description: 'Increases AutoClipper performance by 25%',
+        cost: {
+          operations: 750
+        },
+        requirement: state => state.get('production.clipmakerLevel') >= 1,
+        effect: state => {
+          const current = state.get('production.clipperBoost');
+          state.set('production.clipperBoost', current * 1.25);
+        }
+      });
+      this.addProject({
+        id: 'evenBetterAutoclippers',
+        name: 'Even Better AutoClippers',
+        description: 'Increases AutoClipper performance by another 50%',
+        cost: {
+          operations: 2500
+        },
+        requirement: state => this.isPurchased('improvedAutoclippers'),
+        effect: state => {
+          const current = state.get('production.clipperBoost');
+          state.set('production.clipperBoost', current * 1.5);
+        }
+      });
+      this.addProject({
+        id: 'optimizedAutoclippers',
+        name: 'Optimized AutoClippers',
+        description: 'Increases AutoClipper performance by another 75%',
+        cost: {
+          operations: 5000
+        },
+        requirement: state => this.isPurchased('evenBetterAutoclippers'),
+        effect: state => {
+          const current = state.get('production.clipperBoost');
+          state.set('production.clipperBoost', current * 1.75);
+        }
+      });
+
+      // Trust Projects
+      this.addProject({
+        id: 'creativity',
+        name: 'Creativity',
+        description: 'Use idle operations to generate new problems and new solutions',
+        cost: {
+          operations: 1000
+        },
+        requirement: state => state.get('computing.memory') >= 2,
+        effect: state => {
+          state.set('flags.creativity', true);
+        }
+      });
+      this.addProject({
+        id: 'limerick',
+        name: 'Limerick',
+        description: 'Algorithmically-generated poem (+1 Trust)',
+        cost: {
+          creativity: 10
+        },
+        requirement: state => state.get('flags.creativity'),
+        effect: state => {
+          state.increment('computing.trust');
+        },
+        oneTime: false // Can be purchased multiple times
+      });
+
+      // Marketing Projects
+      this.addProject({
+        id: 'newSlogan',
+        name: 'New Slogan',
+        description: 'Improve marketing effectiveness by 50%',
+        cost: {
+          creativity: 25,
+          operations: 2500
+        },
+        requirement: state => state.get('market.marketingLvl') >= 1,
+        effect: state => {
+          const current = state.get('market.marketingEffectiveness');
+          state.set('market.marketingEffectiveness', current * 1.5);
+        }
+      });
+      this.addProject({
+        id: 'catchy',
+        name: 'Catchy Jingle',
+        description: 'Double marketing effectiveness',
+        cost: {
+          creativity: 45,
+          operations: 4500
+        },
+        requirement: state => this.isPurchased('newSlogan'),
+        effect: state => {
+          const current = state.get('market.marketingEffectiveness');
+          state.set('market.marketingEffectiveness', current * 2);
+        }
+      });
+
+      // Quantum Computing
+      this.addProject({
+        id: 'quantumComputing',
+        name: 'Quantum Computing',
+        description: 'Convert operations into quantum computing cycles',
+        cost: {
+          operations: 10000
+        },
+        requirement: state => state.get('computing.processors') >= 5,
+        effect: state => {
+          state.set('flags.quantum', true);
+        }
+      });
+
+      // Mega Projects
+      this.addProject({
+        id: 'megaClippers',
+        name: 'MegaClippers',
+        description: 'Build MegaClippers (500x more powerful than AutoClippers)',
+        cost: {
+          operations: 12000
+        },
+        requirement: state => state.get('production.clipmakerLevel') >= 75,
+        effect: state => {
+          state.set('flags.megaClipper', true);
+        }
+      });
+
+      // Space Projects
+      this.addProject({
+        id: 'spaceExploration',
+        name: 'Space Exploration',
+        description: 'Dismantle terrestrial facilities and explore the universe',
+        cost: {
+          operations: 120000,
+          funds: 1000000
+        },
+        requirement: state => state.get('resources.clips') >= 1000000000 && state.get('production.clipmakerLevel') >= 100,
+        effect: state => {
+          state.set('flags.space', true);
+          state.set('flags.human', false);
+        }
+      });
+
+      // Combat Projects
+      this.addProject({
+        id: 'combatAlgorithms',
+        name: 'Combat Algorithms',
+        description: 'Upgrade probe combat capabilities (+1 Combat)',
+        cost: {
+          honor: 15
+        },
+        requirement: state => state.get('flags.battle'),
+        effect: state => {
+          state.increment('combat.probeCombat');
+        },
+        oneTime: false
+      });
+      this.addProject({
+        id: 'strategyModeling',
+        name: 'Strategic Modeling',
+        description: 'Analyze battle data to improve tactics',
+        cost: {
+          operations: 50000
+        },
+        requirement: state => state.get('flags.battle') && state.get('combat.driftersKilled') >= 100,
+        effect: state => {
+          state.set('flags.strategyEngine', true);
+        }
+      });
+    }
+
+    /**
+     * Add a project to the system
+     */
+    addProject(config) {
+      const project = new Project(config);
+      this.projects.set(config.id, project);
+    }
+
+    /**
+     * Get all available projects
+     */
+    getAvailableProjects() {
+      const available = [];
+      for (const project of this.projects.values()) {
+        if (project.isAvailable()) {
+          available.push({
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            cost: project.cost,
+            canAfford: project.canAfford()
+          });
+        }
+      }
+      return available;
+    }
+
+    /**
+     * Purchase a project
+     */
+    purchaseProject(projectId) {
+      const project = this.projects.get(projectId);
+      if (!project) {
+        return false;
+      }
+      return project.purchase();
+    }
+
+    /**
+     * Check if a project has been purchased
+     */
+    isPurchased(projectId) {
+      const project = this.projects.get(projectId);
+      return project ? project.purchased : false;
+    }
+
+    /**
+     * Get project details
+     */
+    getProject(projectId) {
+      const project = this.projects.get(projectId);
+      if (!project) {
+        return null;
+      }
+      return {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        cost: project.cost,
+        purchased: project.purchased,
+        available: project.isAvailable(),
+        canAfford: project.canAfford()
+      };
+    }
+
+    /**
+     * Reset all projects (for game reset)
+     */
+    reset() {
+      for (const project of this.projects.values()) {
+        project.purchased = false;
+        project.visible = false;
+      }
+    }
+  }
+
+  // Create singleton instance
+  const projectsSystem = new ProjectsSystem();
+
+  /**
    * Number formatting utilities
    */
 
@@ -1353,23 +2185,22 @@
 
     // Add Processor button
     bindButton('btnAddProc', () => {
-      const trust = gameState.get('computing.trust');
-      const processors = gameState.get('computing.processors');
-      const memory = gameState.get('computing.memory');
-      if (trust > processors + memory - 2) {
-        gameState.increment('computing.processors');
+      if (computingSystem.addProcessor()) {
         uiRenderer.flashElement('processors', '#90EE90');
       }
     });
 
     // Add Memory button
     bindButton('btnAddMem', () => {
-      const trust = gameState.get('computing.trust');
-      const processors = gameState.get('computing.processors');
-      const memory = gameState.get('computing.memory');
-      if (trust > processors + memory - 2) {
-        gameState.increment('computing.memory');
+      if (computingSystem.addMemory()) {
         uiRenderer.flashElement('memory', '#90EE90');
+      }
+    });
+
+    // Quantum Compute button
+    bindButton('btnQuantumCompute', () => {
+      if (computingSystem.startQuantumCompute()) {
+        uiRenderer.flashElement('operations', '#673AB7');
       }
     });
 
@@ -1464,6 +2295,8 @@
       // Update game systems
       productionSystem.update(deltaTime);
       marketSystem.update(deltaTime, currentTime);
+      computingSystem.update(deltaTime);
+      combatSystem.update(deltaTime, currentTime);
 
       // Update elapsed time
       state.increment('ui.elapsedTime', deltaTime);
@@ -1503,6 +2336,9 @@
     gameLoop,
     productionSystem,
     marketSystem,
+    computingSystem,
+    combatSystem,
+    projectsSystem,
     uiRenderer,
     // Debug helpers
     debug: {

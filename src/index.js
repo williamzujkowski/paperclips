@@ -7,6 +7,9 @@ import { gameState } from './game/core/gameState.js';
 import { gameLoop } from './game/core/gameLoop.js';
 import { productionSystem } from './game/systems/production.js';
 import { marketSystem } from './game/systems/market.js';
+import { computingSystem } from './game/systems/computing.js';
+import { combatSystem } from './game/systems/combat.js';
+import { projectsSystem } from './game/systems/projects.js';
 import { uiRenderer } from './game/ui/renderer.js';
 import { setupEventHandlers } from './game/ui/events.js';
 
@@ -30,6 +33,8 @@ function initGame() {
     // Update game systems
     productionSystem.update(deltaTime);
     marketSystem.update(deltaTime, currentTime);
+    computingSystem.update(deltaTime);
+    combatSystem.update(deltaTime, currentTime);
 
     // Update elapsed time
     state.increment('ui.elapsedTime', deltaTime);
@@ -69,6 +74,9 @@ window.UniversalPaperclips = {
   gameLoop,
   productionSystem,
   marketSystem,
+  computingSystem,
+  combatSystem,
+  projectsSystem,
   uiRenderer,
   // Debug helpers
   debug: {

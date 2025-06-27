@@ -6,6 +6,7 @@
 import { gameState } from '../core/gameState.js';
 import { productionSystem } from '../systems/production.js';
 import { marketSystem } from '../systems/market.js';
+import { computingSystem } from '../systems/computing.js';
 import { uiRenderer } from './renderer.js';
 
 export function setupEventHandlers() {
@@ -61,25 +62,22 @@ export function setupEventHandlers() {
 
   // Add Processor button
   bindButton('btnAddProc', () => {
-    const trust = gameState.get('computing.trust');
-    const processors = gameState.get('computing.processors');
-    const memory = gameState.get('computing.memory');
-
-    if (trust > processors + memory - 2) {
-      gameState.increment('computing.processors');
+    if (computingSystem.addProcessor()) {
       uiRenderer.flashElement('processors', '#90EE90');
     }
   });
 
   // Add Memory button
   bindButton('btnAddMem', () => {
-    const trust = gameState.get('computing.trust');
-    const processors = gameState.get('computing.processors');
-    const memory = gameState.get('computing.memory');
-
-    if (trust > processors + memory - 2) {
-      gameState.increment('computing.memory');
+    if (computingSystem.addMemory()) {
       uiRenderer.flashElement('memory', '#90EE90');
+    }
+  });
+
+  // Quantum Compute button
+  bindButton('btnQuantumCompute', () => {
+    if (computingSystem.startQuantumCompute()) {
+      uiRenderer.flashElement('operations', '#673AB7');
     }
   });
 
