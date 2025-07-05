@@ -12,11 +12,11 @@ on:
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # Focus automated reviews on external contributors and first-time contributors
+    if: |
+      github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' ||
+      github.event.pull_request.author_association == 'CONTRIBUTOR' ||
+      github.event.pull_request.author_association == 'NONE'
     
     runs-on: ubuntu-latest
     permissions:
@@ -42,14 +42,34 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Welcome to the Universal Paperclips project! Please review this pull request focusing on:
             
-            Be constructive and helpful in your feedback.
+            **Code Quality & Architecture:**
+            - ES6 module patterns and separation of concerns
+            - GameState usage for state management (gameState.get/set/increment/decrement)
+            - Error handling with errorHandler and proper context
+            - Performance monitoring for expensive operations
+            - JSDoc documentation for new functions/classes
+            
+            **Game-Specific Considerations:**
+            - Maintains original gameplay mechanics
+            - Follows existing UI patterns in src/game/ui/
+            - Uses proper system organization in src/game/systems/
+            - Integrates with the game loop appropriately
+            
+            **Testing & Quality:**
+            - Unit tests for new features in tests/unit/
+            - Code follows existing formatting and linting standards
+            - No introduction of global variables
+            - Proper error boundaries and recovery
+            
+            **Security & Performance:**
+            - No secrets or API keys committed
+            - Efficient algorithms for game mechanics
+            - Proper input sanitization
+            - Memory leak prevention
+            
+            Please be encouraging and provide specific, actionable feedback. Include code examples where helpful!
           
           # Optional: Customize review based on file types
           # direct_prompt: |

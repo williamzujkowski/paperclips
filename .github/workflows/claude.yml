@@ -44,14 +44,49 @@ jobs:
           # Optional: Trigger when specific user is assigned to an issue
           # assignee_trigger: "claude-bot"
           
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
+          # Allow Claude to run specific commands for development and testing
+          allowed_tools: "Bash(npm install),Bash(npm ci),Bash(npm run build),Bash(npm run build:watch),Bash(npm run test),Bash(npm run test:watch),Bash(npm run test:coverage),Bash(npm run lint),Bash(npm run lint:fix),Bash(npm run format),Bash(npm run format:check),Bash(npm run dev:quiet)"
           
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
+          # Custom instructions for Claude based on project requirements
+          custom_instructions: |
+            This is the Universal Paperclips game modernization project. When working on this codebase:
+            
+            **Architecture & Patterns:**
+            - Use ES6 modules with clear separation of concerns
+            - Follow the existing GameState pattern for state management with dot notation access
+            - Add new systems to src/game/systems/ directory
+            - Use errorHandler for all error handling with proper context
+            - Measure performance with performanceMonitor for expensive operations
+            
+            **Code Quality:**
+            - Always add JSDoc documentation for new functions and classes
+            - Write unit tests for new features in tests/unit/
+            - Follow existing code conventions and patterns
+            - Use the formatting and linting tools before committing
+            - Never add comments unless explicitly requested
+            
+            **Testing & Validation:**
+            - Run tests before making changes: npm test
+            - Use npm run lint and npm run format:check for code quality
+            - Verify builds work: npm run build
+            - Test the game locally: npm run dev:quiet
+            
+            **State Management:**
+            - Use gameState.get() and gameState.set() for state access
+            - Use gameState.increment() and gameState.decrement() for numeric changes
+            - Follow the centralized state management pattern
+            
+            **Performance:**
+            - Game loop runs at 60 FPS with automatic throttling
+            - Batch UI updates for performance
+            - Use performance monitoring for expensive operations
+            
+            **Security:**
+            - Never commit secrets or API keys
+            - Sanitize all user input
+            - Use error boundaries to prevent crashes
+            
+            Remember: The goal is to maintain the original gameplay while providing a modern, maintainable codebase.
           
           # Optional: Custom environment variables for Claude
           # claude_env: |
