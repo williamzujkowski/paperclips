@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" role="application" aria-label="Universal Paperclips Accessibility Test">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessibility Test - Universal Paperclips</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            padding: 10px 20px;
+            text-decoration: none;
+            z-index: 9999;
+        }
+        
+        .skip-link:focus {
+            position: static;
+            left: 0;
+            top: 0;
+            width: auto;
+            height: auto;
+            border-radius: 0 0 5px 0;
+        }
+        
+        *:focus {
+            outline: 3px solid #4A90E2;
+            outline-offset: 2px;
+        }
+        
+        button:focus {
+            outline: 3px solid #ff6b6b;
+            outline-offset: 3px;
+        }
+        
+        .button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .high-contrast {
+            background-color: #000 !important;
+            color: #fff !important;
+        }
+        
+        .high-contrast .test-section {
+            background-color: #111 !important;
+            border: 2px solid #fff !important;
+        }
+        
+        .high-contrast .button {
+            background-color: #fff !important;
+            color: #000 !important;
+            border: 2px solid #fff !important;
+        }
+        
+        .keyboard-mode *:focus {
+            outline: 4px solid #ff6b6b;
+            outline-offset: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Navigation -->
+    <nav aria-label="Skip navigation">
+        <a href="#main-content" class="skip-link">Skip to main content</a>
+        <a href="#test-buttons" class="skip-link">Skip to test buttons</a>
+    </nav>
+
+    <div role="main" id="main-content">
+        <header role="banner">
+            <h1>Universal Paperclips Accessibility Test</h1>
+            <p>Testing accessibility features including screen reader support, keyboard navigation, and ARIA implementation.</p>
+        </header>
+
+        <section class="test-section" role="region" aria-labelledby="announcement-test">
+            <h2 id="announcement-test">Screen Reader Announcements</h2>
+            <div id="test-announcer" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+            <div id="test-urgent" role="alert" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+            
+            <button class="button" onclick="testAnnouncement('polite')" aria-label="Test polite announcement">
+                Test Polite Announcement
+            </button>
+            <button class="button" onclick="testAnnouncement('urgent')" aria-label="Test urgent announcement">
+                Test Urgent Announcement
+            </button>
+        </section>
+
+        <section class="test-section" role="region" aria-labelledby="keyboard-test" id="test-buttons">
+            <h2 id="keyboard-test">Keyboard Navigation Test</h2>
+            <p>Use Tab to navigate between buttons. Press Space or Enter to activate.</p>
+            
+            <button class="button" aria-label="Test button 1">Button 1</button>
+            <button class="button" aria-label="Test button 2">Button 2</button>
+            <button class="button" aria-label="Test button 3">Button 3</button>
+            
+            <div style="margin-top: 20px;">
+                <label for="test-range">Test Range Slider:</label>
+                <input type="range" id="test-range" min="0" max="100" value="50" 
+                       role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+                       aria-label="Test slider for accessibility"
+                       oninput="updateSliderValue(this)">
+                <span id="slider-value" aria-live="polite">50%</span>
+            </div>
+        </section>
+
+        <section class="test-section" role="region" aria-labelledby="contrast-test">
+            <h2 id="contrast-test">High Contrast Mode</h2>
+            <button class="button" onclick="toggleHighContrast()" 
+                    id="contrast-toggle" 
+                    role="switch" 
+                    aria-checked="false"
+                    aria-label="Toggle high contrast mode">
+                Toggle High Contrast
+            </button>
+        </section>
+
+        <section class="test-section" role="region" aria-labelledby="live-region-test">
+            <h2 id="live-region-test">Live Region Test</h2>
+            <div>
+                <span>Counter: </span>
+                <span id="counter" role="status" aria-live="polite" aria-atomic="true">0</span>
+            </div>
+            <button class="button" onclick="incrementCounter()" aria-label="Increment counter">
+                Increment Counter
+            </button>
+        </section>
+    </div>
+
+    <script>
+        let counter = 0;
+        let highContrastEnabled = false;
+        let keyboardMode = false;
+
+        // Test announcements
+        function testAnnouncement(type) {
+            const message = type === 'urgent' ? 'Urgent test message!' : 'Polite test message';
+            const announcer = document.getElementById(type === 'urgent' ? 'test-urgent' : 'test-announcer');
+            
+            announcer.textContent = '';
+            setTimeout(() => {
+                announcer.textContent = message;
+            }, 100);
+            
+            setTimeout(() => {
+                announcer.textContent = '';
+            }, 3000);
+        }
+
+        // Counter test
+        function incrementCounter() {
+            counter++;
+            document.getElementById('counter').textContent = counter;
+        }
+
+        // Slider test
+        function updateSliderValue(slider) {
+            document.getElementById('slider-value').textContent = slider.value + '%';
+            slider.setAttribute('aria-valuenow', slider.value);
+        }
+
+        // High contrast toggle
+        function toggleHighContrast() {
+            highContrastEnabled = !highContrastEnabled;
+            document.body.classList.toggle('high-contrast', highContrastEnabled);
+            
+            const toggle = document.getElementById('contrast-toggle');
+            toggle.setAttribute('aria-checked', highContrastEnabled.toString());
+            
+            testAnnouncement('polite');
+            setTimeout(() => {
+                document.getElementById('test-announcer').textContent = 
+                    `High contrast mode ${highContrastEnabled ? 'enabled' : 'disabled'}`;
+            }, 200);
+        }
+
+        // Keyboard navigation detection
+        document.addEventListener('mousedown', () => {
+            keyboardMode = false;
+            document.body.classList.remove('keyboard-mode');
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                keyboardMode = true;
+                document.body.classList.add('keyboard-mode');
+            }
+            
+            // Test keyboard shortcuts
+            if (e.key === '1') {
+                testAnnouncement('polite');
+                setTimeout(() => {
+                    document.getElementById('test-announcer').textContent = 'Keyboard shortcut 1 pressed';
+                }, 100);
+            }
+        });
+
+        // Initial announcement
+        setTimeout(() => {
+            document.getElementById('test-announcer').textContent = 'Accessibility test page loaded successfully';
+        }, 1000);
+    </script>
+</body>
+</html>

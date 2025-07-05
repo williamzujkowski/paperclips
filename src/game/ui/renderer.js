@@ -1,346 +1,506 @@
 /**
- * UI Renderer - handles all display updates and DOM manipulation
- * @module UIRenderer
+ * Renderer for Universal Paperclips
+ *
+ * Handles DOM updates and UI rendering with efficient batching
+ * to maintain 60 FPS performance.
  */
 
-import { formatNumber } from '../utils/formatting.js';
-import { domBatcher } from './domBatcher.js';
+import {
+  formatNumber,
+  formatCurrency,
+  formatRate,
+  formatDuration
+} from '../../utils/formatting.js';
 import { errorHandler } from '../core/errorHandler.js';
+import { performanceMonitor } from '../core/performanceMonitor.js';
+import { PERFORMANCE } from '../core/constants.js';
 
-/**
- * @class UIRenderer
- * @description Manages UI updates with efficient DOM batching and caching.
- */
-export class UIRenderer {
-  /**
-   * Creates a new UIRenderer instance
-   * @constructor
-   */
-  constructor() {
-    /** @type {Object} Cached DOM elements */
-    this.elements = {};
-    /** @type {Object} Last rendered values for change detection */
-    this.lastValues = {};
-    /** @type {boolean} Whether renderer is initialized */
-    this.initialized = false;
-    /** @type {number} Update counter for debugging */
-    this.updateCount = 0;
-  }
+export class Renderer {
+  constructor(gameState) {
+    this.gameState = gameState;
 
-  /**
-   * Initialize UI elements cache
-   */
-  init() {
-    // Cache commonly used DOM elements
+    // DOM element cache
+    this.elements = new Map();
+
+    // Update batching
+    this.pendingUpdates = new Map();
+    this.maxUpdatesPerFrame = PERFORMANCE.MAX_DOM_UPDATES_PER_FRAME;
+
+    // Element selectors and their update functions
+    this.elementUpdaters = this.initializeElementUpdaters();
+
+    // Cache frequently accessed elements
     this.cacheElements();
-    this.initialized = true;
+
+    // Bind methods
+    this.render = errorHandler.createErrorBoundary(this.render.bind(this), 'renderer.render');
   }
 
   /**
-   * Cache DOM element references
+   * Initialize element updaters mapping
+   */
+  initializeElementUpdaters() {
+    return {
+      // Resource displays
+      clips: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+      funds: (element, value) => {
+        element.textContent = formatCurrency(value);
+      },
+      wire: (element, value) => {
+        element.textContent = formatNumber(Math.floor(value));
+      },
+      unsoldClips: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+
+      // Production displays
+      clipRate: (element, value) => {
+        element.textContent = formatRate(value, 'clips');
+      },
+      autoClippers: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+      megaClippers: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+      factories: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+
+      // Market displays
+      margin: (element, value) => {
+        element.textContent = formatCurrency(value, true);
+      },
+      demand: (element, value) => {
+        element.textContent = value.toFixed(2) + '%';
+      },
+      marketing: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+      avgRev: (element, value) => {
+        element.textContent = formatCurrency(value);
+      },
+
+      // Computing displays
+      operations: (element, value) => {
+        element.textContent = formatNumber(Math.floor(value));
+      },
+      creativity: (element, value) => {
+        element.textContent = formatNumber(Math.floor(value));
+      },
+      processors: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+      memory: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+      trust: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+
+      // Combat displays
+      honor: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+      probes: (element, value) => {
+        element.textContent = formatNumber(value);
+      },
+
+      // Cost displays
+      autoClipperCost: (element, value) => {
+        element.textContent = formatCurrency(value);
+      },
+      megaClipperCost: (element, value) => {
+        element.textContent = formatCurrency(value);
+      },
+      wireCost: (element, value) => {
+        element.textContent = formatCurrency(value);
+      },
+      adCost: (element, value) => {
+        element.textContent = formatCurrency(value);
+      },
+      processorCost: (element, value) => {
+        element.textContent = formatNumber(value) + ' ops';
+      },
+      memoryCost: (element, value) => {
+        element.textContent = formatNumber(value) + ' ops';
+      },
+      achievementCount: (element, value) => {
+        element.textContent = `(${value.unlocked}/${value.total})`;
+      }
+    };
+  }
+
+  /**
+   * Cache frequently accessed DOM elements
    */
   cacheElements() {
-    // Resource displays
-    this.elements.clips = document.getElementById('clips');
-    this.elements.funds = document.getElementById('funds');
-    this.elements.wire = document.getElementById('wire');
-    this.elements.unsoldClips = document.getElementById('unsoldClips');
+    const elementIds = Object.keys(this.elementUpdaters);
 
-    // Production displays
-    this.elements.clipRate = document.getElementById('clipRate');
-    this.elements.clipmakerLevel = document.getElementById('clipmakerLevel');
-    this.elements.megaClipperLevel = document.getElementById('megaClipperLevel');
+    for (const id of elementIds) {
+      const element = document.getElementById(id);
+      if (element) {
+        this.elements.set(id, element);
+      }
+    }
 
-    // Market displays
-    this.elements.demand = document.getElementById('demand');
-    this.elements.margin = document.getElementById('margin');
-    this.elements.marketingLvl = document.getElementById('marketingLvl');
-    this.elements.wireCost = document.getElementById('wireCost');
-
-    // Computing displays
-    this.elements.operations = document.getElementById('operations');
-    this.elements.trust = document.getElementById('trust');
-    this.elements.processors = document.getElementById('processors');
-    this.elements.memory = document.getElementById('memory');
-    this.elements.creativity = document.getElementById('creativity');
-
-    // Infrastructure displays
-    this.elements.factoryLevel = document.getElementById('factoryLevel');
-    this.elements.harvesterLevel = document.getElementById('harvesterLevel');
-    this.elements.wireDroneLevel = document.getElementById('wireDroneLevel');
-
-    // Display sections
-    this.elements.businessDisplay = document.getElementById('businessDisplay');
-    this.elements.manufacturingDisplay = document.getElementById('manufacturingDisplay');
-    this.elements.computationalDisplay = document.getElementById('computationalDisplay');
-    this.elements.projectsDisplay = document.getElementById('projectsDisplay');
-    this.elements.spaceDisplay = document.getElementById('spaceDisplay');
+    errorHandler.debug(`Cached ${this.elements.size} DOM elements`);
   }
 
   /**
-   * Main render function - updates all UI elements
-   * @param {Object} state - Current game state
-   * @returns {void}
+   * Queue an element update for batching
    */
-  render(state) {
-    if (!this.initialized) {
-      this.init();
+  queueUpdate(elementId, value) {
+    this.pendingUpdates.set(elementId, value);
+  }
+
+  /**
+   * Process batched DOM updates
+   */
+  processBatchedUpdates() {
+    const updates = Array.from(this.pendingUpdates.entries());
+    const maxUpdates = Math.min(updates.length, this.maxUpdatesPerFrame);
+
+    for (let i = 0; i < maxUpdates; i++) {
+      const [elementId, value] = updates[i];
+      this.updateElement(elementId, value);
+      this.pendingUpdates.delete(elementId);
     }
 
-    // Batch all DOM updates together
-    domBatcher.batch(() => {
-      try {
-        // Update resources
-        this.updateResources(state);
+    // Return true if there are more updates pending
+    return this.pendingUpdates.size > 0;
+  }
 
-        // Update production
-        this.updateProduction(state);
+  /**
+   * Update a single DOM element
+   */
+  updateElement(elementId, value) {
+    const element = this.elements.get(elementId);
+    const updater = this.elementUpdaters[elementId];
 
-        // Update market
-        this.updateMarket(state);
+    if (!element || !updater) {
+      return;
+    }
 
-        // Update computing
-        this.updateComputing(state);
-
-        // Update infrastructure
-        this.updateInfrastructure(state);
-
-        // Update display visibility
-        this.updateDisplayVisibility(state);
-      } catch (error) {
-        errorHandler.handleError(error, 'uiRenderer.render');
-      }
-    });
+    try {
+      updater(element, value);
+    } catch (error) {
+      errorHandler.handleError(error, `renderer.updateElement.${elementId}`, { value });
+    }
   }
 
   /**
    * Update resource displays
    */
-  updateResources(state) {
-    this.updateElement('clips', state.resources.clips);
-    this.updateElement('funds', state.resources.funds, true);
-    this.updateElement('wire', state.resources.wire);
-    this.updateElement('unsoldClips', state.resources.unsoldClips);
+  updateResources() {
+    this.queueUpdate('clips', this.gameState.get('resources.clips'));
+    this.queueUpdate('funds', this.gameState.get('resources.funds'));
+    this.queueUpdate('wire', this.gameState.get('resources.wire'));
+    this.queueUpdate('unsoldClips', this.gameState.get('resources.unsoldClips'));
   }
 
   /**
    * Update production displays
    */
-  updateProduction(state) {
-    this.updateElement('clipRate', state.production.clipRate);
-    this.updateElement('clipmakerLevel', state.production.clipmakerLevel);
-    this.updateElement('megaClipperLevel', state.production.megaClipperLevel);
+  updateProduction() {
+    this.queueUpdate('clipRate', this.gameState.get('production.clipRate'));
+    this.queueUpdate('autoClippers', this.gameState.get('manufacturing.clipmakers.level'));
+    this.queueUpdate('megaClippers', this.gameState.get('manufacturing.megaClippers.level'));
+    this.queueUpdate('factories', this.gameState.get('manufacturing.factories.level'));
   }
 
   /**
    * Update market displays
    */
-  updateMarket(state) {
-    this.updateElement('demand', state.market.demand, false, 1);
-    this.updateElement('margin', state.market.margin, true);
-    this.updateElement('marketingLvl', state.market.marketingLvl);
-    this.updateElement('wireCost', state.market.wireCost, true);
+  updateMarket() {
+    this.queueUpdate('margin', this.gameState.get('market.pricing.margin'));
+    this.queueUpdate('demand', this.gameState.get('market.demand'));
+    this.queueUpdate('marketing', this.gameState.get('market.marketing.level'));
+    this.queueUpdate('avgRev', this.gameState.get('market.sales.avgRevenue'));
+    this.queueUpdate('wireCost', this.gameState.get('market.pricing.wireCost'));
   }
 
   /**
    * Update computing displays
    */
-  updateComputing(state) {
-    this.updateElement('operations', state.computing.operations);
-    this.updateElement('trust', state.computing.trust);
-    this.updateElement('processors', state.computing.processors);
-    this.updateElement('memory', state.computing.memory);
-    this.updateElement('creativity', state.computing.creativity);
+  updateComputing() {
+    this.queueUpdate('operations', this.gameState.get('computing.operations'));
+    this.queueUpdate('creativity', this.gameState.get('computing.creativity.amount'));
+    this.queueUpdate('processors', this.gameState.get('computing.processors'));
+    this.queueUpdate('memory', this.gameState.get('computing.memory'));
+    this.queueUpdate('trust', this.gameState.get('computing.trust.current'));
   }
 
   /**
-   * Update infrastructure displays
+   * Update combat displays
    */
-  updateInfrastructure(state) {
-    if (state.flags.factory) {
-      this.updateElement('factoryLevel', state.infrastructure.factoryLevel);
-    }
-    if (state.flags.harvester) {
-      this.updateElement('harvesterLevel', state.infrastructure.harvesterLevel);
-    }
-    if (state.flags.wireDrone) {
-      this.updateElement('wireDroneLevel', state.infrastructure.wireDroneLevel);
-    }
+  updateCombat() {
+    this.queueUpdate('honor', this.gameState.get('combat.honor'));
+    this.queueUpdate('probes', this.gameState.get('space.probes.count'));
   }
 
   /**
-   * Update a single element if value changed
+   * Update cost displays
    */
-  updateElement(elementId, value, isCurrency = false, decimals = 0) {
-    // Check if value has changed
-    if (this.lastValues[elementId] === value) {
-      return;
-    }
+  updateCosts() {
+    this.queueUpdate('autoClipperCost', this.gameState.get('manufacturing.clipmakers.cost'));
+    this.queueUpdate('megaClipperCost', this.gameState.get('manufacturing.megaClippers.cost'));
+    this.queueUpdate('adCost', this.gameState.get('market.pricing.adCost'));
 
-    const element = this.elements[elementId];
-    if (!element) {
-      return;
-    }
+    // Calculate dynamic costs
+    const processors = this.gameState.get('computing.processors');
+    const memory = this.gameState.get('computing.memory');
 
-    // Format value
-    let displayValue;
-    if (isCurrency) {
-      displayValue = '$' + formatNumber(value, decimals);
-    } else {
-      displayValue = formatNumber(value, decimals);
-    }
-
-    // Update element using DOM batcher
-    domBatcher.updateText(elementId, displayValue);
-    this.lastValues[elementId] = value;
-    this.updateCount++;
-  }
-
-  /**
-   * Update display section visibility
-   */
-  updateDisplayVisibility(state) {
-    // Business display (always visible)
-    this.setDisplayVisible('businessDisplay', true);
-
-    // Manufacturing display (when auto-clippers available)
-    this.setDisplayVisible('manufacturingDisplay', state.flags.autoClipper);
-
-    // Computational display (when trust unlocked)
-    this.setDisplayVisible('computationalDisplay', state.flags.trust);
-
-    // Projects display (when projects available)
-    this.setDisplayVisible('projectsDisplay', state.flags.projects);
-
-    // Space display (when space exploration unlocked)
-    this.setDisplayVisible('spaceDisplay', state.flags.space);
-  }
-
-  /**
-   * Set display visibility
-   */
-  setDisplayVisible(displayId, visible) {
-    // Update visibility through DOM batcher
-    // Note: Using inline update for display blocks since they need 'block' not ''
-    const element = this.elements[displayId];
-    if (element) {
-      domBatcher.updateStyles(displayId, { display: visible ? 'block' : 'none' });
-    }
-  }
-
-  /**
-   * Show notification message
-   */
-  showNotification(message, duration = 3000) {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.textContent = message;
-
-    // Add to page
-    document.body.appendChild(notification);
-
-    // Fade in
-    setTimeout(() => {
-      notification.classList.add('visible');
-    }, 10);
-
-    // Remove after duration
-    setTimeout(() => {
-      notification.classList.remove('visible');
-      setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 300);
-    }, duration);
+    this.queueUpdate('processorCost', Math.pow(2, processors) * 1000);
+    this.queueUpdate('memoryCost', Math.pow(2, memory) * 1000);
   }
 
   /**
    * Update button states (enabled/disabled)
    */
-  updateButtonStates(state) {
-    // Make Paperclip button
-    const makeClipBtn = document.getElementById('btnMakePaperclip');
-    if (makeClipBtn) {
-      makeClipBtn.disabled = state.resources.wire < 1;
-    }
+  updateButtonStates() {
+    this.updateButtonState('buyAutoClipper', this.canAffordAutoClipper());
+    this.updateButtonState('buyMegaClipper', this.canAffordMegaClipper());
+    this.updateButtonState('buyWire', this.canAffordWire());
+    this.updateButtonState('buyAds', this.canAffordAds());
+    this.updateButtonState('buyProcessor', this.canAffordProcessor());
+    this.updateButtonState('buyMemory', this.canAffordMemory());
+  }
 
-    // Buy Wire button
-    const buyWireBtn = document.getElementById('btnBuyWire');
-    if (buyWireBtn) {
-      const wireCost = state.market.wireCost;
-      buyWireBtn.disabled = state.resources.funds < wireCost;
-    }
-
-    // Buy Auto-Clipper button
-    const buyClipperBtn = document.getElementById('btnBuyAutoClipper');
-    if (buyClipperBtn) {
-      const clipperCost = state.market.clipperCost;
-      buyClipperBtn.disabled = state.resources.funds < clipperCost;
+  /**
+   * Update individual button state
+   */
+  updateButtonState(buttonId, canAfford) {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      button.disabled = !canAfford;
+      button.className = canAfford ? 'button' : 'button disabled';
     }
   }
 
   /**
-   * Flash an element to draw attention
+   * Check if player can afford AutoClipper
    */
+  canAffordAutoClipper() {
+    const funds = this.gameState.get('resources.funds');
+    const cost = this.gameState.get('manufacturing.clipmakers.cost');
+    return funds >= cost;
+  }
+
   /**
-   * Flash element with color animation
-   * @param {string} elementId - Element to flash
-   * @param {string} [color='#ffff00'] - Flash color
-   * @returns {void}
+   * Check if player can afford MegaClipper
    */
-  flashElement(elementId, color = '#ffff00') {
-    const element = this.elements[elementId] || document.getElementById(elementId);
-    if (!element) {
-      return;
+  canAffordMegaClipper() {
+    const funds = this.gameState.get('resources.funds');
+    const cost = this.gameState.get('manufacturing.megaClippers.cost');
+    return funds >= cost;
+  }
+
+  /**
+   * Check if player can afford wire
+   */
+  canAffordWire() {
+    const funds = this.gameState.get('resources.funds');
+    const cost = this.gameState.get('market.pricing.wireCost');
+    return funds >= cost;
+  }
+
+  /**
+   * Check if player can afford advertising
+   */
+  canAffordAds() {
+    const funds = this.gameState.get('resources.funds');
+    const cost = this.gameState.get('market.pricing.adCost');
+    return funds >= cost;
+  }
+
+  /**
+   * Check if player can afford processor
+   */
+  canAffordProcessor() {
+    const operations = this.gameState.get('computing.operations');
+    const processors = this.gameState.get('computing.processors');
+    const trust = this.gameState.get('computing.trust.current');
+    const cost = Math.pow(2, processors) * 1000;
+
+    return operations >= cost && processors < trust;
+  }
+
+  /**
+   * Check if player can afford memory
+   */
+  canAffordMemory() {
+    const operations = this.gameState.get('computing.operations');
+    const memory = this.gameState.get('computing.memory');
+    const trust = this.gameState.get('computing.trust.current');
+    const cost = Math.pow(2, memory) * 1000;
+
+    return operations >= cost && memory < trust;
+  }
+
+  /**
+   * Update UI sections based on game flags
+   */
+  updateSectionVisibility() {
+    const flags = this.gameState.get('gameState.flags');
+
+    this.toggleSection('businessDiv', flags.autoClipper >= 1);
+    this.toggleSection('projectsDiv', flags.projects >= 1);
+    this.toggleSection('manufactureDiv', flags.megaClipper >= 1);
+    this.toggleSection('computeDiv', flags.comp >= 1);
+    this.toggleSection('investmentDiv', flags.investment >= 1);
+    this.toggleSection('spaceDiv', flags.space >= 1);
+    this.toggleSection('combatDiv', flags.space >= 1 && this.gameState.get('combat.battleEnabled'));
+  }
+
+  /**
+   * Toggle section visibility
+   */
+  toggleSection(sectionId, visible) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.style.display = visible ? 'block' : 'none';
     }
+  }
 
-    const originalColor = element.style.backgroundColor;
+  /**
+   * Update projects display
+   */
+  updateProjects() {
+    const projectsContainer = document.getElementById('projectList');
+    if (!projectsContainer) return;
 
-    // Use DOM batcher for style updates
-    domBatcher.updateStyles(elementId, {
-      backgroundColor: color,
-      transition: 'background-color 0.3s',
-    });
+    // This would be implemented to show available projects
+    // For now, just clear the container
+    projectsContainer.innerHTML = '';
+  }
 
-    setTimeout(() => {
-      domBatcher.updateStyles(elementId, {
-        backgroundColor: originalColor,
+  /**
+   * Update achievements display
+   */
+  updateAchievements() {
+    // Update achievement count in the button
+    const achievements = this.gameState.get('achievements');
+    if (achievements) {
+      const stats = achievements.stats || { totalUnlocked: 0 };
+      const totalAchievements = Object.keys(window.achievementSystem?.achievements || {}).length;
+
+      this.queueUpdate('achievementCount', {
+        unlocked: stats.totalUnlocked,
+        total: totalAchievements
       });
-    }, 300);
+    }
   }
 
   /**
-   * Clean up cached elements that are no longer in DOM
-   * @returns {number} Number of cleaned elements
+   * Create performance display
    */
-  cleanupStaleElements() {
-    let cleaned = 0;
+  updatePerformanceDisplay() {
+    const perfElement = document.getElementById('performanceDisplay');
+    if (!perfElement) return;
 
-    for (const [key, element] of Object.entries(this.elements)) {
-      if (element && !document.body.contains(element)) {
-        this.elements[key] = null;
-        cleaned++;
+    const report = performanceMonitor.getReport();
+
+    perfElement.innerHTML = `
+      <div class="performance-stats">
+        <div>FPS: ${report.fps.current}</div>
+        <div>Memory: ${report.memory.usedMB}MB</div>
+        <div>Frame Time: ${report.gameLoop.totalTime}ms</div>
+      </div>
+    `;
+  }
+
+  /**
+   * Main render method
+   */
+  render(timestamp, deltaTime) {
+    performanceMonitor.measure(() => {
+      // Update all display sections
+      this.updateResources();
+      this.updateProduction();
+      this.updateMarket();
+      this.updateComputing();
+      this.updateCombat();
+      this.updateCosts();
+      this.updateButtonStates();
+      this.updateSectionVisibility();
+      this.updateProjects();
+      this.updateAchievements();
+
+      // Process batched DOM updates
+      const hasMoreUpdates = this.processBatchedUpdates();
+
+      // Update performance display (less frequently)
+      if (timestamp % 1000 < 16) {
+        // Roughly once per second
+        this.updatePerformanceDisplay();
       }
+
+      // Log if we have a backlog of updates
+      if (hasMoreUpdates && this.pendingUpdates.size > 50) {
+        errorHandler.warn(`Renderer backlog: ${this.pendingUpdates.size} pending updates`);
+      }
+    }, 'renderer.render');
+  }
+
+  /**
+   * Force update all elements immediately
+   */
+  forceUpdate() {
+    // Clear pending updates and update everything immediately
+    this.pendingUpdates.clear();
+
+    this.updateResources();
+    this.updateProduction();
+    this.updateMarket();
+    this.updateComputing();
+    this.updateCombat();
+    this.updateCosts();
+    this.updateButtonStates();
+    this.updateSectionVisibility();
+
+    // Process all updates without batching
+    const allUpdates = Array.from(this.pendingUpdates.entries());
+    for (const [elementId, value] of allUpdates) {
+      this.updateElement(elementId, value);
     }
 
-    return cleaned;
+    this.pendingUpdates.clear();
+
+    errorHandler.debug('Forced complete UI update');
   }
 
   /**
-   * Clear all cached data
+   * Refresh element cache
+   */
+  refreshCache() {
+    this.elements.clear();
+    this.cacheElements();
+  }
+
+  /**
+   * Get renderer statistics
+   */
+  getStats() {
+    return {
+      cachedElements: this.elements.size,
+      pendingUpdates: this.pendingUpdates.size,
+      maxUpdatesPerFrame: this.maxUpdatesPerFrame,
+      availableUpdaters: Object.keys(this.elementUpdaters).length
+    };
+  }
+
+  /**
+   * Reset renderer
    */
   reset() {
-    this.elements = {};
-    this.lastValues = {};
-    this.updateCount = 0;
-    this.initialized = false;
+    this.pendingUpdates.clear();
+    this.refreshCache();
+
+    errorHandler.info('Renderer reset');
   }
 }
 
-// Create singleton instance
-export const uiRenderer = new UIRenderer();
-
-// Export for debugging
-if (typeof window !== 'undefined') {
-  window.UniversalPaperclipsRenderer = uiRenderer;
-}
+export default Renderer;

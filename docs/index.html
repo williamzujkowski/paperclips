@@ -1,46 +1,443 @@
-<html>
-    <head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Paperclips</title>
-    
-    <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com;
-        style-src 'self' 'unsafe-inline';
-        img-src 'self' data: https://www.google-analytics.com;
-        connect-src 'self' https://www.google-analytics.com;
-        font-src 'self';
-        object-src 'none';
-        base-uri 'self';
-        frame-ancestors 'none';
-        upgrade-insecure-requests;
-    ">
-    
-    <link rel="stylesheet" type="text/css" href="titlescreen.css" />
-        <!-- Global Site Tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-107491380-1"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments)};
-            gtag('js', new Date());
-            gtag('config', 'UA-107491380-1');
-            gtag('set', {'user_id': 'USER_ID'}); // Set the user ID using signed-in user_id.
-        </script>
-    </head>
-    
-    <body>
-    
-<div class="frame" id="wrapper" style=" position:absolute; top:0; bottom:0; left:0; right:0; border: width:100%; text-align:center; vertical-align:middle; margin:auto">    
-    
-<a href=index2.html>    
-    
-<img src="title.png" alt="Universal Paperclips" height="355" width="453">
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .game-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .game-section h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 3px;
+        }
+        
+        .stat-label {
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-family: monospace;
+            color: #666;
+        }
+        
+        .button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        
+        .button:hover {
+            background: #005a87;
+        }
+        
+        .button:disabled, .button.disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .button.primary {
+            background: #28a745;
+            font-size: 18px;
+            padding: 15px 30px;
+        }
+        
+        .button.primary:hover {
+            background: #218838;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .price-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .slider {
+            flex: 1;
+        }
+        
+        .feedback {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .feedback.success {
+            background: #28a745;
+        }
+        
+        .feedback.error {
+            background: #dc3545;
+        }
+        
+        .feedback.warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .feedback.info {
+            background: #17a2b8;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .performance-stats {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        .performance-stats div {
+            margin: 2px 0;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>Universal Paperclips</h1>
+            <p>A thought-provoking incremental game about AI, resources, and the universe</p>
+        </header>
 
+        <!-- Main Production Section -->
+        <section class="game-section">
+            <h2>Production</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Clips:</span>
+                    <span class="stat-value" id="clips">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Funds:</span>
+                    <span class="stat-value" id="funds">$0.00</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Wire:</span>
+                    <span class="stat-value" id="wire">1000</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Unsold Clips:</span>
+                    <span class="stat-value" id="unsoldClips">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Clip Rate:</span>
+                    <span class="stat-value" id="clipRate">0.0 clips/sec</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="button primary" data-action="makeClip" id="makeClipButton">
+                    Make Paperclip
+                </button>
+            </div>
+        </section>
 
-</a>
+        <!-- Business Section -->
+        <section class="game-section hidden" id="businessDiv">
+            <h2>Business</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">AutoClippers:</span>
+                    <span class="stat-value" id="autoClippers">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Clip Price:</span>
+                    <span class="stat-value" id="margin">$0.25</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Demand:</span>
+                    <span class="stat-value" id="demand">5.00%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Marketing Level:</span>
+                    <span class="stat-value" id="marketing">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Avg Revenue:</span>
+                    <span class="stat-value" id="avgRev">$0.00</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="button" data-action="buyAutoClipper" id="buyAutoClipper">
+                    AutoClipper (<span id="autoClipperCost">$5.00</span>)
+                </button>
+                
+                <div class="price-controls">
+                    <button class="button" data-action="lowerPrice">Lower Price</button>
+                    <button class="button" data-action="raisePrice">Raise Price</button>
+                </div>
+                
+                <button class="button" data-action="buyAds" id="buyAds">
+                    Marketing (<span id="adCost">$100.00</span>)
+                </button>
+                
+                <button class="button" data-action="buyWire" id="buyWire">
+                    Buy Wire (<span id="wireCost">$20.00</span>)
+                </button>
+                
+                <button class="button" data-action="toggleWireBuyer" id="toggleWireBuyer">
+                    Wire Buyer: OFF
+                </button>
+            </div>
+        </section>
 
-</div>
+        <!-- Manufacturing Section -->
+        <section class="game-section hidden" id="manufactureDiv">
+            <h2>Manufacturing</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">MegaClippers:</span>
+                    <span class="stat-value" id="megaClippers">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Factories:</span>
+                    <span class="stat-value" id="factories">0</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="button" data-action="buyMegaClipper" id="buyMegaClipper">
+                    MegaClipper (<span id="megaClipperCost">$500.00</span>)
+                </button>
+            </div>
+        </section>
+
+        <!-- Computing Section -->
+        <section class="game-section hidden" id="computeDiv">
+            <h2>Computational Resources</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Operations:</span>
+                    <span class="stat-value" id="operations">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Creativity:</span>
+                    <span class="stat-value" id="creativity">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Processors:</span>
+                    <span class="stat-value" id="processors">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Memory:</span>
+                    <span class="stat-value" id="memory">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Trust:</span>
+                    <span class="stat-value" id="trust">2</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="button" data-action="buyProcessor" id="buyProcessor">
+                    Processor (<span id="processorCost">2,000 ops</span>)
+                </button>
+                
+                <button class="button" data-action="buyMemory" id="buyMemory">
+                    Memory (<span id="memoryCost">2,000 ops</span>)
+                </button>
+                
+                <button class="button" data-action="toggleCreativity" id="toggleCreativity">
+                    Creativity: OFF
+                </button>
+            </div>
+            
+            <div class="slider-container">
+                <label>Creativity Allocation:</label>
+                <input type="range" class="slider" id="creativitySlider" 
+                       min="0" max="100" value="50" data-action="adjustCreativity">
+                <span id="creativityPercent">50%</span>
+            </div>
+        </section>
+
+        <!-- Projects Section -->
+        <section class="game-section hidden" id="projectsDiv">
+            <h2>Projects</h2>
+            <div id="projectList">
+                <!-- Projects will be dynamically generated here -->
+            </div>
+        </section>
+
+        <!-- Space Section -->
+        <section class="game-section hidden" id="spaceDiv">
+            <h2>Space Exploration</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Probes:</span>
+                    <span class="stat-value" id="probes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Honor:</span>
+                    <span class="stat-value" id="honor">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Combat Section -->
+        <section class="game-section hidden" id="combatDiv">
+            <h2>Probe Combat</h2>
+            
+            <div class="slider-container">
+                <label>Combat:</label>
+                <input type="range" class="slider" id="probeCombat" 
+                       min="0" max="100" value="33" data-action="allocateProbeStats">
+                <span>33%</span>
+            </div>
+            
+            <div class="slider-container">
+                <label>Speed:</label>
+                <input type="range" class="slider" id="probeSpeed" 
+                       min="0" max="100" value="33" data-action="allocateProbeStats">
+                <span>33%</span>
+            </div>
+            
+            <div class="slider-container">
+                <label>Replication:</label>
+                <input type="range" class="slider" id="probeReplication" 
+                       min="0" max="100" value="34" data-action="allocateProbeStats">
+                <span>34%</span>
+            </div>
+            
+            <div class="controls">
+                <button class="button" data-action="toggleCombat" id="toggleCombat">
+                    Combat: OFF
+                </button>
+            </div>
+        </section>
+
+        <!-- Save/Load Section -->
+        <section class="game-section">
+            <h2>Game Management</h2>
+            
+            <div class="controls">
+                <button class="button" data-action="saveGame">Save Game</button>
+                <button class="button" data-action="loadGame">Load Game</button>
+                <button class="button" data-action="exportSave">Export Save</button>
+                <button class="button" data-action="importSave">Import Save</button>
+                <button class="button" data-action="resetGame" style="background: #dc3545;">Reset Game</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Performance Display -->
+    <div id="performanceDisplay" class="performance-stats hidden">
+        <!-- Performance stats will be displayed here -->
+    </div>
+
+    <!-- Feedback Messages -->
+    <div id="feedback" class="feedback"></div>
+
+    <!-- Keyboard Shortcuts Help -->
+    <section class="game-section">
+        <h2>Keyboard Shortcuts</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <div><strong>SPACE:</strong> Make Paperclip</div>
+            <div><strong>1:</strong> Buy AutoClipper</div>
+            <div><strong>2:</strong> Buy MegaClipper</div>
+            <div><strong>3:</strong> Buy Wire</div>
+            <div><strong>4:</strong> Buy Marketing</div>
+            <div><strong>↑:</strong> Raise Price</div>
+            <div><strong>↓:</strong> Lower Price</div>
+            <div><strong>Ctrl+S:</strong> Save Game</div>
+            <div><strong>Ctrl+L:</strong> Load Game</div>
+        </div>
+    </section>
+
+    <!-- Load the game script -->
     
-    </body>
+<script src="js/bundle.js"></script>
+</body>
+</html>

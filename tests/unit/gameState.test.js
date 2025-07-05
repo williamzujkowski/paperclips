@@ -11,205 +11,251 @@ describe('GameState', () => {
     gameState = new GameState();
   });
 
-  describe('initialization', () => {
-    it('should initialize with default values', () => {
-      expect(gameState.resources.clips).toBe(0);
-      expect(gameState.resources.funds).toBe(0);
-      expect(gameState.resources.wire).toBe(1000);
-      expect(gameState.computing.trust).toBe(2);
-      expect(gameState.computing.processors).toBe(1);
-      expect(gameState.computing.memory).toBe(1);
-    });
-
-    it('should have all required state categories', () => {
-      expect(gameState.resources).toBeDefined();
-      expect(gameState.production).toBeDefined();
-      expect(gameState.market).toBeDefined();
-      expect(gameState.computing).toBeDefined();
-      expect(gameState.infrastructure).toBeDefined();
-      expect(gameState.combat).toBeDefined();
-      expect(gameState.flags).toBeDefined();
-      expect(gameState.swarm).toBeDefined();
-      expect(gameState.ui).toBeDefined();
-      expect(gameState.meta).toBeDefined();
-    });
-  });
-
-  describe('get/set methods', () => {
-    it('should get values by path', () => {
+  describe('Basic Operations', () => {
+    test('should initialize with default values', () => {
       expect(gameState.get('resources.clips')).toBe(0);
-      expect(gameState.get('computing.trust')).toBe(2);
-      expect(gameState.get('flags.human')).toBe(true);
+      expect(gameState.get('resources.wire')).toBe(1000);
+      expect(gameState.get('resources.funds')).toBe(0);
+      expect(gameState.get('computing.processors')).toBe(1);
+      expect(gameState.get('computing.memory')).toBe(1);
     });
 
-    it('should set values by path', () => {
+    test('should set and get values using dot notation', () => {
       gameState.set('resources.clips', 100);
-      expect(gameState.resources.clips).toBe(100);
+      expect(gameState.get('resources.clips')).toBe(100);
 
-      gameState.set('market.demand', 50);
-      expect(gameState.market.demand).toBe(50);
+      gameState.set('computing.operations', 5000);
+      expect(gameState.get('computing.operations')).toBe(5000);
     });
 
-    it('should return undefined for invalid paths', () => {
-      expect(gameState.get('invalid.path')).toBeUndefined();
-      expect(gameState.get('resources.invalid')).toBeUndefined();
+    test('should handle nested object creation', () => {
+      gameState.set('test.nested.value', 42);
+      expect(gameState.get('test.nested.value')).toBe(42);
     });
 
-    it('should create nested objects when setting', () => {
-      gameState.set('new.nested.value', 42);
-      expect(gameState.new.nested.value).toBe(42);
+    test('should return undefined for non-existent paths', () => {
+      expect(gameState.get('nonexistent.path')).toBeUndefined();
     });
   });
 
-  describe('increment/decrement methods', () => {
-    it('should increment values', () => {
+  describe('Increment/Decrement Operations', () => {
+    test('should increment values', () => {
+      gameState.set('resources.clips', 10);
+      gameState.increment('resources.clips', 5);
+      expect(gameState.get('resources.clips')).toBe(15);
+    });
+
+    test('should decrement values', () => {
+      gameState.set('resources.clips', 10);
+      gameState.decrement('resources.clips', 3);
+      expect(gameState.get('resources.clips')).toBe(7);
+    });
+
+    test('should handle incrementing undefined values', () => {
+      gameState.increment('test.newValue', 5);
+      expect(gameState.get('test.newValue')).toBe(5);
+    });
+
+    test('should handle default increment amount', () => {
       gameState.set('resources.clips', 10);
       gameState.increment('resources.clips');
-      expect(gameState.resources.clips).toBe(11);
-
-      gameState.increment('resources.clips', 5);
-      expect(gameState.resources.clips).toBe(16);
-    });
-
-    it('should decrement values', () => {
-      gameState.set('resources.wire', 100);
-      gameState.decrement('resources.wire');
-      expect(gameState.resources.wire).toBe(99);
-
-      gameState.decrement('resources.wire', 10);
-      expect(gameState.resources.wire).toBe(89);
-    });
-
-    it('should not decrement below zero', () => {
-      gameState.set('resources.funds', 5);
-      gameState.decrement('resources.funds', 10);
-      expect(gameState.resources.funds).toBe(0);
-    });
-
-    it('should handle undefined values', () => {
-      gameState.increment('new.value');
-      expect(gameState.get('new.value')).toBe(1);
-
-      gameState.decrement('another.value');
-      expect(gameState.get('another.value')).toBe(0);
+      expect(gameState.get('resources.clips')).toBe(11);
     });
   });
 
-  describe('save/load functionality', () => {
-    it('should save state to localStorage', () => {
-      gameState.set('resources.clips', 1000);
-      gameState.set('market.demand', 25);
-      
-      const result = gameState.save();
-      expect(result).toBe(true);
-      expect(localStorage.setItem).toHaveBeenCalled();
+  describe('Change Listeners', () => {
+    test('should notify listeners of changes', () => {
+      const listener = jest.fn();
+      gameState.addChangeListener(listener);
 
-      const savedData = JSON.parse(localStorage.setItem.mock.calls[0][1]);
-      expect(savedData.version).toBe('2.0.0');
-      expect(savedData.timestamp).toBeDefined();
-      expect(savedData.state.resources.clips).toBe(1000);
-      expect(savedData.state.market.demand).toBe(25);
+      gameState.set('resources.clips', 100);
+
+      expect(listener).toHaveBeenCalledWith('resources.clips', 0, 100);
     });
 
-    it('should load state from localStorage', () => {
-      const saveData = {
-        version: '2.0.0',
-        timestamp: Date.now(),
-        state: {
-          resources: { clips: 5000, funds: 100 },
-          market: { demand: 50 },
-          computing: { trust: 10 },
-        },
+    test('should not notify if value unchanged', () => {
+      const listener = jest.fn();
+      gameState.addChangeListener(listener);
+
+      gameState.set('resources.clips', 0); // Same as initial value
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    test('should remove listeners', () => {
+      const listener = jest.fn();
+      gameState.addChangeListener(listener);
+      gameState.removeChangeListener(listener);
+
+      gameState.set('resources.clips', 100);
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Save/Load Operations', () => {
+    beforeEach(() => {
+      // Clear localStorage before each test
+      localStorage.clear();
+    });
+
+    test('should save to localStorage', () => {
+      gameState.set('resources.clips', 1000);
+      gameState.set('resources.funds', 500);
+
+      const success = gameState.save();
+
+      expect(success).toBe(true);
+      expect(localStorage.getItem('paperclips-save')).toBeTruthy();
+    });
+
+    test('should load from localStorage', () => {
+      // Set up initial state
+      gameState.set('resources.clips', 1000);
+      gameState.set('resources.funds', 500);
+      gameState.save();
+
+      // Create new state and load
+      const newGameState = new GameState();
+      const success = newGameState.load();
+
+      expect(success).toBe(true);
+      expect(newGameState.get('resources.clips')).toBe(1000);
+      expect(newGameState.get('resources.funds')).toBe(500);
+    });
+
+    test('should handle missing save data', () => {
+      const success = gameState.load();
+      expect(success).toBe(false);
+    });
+
+    test('should handle corrupted save data', () => {
+      localStorage.setItem('paperclips-save', 'invalid-json');
+      const success = gameState.load();
+      expect(success).toBe(false);
+    });
+  });
+
+  describe('Export/Import Operations', () => {
+    test('should export state as JSON string', () => {
+      gameState.set('resources.clips', 1000);
+      gameState.set('resources.funds', 500);
+
+      const exported = gameState.export();
+
+      expect(typeof exported).toBe('string');
+      const parsed = JSON.parse(exported);
+      expect(parsed.resources.clips).toBe(1000);
+      expect(parsed.resources.funds).toBe(500);
+    });
+
+    test('should import state from JSON string', () => {
+      const importData = {
+        resources: { clips: 2000, funds: 1000 },
+        computing: { processors: 5, memory: 3 }
       };
 
-      localStorage.getItem.mockReturnValue(JSON.stringify(saveData));
-      
-      const result = gameState.load();
-      expect(result).toBe(true);
-      expect(gameState.resources.clips).toBe(5000);
-      expect(gameState.resources.funds).toBe(100);
-      expect(gameState.market.demand).toBe(50);
-      expect(gameState.computing.trust).toBe(10);
+      const success = gameState.import(JSON.stringify(importData));
+
+      expect(success).toBe(true);
+      expect(gameState.get('resources.clips')).toBe(2000);
+      expect(gameState.get('resources.funds')).toBe(1000);
+      expect(gameState.get('computing.processors')).toBe(5);
+      expect(gameState.get('computing.memory')).toBe(3);
     });
 
-    it('should handle missing save data', () => {
-      localStorage.getItem.mockReturnValue(null);
-      
-      const result = gameState.load();
-      expect(result).toBe(false);
-    });
-
-    it('should handle corrupted save data', () => {
-      localStorage.getItem.mockReturnValue('invalid json');
-      
-      const result = gameState.load();
-      expect(result).toBe(false);
-    });
-
-    it('should validate save data format', () => {
-      localStorage.getItem.mockReturnValue(JSON.stringify({ invalid: 'data' }));
-      
-      const result = gameState.load();
-      expect(result).toBe(false);
+    test('should handle invalid import data', () => {
+      const success = gameState.import('invalid-json');
+      expect(success).toBe(false);
     });
   });
 
-  describe('reset functionality', () => {
-    it('should reset to initial state', () => {
+  describe('Reset Operation', () => {
+    test('should reset to initial state', () => {
       gameState.set('resources.clips', 1000);
-      gameState.set('computing.trust', 50);
-      gameState.set('flags.space', true);
+      gameState.set('resources.funds', 500);
+      gameState.set('computing.processors', 10);
 
       gameState.reset();
 
-      expect(gameState.resources.clips).toBe(0);
-      expect(gameState.computing.trust).toBe(2);
-      expect(gameState.flags.space).toBe(false);
+      expect(gameState.get('resources.clips')).toBe(0);
+      expect(gameState.get('resources.funds')).toBe(0);
+      expect(gameState.get('computing.processors')).toBe(1);
     });
 
-    it('should save after reset', () => {
+    test('should notify listeners of reset', () => {
+      const listener = jest.fn();
+      gameState.addChangeListener(listener);
+
       gameState.reset();
-      expect(localStorage.setItem).toHaveBeenCalled();
+
+      expect(listener).toHaveBeenCalledWith('*', null, 'reset');
     });
   });
 
-  describe('import/export functionality', () => {
-    it('should export save data as base64 string', () => {
-      const saveData = JSON.stringify({ test: 'data' });
-      localStorage.getItem.mockReturnValue(saveData);
+  describe('Snapshot Operation', () => {
+    test('should create deep copy of state', () => {
+      gameState.set('resources.clips', 1000);
+      gameState.set('test.nested.value', 42);
 
-      const exported = gameState.exportSave();
-      expect(exported).toBe(btoa(saveData));
+      const snapshot = gameState.getSnapshot();
+
+      // Modify original
+      gameState.set('resources.clips', 2000);
+
+      // Snapshot should be unchanged
+      expect(snapshot.resources.clips).toBe(1000);
+      expect(snapshot.test.nested.value).toBe(42);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    test('should handle empty path', () => {
+      const result = gameState.get('');
+      expect(result).toBe(gameState);
     });
 
-    it('should return null if no save exists', () => {
-      localStorage.getItem.mockReturnValue(null);
-
-      const exported = gameState.exportSave();
-      expect(exported).toBeNull();
+    test('should handle null/undefined paths', () => {
+      expect(gameState.get(null)).toBe(gameState);
+      expect(gameState.get(undefined)).toBe(gameState);
     });
 
-    it('should import save data from base64 string', () => {
-      const saveData = {
-        version: '2.0.0',
-        timestamp: Date.now(),
-        state: {
-          resources: { clips: 9999 },
-        },
-      };
-      const encoded = btoa(JSON.stringify(saveData));
-
-      const result = gameState.importSave(encoded);
-      expect(result).toBe(true);
-      expect(localStorage.setItem).toHaveBeenCalledWith(
-        'universalPaperclipsSave',
-        JSON.stringify(saveData)
-      );
+    test('should handle setting empty path', () => {
+      gameState.set('', 'value');
+      // Should not crash
     });
 
-    it('should handle invalid import data', () => {
-      const result = gameState.importSave('invalid base64');
-      expect(result).toBe(false);
+    test('should handle deep null paths', () => {
+      gameState.set('a.b.c', 'value');
+      expect(gameState.get('a.b.nonexistent.deep')).toBeUndefined();
+    });
+  });
+
+  describe('State Structure Validation', () => {
+    test('should have all required initial state properties', () => {
+      expect(gameState.get('resources')).toBeDefined();
+      expect(gameState.get('production')).toBeDefined();
+      expect(gameState.get('manufacturing')).toBeDefined();
+      expect(gameState.get('market')).toBeDefined();
+      expect(gameState.get('computing')).toBeDefined();
+      expect(gameState.get('space')).toBeDefined();
+      expect(gameState.get('power')).toBeDefined();
+      expect(gameState.get('combat')).toBeDefined();
+      expect(gameState.get('swarm')).toBeDefined();
+      expect(gameState.get('prestige')).toBeDefined();
+      expect(gameState.get('gameState')).toBeDefined();
+      expect(gameState.get('ui')).toBeDefined();
+      expect(gameState.get('endGame')).toBeDefined();
+      expect(gameState.get('legacy')).toBeDefined();
+    });
+
+    test('should have proper initial values for key game variables', () => {
+      expect(gameState.get('resources.wire')).toBe(1000);
+      expect(gameState.get('computing.trust.current')).toBe(2);
+      expect(gameState.get('computing.trust.nextThreshold')).toBe(3000);
+      expect(gameState.get('market.pricing.margin')).toBe(0.25);
+      expect(gameState.get('market.demand')).toBe(5);
+      expect(gameState.get('gameState.flags.human')).toBe(1);
     });
   });
 });

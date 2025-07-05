@@ -1,67 +1,47 @@
 /**
- * Main game loop controller
- * Handles game updates, rendering, and timing
+ * Game Loop for Universal Paperclips
+ *
+ * Replaces the multiple setInterval timers from the legacy code with a single
+ * requestAnimationFrame-based loop for better performance and consistency.
  */
 
-import { gameState } from './gameState.js';
-import { DISPLAY_UPDATE_INTERVAL, AUTOSAVE_INTERVAL } from './constants.js';
+import { TIMING } from './constants.js';
 import { errorHandler } from './errorHandler.js';
 import { performanceMonitor } from './performanceMonitor.js';
-import { memoryMonitor } from './memoryMonitor.js';
-import { uiRenderer } from '../ui/renderer.js';
-import { domBatcher } from '../ui/domBatcher.js';
+import { gameState } from './gameState.js';
 
-export class GameLoop {
+class GameLoop {
   constructor() {
     this.running = false;
-    this.lastUpdate = Date.now();
-    this.lastRender = Date.now();
-    this.lastAutosave = Date.now();
-    this.lastCleanup = Date.now();
-    this.updateHandlers = [];
-    this.renderHandlers = [];
-    this.animationFrameId = null;
-    this.cleanupInterval = 60000; // Cleanup every 60 seconds
-  }
+    this.lastFrame = 0;
+    this.frameId = null;
 
-  /**
-   * Register an update handler function
-   * Update handlers are called every tick for game logic
-   */
-  addUpdateHandler(handler) {
-    if (typeof handler === 'function') {
-      this.updateHandlers.push(handler);
-    }
-  }
+    // Timing for different update frequencies
+    this.timers = {
+      fast: { interval: TIMING.FAST_LOOP_INTERVAL, lastUpdate: 0 },
+      medium: { interval: TIMING.MEDIUM_LOOP_INTERVAL, lastUpdate: 0 },
+      slow: { interval: TIMING.SLOW_LOOP_INTERVAL, lastUpdate: 0 }
+    };
 
-  /**
-   * Register a render handler function
-   * Render handlers are called for UI updates
-   */
-  addRenderHandler(handler) {
-    if (typeof handler === 'function') {
-      this.renderHandlers.push(handler);
-    }
-  }
+    // System update callbacks
+    this.systems = {
+      fast: [], // 100 FPS - critical game logic
+      medium: [], // 10 FPS - UI updates
+      slow: [] // 1 FPS - background tasks
+    };
 
-  /**
-   * Remove an update handler
-   */
-  removeUpdateHandler(handler) {
-    const index = this.updateHandlers.indexOf(handler);
-    if (index > -1) {
-      this.updateHandlers.splice(index, 1);
-    }
-  }
+    // Renderer callbacks
+    this.renderers = [];
 
-  /**
-   * Remove a render handler
-   */
-  removeRenderHandler(handler) {
-    const index = this.renderHandlers.indexOf(handler);
-    if (index > -1) {
-      this.renderHandlers.splice(index, 1);
-    }
+    // Initialize error boundary
+    this.boundLoop = errorHandler.createErrorBoundary(
+      this._loop.bind(this),
+      'gameLoop.main',
+      () => {
+        errorHandler.error('Game loop crashed, attempting restart');
+        this.restart();
+      }
+    );
   }
 
   /**
@@ -69,181 +49,340 @@ export class GameLoop {
    */
   start() {
     if (this.running) {
+      errorHandler.warn('Game loop already running');
       return;
     }
 
     this.running = true;
-    this.lastUpdate = Date.now();
-    this.lastRender = Date.now();
-    this.lastAutosave = Date.now();
+    this.lastFrame = performance.now();
+
+    // Reset timers
+    Object.values(this.timers).forEach((timer) => {
+      timer.lastUpdate = this.lastFrame;
+    });
+
     errorHandler.info('Game loop started');
-    performanceMonitor.start();
-    this.loop();
+    this._requestFrame();
   }
 
   /**
    * Stop the game loop
    */
   stop() {
-    this.running = false;
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-    errorHandler.info('Game loop stopped');
-    performanceMonitor.stop();
-  }
-
-  /**
-   * Main loop function
-   */
-  loop() {
     if (!this.running) {
       return;
     }
 
-    const now = Date.now();
-    const updateDelta = now - this.lastUpdate;
-    const renderDelta = now - this.lastRender;
-    const autosaveDelta = now - this.lastAutosave;
-    const cleanupDelta = now - this.lastCleanup;
+    this.running = false;
 
-    // Update game state (variable rate based on actual time passed)
-    if (updateDelta > 0) {
-      this.update(updateDelta);
-      this.lastUpdate = now;
+    if (this.frameId) {
+      cancelAnimationFrame(this.frameId);
+      this.frameId = null;
     }
 
-    // Render UI updates (capped at ~60fps)
-    if (renderDelta >= DISPLAY_UPDATE_INTERVAL) {
-      this.render();
-      this.lastRender = now;
-    }
-
-    // Autosave periodically
-    if (autosaveDelta >= AUTOSAVE_INTERVAL) {
-      this.autosave();
-      this.lastAutosave = now;
-    }
-
-    // Cleanup periodically
-    if (cleanupDelta >= this.cleanupInterval) {
-      this.cleanup();
-      this.lastCleanup = now;
-    }
-
-    // Record frame for performance monitoring
-    performanceMonitor.recordFrame();
-
-    // Schedule next frame
-    this.animationFrameId = requestAnimationFrame(() => this.loop());
+    errorHandler.info('Game loop stopped');
   }
 
   /**
-   * Update game logic
+   * Restart the game loop
    */
-  update(deltaTime) {
-    performanceMonitor.measure(() => {
-      // Increment tick counter
-      gameState.increment('ui.ticks');
-
-      // Call all registered update handlers
-      for (const handler of this.updateHandlers) {
-        try {
-          handler(deltaTime, gameState);
-        } catch (error) {
-          errorHandler.handleError(error, 'gameLoop.update', {
-            handler: handler.name || 'anonymous',
-            deltaTime,
-          });
-        }
-      }
-    }, 'update');
+  restart() {
+    this.stop();
+    setTimeout(() => this.start(), 100);
   }
 
   /**
-   * Render UI updates
+   * Add a system to the specified frequency tier
+   * @param {string} frequency - 'fast', 'medium', or 'slow'
+   * @param {Function} updateFn - Update function
+   * @param {string} name - System name for debugging
    */
-  render() {
-    performanceMonitor.measure(() => {
-      // Call all registered render handlers
-      for (const handler of this.renderHandlers) {
-        try {
-          handler(gameState);
-        } catch (error) {
-          errorHandler.handleError(error, 'gameLoop.render', {
-            handler: handler.name || 'anonymous',
-          });
-        }
-      }
-    }, 'render');
+  addSystem(frequency, updateFn, name = 'unknown') {
+    if (!this.systems[frequency]) {
+      errorHandler.error(`Invalid frequency: ${frequency}`);
+      return;
+    }
+
+    const wrappedUpdate = errorHandler.createErrorBoundary(updateFn, `system.${name}`, () =>
+      errorHandler.warn(`System ${name} failed, skipping update`)
+    );
+
+    this.systems[frequency].push({
+      update: wrappedUpdate,
+      name
+    });
+
+    errorHandler.debug(`System ${name} added to ${frequency} tier`);
   }
 
   /**
-   * Perform autosave
+   * Remove a system
+   * @param {string} frequency - 'fast', 'medium', or 'slow'
+   * @param {string} name - System name
    */
-  autosave() {
+  removeSystem(frequency, name) {
+    if (!this.systems[frequency]) {
+      return;
+    }
+
+    const index = this.systems[frequency].findIndex((system) => system.name === name);
+    if (index !== -1) {
+      this.systems[frequency].splice(index, 1);
+      errorHandler.debug(`System ${name} removed from ${frequency} tier`);
+    }
+  }
+
+  /**
+   * Add a renderer
+   * @param {Function} renderFn - Render function
+   * @param {string} name - Renderer name for debugging
+   */
+  addRenderer(renderFn, name = 'unknown') {
+    const wrappedRender = errorHandler.createErrorBoundary(renderFn, `renderer.${name}`, () =>
+      errorHandler.warn(`Renderer ${name} failed, skipping render`)
+    );
+
+    this.renderers.push({
+      render: wrappedRender,
+      name
+    });
+
+    errorHandler.debug(`Renderer ${name} added`);
+  }
+
+  /**
+   * Remove a renderer
+   * @param {string} name - Renderer name
+   */
+  removeRenderer(name) {
+    const index = this.renderers.findIndex((renderer) => renderer.name === name);
+    if (index !== -1) {
+      this.renderers.splice(index, 1);
+      errorHandler.debug(`Renderer ${name} removed`);
+    }
+  }
+
+  /**
+   * Request the next animation frame
+   * @private
+   */
+  _requestFrame() {
+    if (this.running) {
+      this.frameId = requestAnimationFrame(this.boundLoop);
+    }
+  }
+
+  /**
+   * Main game loop
+   * @private
+   */
+  _loop(timestamp) {
     try {
-      const saved = gameState.save();
-      if (saved) {
-        errorHandler.debug('Game autosaved');
-      } else {
-        errorHandler.warn('Autosave failed');
-      }
+      performanceMonitor.startGameLoopMeasurement();
+
+      // Calculate delta time
+      const deltaTime = timestamp - this.lastFrame;
+      this.lastFrame = timestamp;
+
+      // Update game state ticks
+      gameState.increment('gameState.ticks');
+      gameState.increment('gameState.elapsedTime', deltaTime);
+
+      // Update systems based on their timing
+      this._updateSystems(timestamp, deltaTime);
+
+      performanceMonitor.recordUpdateTime();
+
+      // Render everything
+      this._render(timestamp, deltaTime);
+
+      performanceMonitor.endGameLoopMeasurement();
+
+      // Request next frame
+      this._requestFrame();
     } catch (error) {
-      errorHandler.handleError(error, 'gameLoop.autosave');
+      errorHandler.handleError(error, 'gameLoop.main', { timestamp }, true);
+      this.restart();
     }
   }
 
   /**
-   * Get current FPS
+   * Update all systems based on their timing
+   * @private
    */
-  getFPS() {
-    return 1000 / DISPLAY_UPDATE_INTERVAL;
-  }
-
-  /**
-   * Check if game is running
-   */
-  isRunning() {
-    return this.running;
-  }
-
-  /**
-   * Perform periodic cleanup tasks
-   */
-  cleanup() {
-    try {
-      // Clean up stale DOM references
-      const cleanedElements = uiRenderer.cleanupStaleElements();
-      if (cleanedElements > 0) {
-        errorHandler.debug(`Cleaned ${cleanedElements} stale DOM references`);
-      }
-
-      // Clear DOM batcher cache if it's getting too large
-      const cacheStats = domBatcher.getCacheStats();
-      if (cacheStats.size > 500) {
-        domBatcher.clearCache();
-        errorHandler.debug('Cleared DOM batcher cache');
-      }
-
-      // Check memory trend
-      const memStats = memoryMonitor.getStats();
-      if (memStats.issues.length > 0) {
-        errorHandler.warn('Memory issues detected', memStats.issues);
-      }
-
-      // Force GC if memory usage is high and GC is available
-      if (memStats.current && memStats.current.usagePercent > 80) {
-        if (memoryMonitor.forceGC()) {
-          errorHandler.info('Triggered garbage collection due to high memory usage');
-        }
-      }
-    } catch (error) {
-      errorHandler.handleError(error, 'gameLoop.cleanup');
+  _updateSystems(timestamp, deltaTime) {
+    // Fast systems (100 FPS equivalent)
+    if (this._shouldUpdate('fast', timestamp)) {
+      this._updateSystemTier('fast', timestamp, deltaTime);
     }
+
+    // Medium systems (10 FPS equivalent)
+    if (this._shouldUpdate('medium', timestamp)) {
+      this._updateSystemTier('medium', timestamp, deltaTime);
+    }
+
+    // Slow systems (1 FPS equivalent)
+    if (this._shouldUpdate('slow', timestamp)) {
+      this._updateSystemTier('slow', timestamp, deltaTime);
+    }
+  }
+
+  /**
+   * Check if a timer tier should update
+   * @private
+   */
+  _shouldUpdate(tier, timestamp) {
+    const timer = this.timers[tier];
+    const elapsed = timestamp - timer.lastUpdate;
+
+    if (elapsed >= timer.interval) {
+      timer.lastUpdate = timestamp;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Update a specific tier of systems
+   * @private
+   */
+  _updateSystemTier(tier, timestamp, deltaTime) {
+    const systems = this.systems[tier];
+
+    for (const system of systems) {
+      try {
+        performanceMonitor.measure(
+          () => system.update(timestamp, deltaTime),
+          `system.${system.name}`
+        );
+      } catch (error) {
+        errorHandler.handleError(error, `gameLoop.system.${system.name}`, {
+          tier,
+          timestamp,
+          deltaTime
+        });
+      }
+    }
+  }
+
+  /**
+   * Render all registered renderers
+   * @private
+   */
+  _render(timestamp, deltaTime) {
+    for (const renderer of this.renderers) {
+      try {
+        performanceMonitor.measure(
+          () => renderer.render(timestamp, deltaTime),
+          `renderer.${renderer.name}`
+        );
+      } catch (error) {
+        errorHandler.handleError(error, `gameLoop.renderer.${renderer.name}`, {
+          timestamp,
+          deltaTime
+        });
+      }
+    }
+  }
+
+  /**
+   * Get loop statistics
+   * @returns {Object} Loop statistics
+   */
+  getStats() {
+    return {
+      running: this.running,
+      frameId: this.frameId,
+      systems: {
+        fast: this.systems.fast.length,
+        medium: this.systems.medium.length,
+        slow: this.systems.slow.length
+      },
+      renderers: this.renderers.length,
+      timers: { ...this.timers }
+    };
+  }
+
+  /**
+   * Get system information
+   * @returns {Object} System information
+   */
+  getSystemInfo() {
+    const info = {};
+
+    ['fast', 'medium', 'slow'].forEach((tier) => {
+      info[tier] = this.systems[tier].map((system) => ({
+        name: system.name,
+        lastUpdate: this.timers[tier].lastUpdate
+      }));
+    });
+
+    info.renderers = this.renderers.map((renderer) => ({
+      name: renderer.name
+    }));
+
+    return info;
+  }
+
+  /**
+   * Force update all systems once
+   */
+  forceUpdate() {
+    const timestamp = performance.now();
+    const deltaTime = timestamp - this.lastFrame;
+
+    ['fast', 'medium', 'slow'].forEach((tier) => {
+      this._updateSystemTier(tier, timestamp, deltaTime);
+    });
+
+    this._render(timestamp, deltaTime);
+
+    errorHandler.debug('Forced update of all systems');
+  }
+
+  /**
+   * Pause the game loop (but keep it alive)
+   */
+  pause() {
+    if (!this.running) {
+      return;
+    }
+
+    this.paused = true;
+    errorHandler.info('Game loop paused');
+  }
+
+  /**
+   * Resume the game loop
+   */
+  resume() {
+    if (!this.running || !this.paused) {
+      return;
+    }
+
+    this.paused = false;
+    this.lastFrame = performance.now();
+
+    // Reset timers
+    Object.values(this.timers).forEach((timer) => {
+      timer.lastUpdate = this.lastFrame;
+    });
+
+    errorHandler.info('Game loop resumed');
+  }
+
+  /**
+   * Check if the loop is paused
+   * @returns {boolean} Whether the loop is paused
+   */
+  isPaused() {
+    return this.paused || false;
   }
 }
 
-// Create singleton game loop instance
+// Create singleton instance
 export const gameLoop = new GameLoop();
+
+// Export class for testing
+export { GameLoop };

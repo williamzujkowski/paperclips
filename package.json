@@ -1,70 +1,63 @@
 {
   "name": "universal-paperclips",
   "version": "2.0.0",
-  "description": "Universal Paperclips - An incremental game by Frank Lantz and Bennett Foddy",
+  "description": "A modernized version of Universal Paperclips - the addictive incremental game",
+  "author": "Frank Lantz (original), William Zujkowski (modernization)",
+  "license": "MIT",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "dev": "node scripts/serve.js",
-    "build": "node scripts/build.js",
+    "dev": "rollup -c -w & http-server docs -p 8080 -c-1 -o",
+    "dev:quiet": "rollup -c -w --silent & http-server docs -p 8080 -c-1 -s",
+    "build": "rollup -c",
+    "build:watch": "rollup -c -w",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
-    "format": "prettier --write \"src/**/*.{js,html,css}\"",
-    "format:check": "prettier --check \"src/**/*.{js,html,css}\"",
-    "serve:legacy": "cd docs && python3 -m http.server 8000",
-    "pre-commit": "lint-staged",
-    "prepare": "husky install",
-    "version:bump": "node scripts/version.js bump",
-    "version:list": "node scripts/version.js list",
-    "version:current": "node scripts/version.js current",
-    "lighthouse": "node scripts/lighthouse.js"
+    "format": "prettier --write \"src/**/*.{js,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,json,css,md}\"",
+    "prepare": "husky install"
   },
   "keywords": [
     "game",
     "incremental",
     "paperclips",
-    "javascript"
+    "javascript",
+    "es6"
   ],
-  "author": "Frank Lantz and Bennett Foddy",
-  "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.23.0",
     "@rollup/plugin-babel": "^6.0.4",
-    "@rollup/plugin-node-resolve": "^15.2.0",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
-    "eslint": "^8.50.0",
+    "babel-jest": "^29.7.0",
+    "eslint": "^8.52.0",
     "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-jest": "^27.4.0",
+    "eslint-plugin-jest": "^27.6.0",
+    "http-server": "^14.1.1",
     "husky": "^8.0.3",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "lint-staged": "^14.0.1",
+    "lint-staged": "^15.0.2",
     "prettier": "^3.0.3",
-    "rollup": "^3.29.0"
+    "rollup": "^4.1.4",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-livereload": "^2.0.5"
   },
   "lint-staged": {
     "*.js": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{html,css}": [
+    "*.{json,css,md}": [
       "prettier --write"
     ]
   },
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jgmize/paperclips.git"
-  },
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/jgmize/paperclips/issues"
-  },
-  "homepage": "https://github.com/jgmize/paperclips#readme"
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }

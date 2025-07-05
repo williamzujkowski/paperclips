@@ -2,221 +2,297 @@
  * Tests for Production System
  */
 
-import { ProductionSystem } from '../../src/game/systems/production.js';
-import { gameState } from '../../src/game/core/gameState.js';
+import ProductionSystem from '../../src/game/systems/production.js';
+import { GameState } from '../../src/game/core/gameState.js';
 
 describe('ProductionSystem', () => {
-  let productionSystem;
+  let gameState;
+  let production;
 
   beforeEach(() => {
-    productionSystem = new ProductionSystem();
-    gameState.reset();
+    gameState = new GameState();
+    production = new ProductionSystem(gameState);
   });
 
-  describe('makeClip', () => {
-    it('should make a clip when wire is available', () => {
-      gameState.set('resources.wire', 10);
+  describe('Manual Clip Production', () => {
+    test('should produce clips when wire is available', () => {
+      gameState.set('resources.wire', 100);
       
-      const result = productionSystem.makeClip();
+      const produced = production.manualClip(5);
       
-      expect(result).toBe(true);
-      expect(gameState.get('resources.clips')).toBe(1);
-      expect(gameState.get('resources.unusedClips')).toBe(1);
-      expect(gameState.get('resources.wire')).toBe(9);
-    });
-
-    it('should not make a clip when no wire available', () => {
-      gameState.set('resources.wire', 0);
-      
-      const result = productionSystem.makeClip();
-      
-      expect(result).toBe(false);
-      expect(gameState.get('resources.clips')).toBe(0);
-    });
-
-    it('should track manual clips', () => {
-      gameState.set('resources.wire', 5);
-      
-      productionSystem.makeClip();
-      productionSystem.makeClip();
-      
-      expect(gameState.get('meta.manualClips')).toBe(2);
-    });
-  });
-
-  describe('buyAutoClipper', () => {
-    it('should buy auto-clipper when funds available', () => {
-      gameState.set('resources.funds', 100);
-      gameState.set('market.clipperCost', 5);
-      
-      const result = productionSystem.buyAutoClipper();
-      
-      expect(result).toBe(true);
-      expect(gameState.get('resources.funds')).toBe(95);
-      expect(gameState.get('production.clipmakerLevel')).toBe(1);
-      expect(gameState.get('market.clipperCost')).toBe(6); // 5 * 1.1 rounded up
-    });
-
-    it('should not buy when insufficient funds', () => {
-      gameState.set('resources.funds', 4);
-      gameState.set('market.clipperCost', 5);
-      
-      const result = productionSystem.buyAutoClipper();
-      
-      expect(result).toBe(false);
-      expect(gameState.get('production.clipmakerLevel')).toBe(0);
-    });
-
-    it('should update clip rate after purchase', () => {
-      gameState.set('resources.funds', 100);
-      gameState.set('market.clipperCost', 5);
-      
-      productionSystem.buyAutoClipper();
-      
-      expect(gameState.get('production.clipRate')).toBeGreaterThan(0);
-    });
-  });
-
-  describe('buyMegaClipper', () => {
-    it('should buy mega-clipper when funds available', () => {
-      gameState.set('resources.funds', 1000);
-      gameState.set('market.megaClipperCost', 500);
-      
-      const result = productionSystem.buyMegaClipper();
-      
-      expect(result).toBe(true);
-      expect(gameState.get('resources.funds')).toBe(500);
-      expect(gameState.get('production.megaClipperLevel')).toBe(1);
-      expect(gameState.get('market.megaClipperCost')).toBe(560); // 500 * 1.12
-    });
-  });
-
-  describe('updateClipRate', () => {
-    it('should calculate correct clip rate', () => {
-      gameState.set('production.clipmakerLevel', 5);
-      gameState.set('production.clipperBoost', 2);
-      gameState.set('production.megaClipperLevel', 1);
-      gameState.set('production.megaClipperBoost', 1);
-      
-      productionSystem.updateClipRate();
-      
-      // 5 clippers * 2 boost + 1 megaclipper * 1 boost * 500
-      expect(gameState.get('production.clipRate')).toBe(510);
-    });
-
-    it('should handle zero production', () => {
-      gameState.set('production.clipmakerLevel', 0);
-      gameState.set('production.megaClipperLevel', 0);
-      
-      productionSystem.updateClipRate();
-      
-      expect(gameState.get('production.clipRate')).toBe(0);
-    });
-  });
-
-  describe('processAutomatedProduction', () => {
-    it('should produce clips based on rate', () => {
-      gameState.set('production.clipRate', 100); // 100 clips/second
-      gameState.set('resources.wire', 1000);
-      
-      productionSystem.processAutomatedProduction(100); // 100ms
-      
-      // Should produce 10 clips (100 clips/s * 0.1s)
-      expect(gameState.get('resources.clips')).toBe(10);
-      expect(gameState.get('resources.wire')).toBe(990);
-    });
-
-    it('should handle insufficient wire', () => {
-      gameState.set('production.clipRate', 100);
-      gameState.set('resources.wire', 5);
-      
-      productionSystem.processAutomatedProduction(100);
-      
+      expect(produced).toBe(5);
       expect(gameState.get('resources.clips')).toBe(5);
+      expect(gameState.get('resources.unsoldClips')).toBe(5);
+      expect(gameState.get('resources.unusedClips')).toBe(5);
+      expect(gameState.get('resources.wire')).toBe(95);
+    });
+
+    test('should be limited by available wire', () => {
+      gameState.set('resources.wire', 3);
+      
+      const produced = production.manualClip(5);
+      
+      expect(produced).toBe(3);
+      expect(gameState.get('resources.clips')).toBe(3);
       expect(gameState.get('resources.wire')).toBe(0);
     });
 
-    it('should not produce with zero rate', () => {
-      gameState.set('production.clipRate', 0);
-      gameState.set('resources.wire', 100);
+    test('should not produce clips without wire', () => {
+      gameState.set('resources.wire', 0);
       
-      productionSystem.processAutomatedProduction(100);
+      const produced = production.manualClip(5);
       
+      expect(produced).toBe(0);
       expect(gameState.get('resources.clips')).toBe(0);
-      expect(gameState.get('resources.wire')).toBe(100);
+    });
+
+    test('should stop production during endgame', () => {
+      gameState.set('resources.wire', 100);
+      gameState.set('endGame.dismantle', 5); // Endgame condition
+      
+      const produced = production.manualClip(10);
+      
+      expect(produced).toBe(0);
+      expect(gameState.get('resources.clips')).toBe(0);
     });
   });
 
-  describe('applyProductionBoost', () => {
-    it('should apply clipper boost', () => {
-      productionSystem.applyProductionBoost('clipper', 3);
+  describe('AutoClipper Production', () => {
+    test('should produce clips based on level and boost', () => {
+      gameState.set('resources.wire', 100);
+      gameState.set('manufacturing.clipmakers.level', 10);
+      gameState.set('production.boosts.clipper', 1.5);
       
-      expect(gameState.get('production.clipperBoost')).toBe(3);
+      const produced = production.updateAutoClippers();
+      
+      // Rate = boost * (level / 100) = 1.5 * (10 / 100) = 0.15
+      expect(produced).toBeCloseTo(0.15);
+      expect(gameState.get('resources.clips')).toBeCloseTo(0.15);
     });
 
-    it('should apply megaClipper boost', () => {
-      productionSystem.applyProductionBoost('megaClipper', 2.5);
+    test('should not produce without AutoClippers', () => {
+      gameState.set('resources.wire', 100);
+      gameState.set('manufacturing.clipmakers.level', 0);
       
-      expect(gameState.get('production.megaClipperBoost')).toBe(2.5);
-    });
-
-    it('should apply factory boost', () => {
-      productionSystem.applyProductionBoost('factory', 1.5);
+      const produced = production.updateAutoClippers();
       
-      expect(gameState.get('production.factoryBoost')).toBe(1.5);
-    });
-
-    it('should recalculate rates after applying boost', () => {
-      gameState.set('production.clipmakerLevel', 10);
-      
-      productionSystem.applyProductionBoost('clipper', 2);
-      
-      expect(gameState.get('production.clipRate')).toBe(20);
+      expect(produced).toBe(0);
     });
   });
 
-  describe('updateFactoryProduction', () => {
-    it('should process matter into wire', () => {
-      gameState.set('flags.factory', true);
-      gameState.set('infrastructure.factoryLevel', 5);
-      gameState.set('production.factoryBoost', 1);
-      gameState.set('resources.availableMatter', 10);
+  describe('MegaClipper Production', () => {
+    test('should produce clips based on level and boost', () => {
+      gameState.set('resources.wire', 100);
+      gameState.set('manufacturing.megaClippers.level', 2);
+      gameState.set('production.boosts.megaClipper', 1.25);
       
-      productionSystem.updateFactoryProduction(1000); // 1 second
+      const produced = production.updateMegaClippers();
       
-      // 5 factories * 1 boost * 1 second = 5 matter processed
-      expect(gameState.get('resources.availableMatter')).toBe(5);
-      expect(gameState.get('resources.processedMatter')).toBe(5);
-      expect(gameState.get('resources.wire')).toBe(6000); // Initial 1000 + 5 * 1000
-    });
-
-    it('should handle insufficient matter', () => {
-      gameState.set('flags.factory', true);
-      gameState.set('infrastructure.factoryLevel', 10);
-      gameState.set('resources.availableMatter', 2);
-      
-      productionSystem.updateFactoryProduction(1000);
-      
-      expect(gameState.get('resources.availableMatter')).toBe(0);
-      expect(gameState.get('resources.processedMatter')).toBe(2);
-      expect(gameState.get('resources.wire')).toBe(3000); // Initial 1000 + 2 * 1000
+      // Rate = boost * (level * 5) = 1.25 * (2 * 5) = 12.5
+      expect(produced).toBe(12.5);
+      expect(gameState.get('resources.clips')).toBe(12.5);
     });
   });
 
-  describe('getProductionStats', () => {
-    it('should return current production statistics', () => {
-      gameState.set('production.clipRate', 100);
-      gameState.set('production.clipmakerLevel', 10);
-      gameState.set('production.megaClipperLevel', 2);
-      gameState.set('infrastructure.factoryLevel', 5);
+  describe('Factory Production', () => {
+    test('should produce clips based on level, boost, and power', () => {
+      gameState.set('resources.wire', 1000000000000); // Lots of wire
+      gameState.set('manufacturing.factories.level', 1);
+      gameState.set('production.boosts.factory', 1.0);
+      gameState.set('power.modifier', 0.5); // Half power
       
-      const stats = productionSystem.getProductionStats();
+      const produced = production.updateFactories();
       
-      expect(stats.clipRate).toBe(100);
-      expect(stats.clipmakerLevel).toBe(10);
-      expect(stats.megaClipperLevel).toBe(2);
-      expect(stats.factoryLevel).toBe(5);
-      expect(stats.wireConsumptionRate).toBeDefined();
+      // Rate = powMod * boost * (level * factoryRate) = 0.5 * 1.0 * (1 * 1000000000)
+      expect(produced).toBe(500000000);
+    });
+  });
+
+  describe('AutoClipper Purchase', () => {
+    test('should purchase AutoClipper with sufficient funds', () => {
+      gameState.set('resources.funds', 100);
+      gameState.set('manufacturing.clipmakers.level', 0);
+      
+      const success = production.buyAutoClipper();
+      
+      expect(success).toBe(true);
+      expect(gameState.get('manufacturing.clipmakers.level')).toBe(1);
+      expect(gameState.get('resources.funds')).toBeCloseTo(94, 0); // 100 - 6 (initial cost) = 94
+    });
+
+    test('should not purchase without sufficient funds', () => {
+      gameState.set('resources.funds', 3);
+      gameState.set('manufacturing.clipmakers.level', 0);
+      
+      const success = production.buyAutoClipper();
+      
+      expect(success).toBe(false);
+      expect(gameState.get('manufacturing.clipmakers.level')).toBe(0);
+      expect(gameState.get('resources.funds')).toBe(3);
+    });
+
+    test('should increase cost with each purchase', () => {
+      gameState.set('resources.funds', 1000);
+      
+      // First purchase
+      production.buyAutoClipper();
+      const firstCost = gameState.get('manufacturing.clipmakers.cost');
+      
+      // Second purchase
+      production.buyAutoClipper();
+      const secondCost = gameState.get('manufacturing.clipmakers.cost');
+      
+      expect(secondCost).toBeGreaterThan(firstCost);
+    });
+  });
+
+  describe('Cost Calculations', () => {
+    test('should calculate AutoClipper cost correctly', () => {
+      const cost0 = production.calculateAutoClipperCost(0);
+      const cost1 = production.calculateAutoClipperCost(1);
+      const cost5 = production.calculateAutoClipperCost(5);
+      
+      expect(cost0).toBe(6); // Math.pow(1.1, 0) + 5 = 1 + 5 = 6
+      expect(cost1).toBeCloseTo(6.1); // Math.pow(1.1, 1) + 5 = 1.1 + 5 = 6.1
+      expect(cost5).toBeCloseTo(6.61051); // Math.pow(1.1, 5) + 5
+    });
+
+    test('should calculate MegaClipper cost correctly', () => {
+      const cost0 = production.calculateMegaClipperCost(0);
+      const cost1 = production.calculateMegaClipperCost(1);
+      
+      expect(cost0).toBe(500); // Math.pow(1.2, 0) * 500 = 500
+      expect(cost1).toBe(600); // Math.pow(1.2, 1) * 500 = 600
+    });
+
+    test('should calculate Factory cost with complex formula', () => {
+      const cost0 = production.calculateFactoryCost(0);
+      const cost1 = production.calculateFactoryCost(1);
+      const cost2 = production.calculateFactoryCost(2);
+      
+      expect(cost0).toBe(100000000); // Base cost
+      expect(cost1).toBeGreaterThan(cost0);
+      expect(cost2).toBeGreaterThan(cost1);
+    });
+  });
+
+  describe('Production Tracking', () => {
+    test('should track production rate', () => {
+      gameState.set('resources.wire', 1000);
+      
+      // Produce some clips
+      production.trackProduction(10);
+      production.trackProduction(15);
+      production.trackProduction(5);
+      
+      const rate = gameState.get('production.clipRate');
+      expect(rate).toBe(10); // Average of [10, 15, 5] = 10
+    });
+
+    test('should limit tracker size', () => {
+      gameState.set('resources.wire', 1000);
+      
+      // Add more than max tracker size
+      for (let i = 0; i < 150; i++) {
+        production.trackProduction(1);
+      }
+      
+      expect(production.clipRateTracker.length).toBeLessThanOrEqual(production.maxTrackerSize);
+    });
+  });
+
+  describe('Production Statistics', () => {
+    test('should calculate production rates', () => {
+      gameState.set('manufacturing.clipmakers.level', 10);
+      gameState.set('manufacturing.megaClippers.level', 2);
+      gameState.set('manufacturing.factories.level', 1);
+      gameState.set('production.boosts.clipper', 1.5);
+      gameState.set('production.boosts.megaClipper', 1.25);
+      gameState.set('production.boosts.factory', 1.0);
+      gameState.set('power.modifier', 0.8);
+      
+      const rates = production.getProductionRates();
+      
+      expect(rates.autoClippers).toBeCloseTo(0.15); // 1.5 * (10 / 100)
+      expect(rates.megaClippers).toBe(12.5); // 1.25 * (2 * 5)
+      expect(rates.factories).toBe(800000000); // 0.8 * 1.0 * (1 * 1000000000)
+    });
+
+    test('should calculate wire efficiency', () => {
+      gameState.set('resources.clips', 500);
+      gameState.set('resources.wire', 500); // Started with 1000, used 500
+      
+      const efficiency = production.calculateWireEfficiency();
+      
+      expect(efficiency).toBe(1); // 500 clips / 500 wire used = 1
+    });
+  });
+
+  describe('Production Conditions', () => {
+    test('should check if production is possible', () => {
+      gameState.set('resources.wire', 100);
+      gameState.set('endGame.dismantle', 0);
+      
+      expect(production.canProduce()).toBe(true);
+    });
+
+    test('should prevent production without wire', () => {
+      gameState.set('resources.wire', 0);
+      gameState.set('endGame.dismantle', 0);
+      
+      expect(production.canProduce()).toBe(false);
+    });
+
+    test('should prevent production during endgame', () => {
+      gameState.set('resources.wire', 100);
+      gameState.set('endGame.dismantle', 5);
+      
+      expect(production.canProduce()).toBe(false);
+    });
+  });
+
+  describe('Time Estimation', () => {
+    test('should estimate production time', () => {
+      gameState.set('production.clipRate', 100); // 100 clips per second
+      
+      const timeFor1000 = production.estimateProductionTime(1000);
+      
+      expect(timeFor1000).toBe(10); // 1000 / 100 = 10 seconds
+    });
+
+    test('should return infinity for zero rate', () => {
+      gameState.set('production.clipRate', 0);
+      
+      const time = production.estimateProductionTime(1000);
+      
+      expect(time).toBe(Infinity);
+    });
+  });
+
+  describe('System Update', () => {
+    test('should update all production systems', () => {
+      gameState.set('resources.wire', 10000);
+      gameState.set('manufacturing.clipmakers.level', 5);
+      gameState.set('manufacturing.megaClippers.level', 1);
+      
+      const initialClips = gameState.get('resources.clips');
+      
+      production.update();
+      
+      const finalClips = gameState.get('resources.clips');
+      expect(finalClips).toBeGreaterThan(initialClips);
+    });
+  });
+
+  describe('Reset Functionality', () => {
+    test('should reset production system', () => {
+      production.trackProduction(100);
+      production.lastClipCount = 500;
+      
+      production.reset();
+      
+      expect(production.clipRateTracker).toEqual([]);
+      expect(production.lastClipCount).toBe(0);
     });
   });
 });

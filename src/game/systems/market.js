@@ -1,188 +1,177 @@
 /**
- * Market system - handles sales, pricing, marketing, and economic simulation
+ * Market System for Universal Paperclips
+ *
+ * Handles clip sales, pricing, demand calculations, marketing,
+ * and wire purchasing mechanics.
  */
 
-import { gameState } from '../core/gameState.js';
+import { BALANCE, TIMING } from '../core/constants.js';
+import { errorHandler } from '../core/errorHandler.js';
+import { performanceMonitor } from '../core/performanceMonitor.js';
 
 export class MarketSystem {
-  constructor() {
-    this.demandUpdateInterval = 1000; // Update demand every second
-    this.lastDemandUpdate = 0;
-    this.priceHistory = [];
-    this.maxPriceHistory = 100;
+  constructor(gameState) {
+    this.gameState = gameState;
+
+    // Revenue tracking
+    this.incomeHistory = [];
+    this.maxIncomeHistory = 10; // Track last 10 seconds
+    this.lastIncomeUpdate = 0;
+    this.lastRevenueCalculation = 0;
+
+    // Wire market timing
+    this.wirePriceUpdateTimer = 0;
+
+    // Bind methods for error boundaries
+    this.update = errorHandler.createErrorBoundary(this.update.bind(this), 'market.update');
   }
 
   /**
-   * Update market simulation
+   * Calculate current demand based on price and marketing
+   * @returns {number} Current demand percentage
    */
-  update(deltaTime, currentTime) {
-    // Update demand periodically
-    if (currentTime - this.lastDemandUpdate >= this.demandUpdateInterval) {
-      this.updateDemand();
-      this.lastDemandUpdate = currentTime;
+  calculateDemand() {
+    const margin = this.gameState.get('market.pricing.margin');
+    const marketingLevel = this.gameState.get('market.marketing.level');
+    const marketingEffectiveness = this.gameState.get('market.marketing.effectiveness');
+    const demandBoost = this.gameState.get('market.demandBoost');
+    const prestigeU = this.gameState.get('prestige.u');
+    const humanFlag = this.gameState.get('gameState.flags.human');
+
+    if (humanFlag !== 1) {
+      return 0; // No demand in non-human phases
     }
 
-    // Process sales
-    this.processSales(deltaTime);
+    // Ensure margin is positive to prevent division by zero or negative values
+    const safeMargin = Math.max(0.01, margin);
 
-    // Update revenue tracking
-    this.updateRevenueTracking();
+    // Marketing multiplier: 1.1^(level-1)
+    const marketing = Math.pow(1.1, Math.max(0, marketingLevel - 1));
 
-    // Update wire prices if wire buyer is active
-    if (gameState.get('flags.wireBuyer')) {
-      this.updateWirePrices();
-    }
+    // Core demand formula from legacy code
+    let demand =
+      (0.8 / safeMargin) *
+      marketing *
+      Math.max(0, marketingEffectiveness) *
+      Math.max(0, demandBoost);
+
+    // Add prestige bonus
+    demand = demand + (demand / 10) * Math.max(0, prestigeU);
+
+    // Ensure demand is never negative
+    return Math.max(0, demand);
   }
 
   /**
-   * Update market demand based on price and marketing
+   * Attempt to sell clips based on current demand
+   * @returns {Object} Sales result with clips sold and revenue
    */
-  updateDemand() {
-    const margin = gameState.get('market.margin');
-    const marketingLvl = gameState.get('market.marketingLvl');
-    const marketingEffectiveness = gameState.get('market.marketingEffectiveness');
-    const demandBoost = gameState.get('market.demandBoost');
+  processSales() {
+    const demand = this.calculateDemand();
+    const unsoldClips = this.gameState.get('resources.unsoldClips');
 
-    // Base demand calculation
-    let demand = 10;
+    if (unsoldClips <= 0) {
+      return { clipsSold: 0, revenue: 0 };
+    }
 
-    // Price affects demand (lower price = higher demand)
-    const priceFactor = Math.max(0.1, 2 - margin * 100);
-    demand *= priceFactor;
+    // Check if a sale occurs (probability based on demand)
+    const saleChance = Math.min(demand / 100, 1); // Cap at 100%
 
-    // Marketing increases demand
-    demand *= 1 + marketingLvl * marketingEffectiveness * 0.1;
+    if (Math.random() < saleChance) {
+      // Calculate how many clips are demanded
+      const clipsDemanded = Math.floor(0.7 * Math.pow(demand, 1.15));
+      return this.sellClips(clipsDemanded);
+    }
 
-    // Apply demand boost from projects
-    demand *= demandBoost;
-
-    // Add some randomness
-    demand *= 0.9 + Math.random() * 0.2;
-
-    // Set minimum demand
-    demand = Math.max(1, demand);
-
-    gameState.set('market.demand', demand);
+    return { clipsSold: 0, revenue: 0 };
   }
 
   /**
-   * Process clip sales based on demand
+   * Sell clips to customers
+   * @param {number} clipsDemanded - Number of clips requested
+   * @returns {Object} Sales result
    */
-  processSales(deltaTime) {
-    const demand = gameState.get('market.demand');
-    const unsoldClips = gameState.get('resources.unsoldClips');
-    const margin = gameState.get('market.margin');
+  sellClips(clipsDemanded) {
+    const unsoldClips = this.gameState.get('resources.unsoldClips');
+    const margin = this.gameState.get('market.pricing.margin');
 
-    if (unsoldClips > 0 && demand > 0) {
-      // Calculate clips to sell this tick
-      const salesRate = demand * (deltaTime / 1000);
-      const clipsToSell = Math.min(salesRate, unsoldClips);
-
-      if (clipsToSell > 0) {
-        // Process sale
-        const revenue = clipsToSell * margin;
-        gameState.increment('resources.funds', revenue);
-        gameState.decrement('resources.unsoldClips', clipsToSell);
-        gameState.increment('resources.clipsSold', clipsToSell);
-
-        // Track revenue
-        this.trackRevenue(revenue);
-      }
+    if (unsoldClips <= 0 || clipsDemanded <= 0) {
+      return { clipsSold: 0, revenue: 0 };
     }
+
+    // Determine actual clips to sell
+    const clipsToSell = Math.min(clipsDemanded, unsoldClips);
+
+    // Calculate revenue
+    const revenue = Math.floor(clipsToSell * margin * 1000) / 1000;
+
+    // Update game state
+    this.gameState.decrement('resources.unsoldClips', clipsToSell);
+    this.gameState.increment('resources.funds', revenue);
+    this.gameState.increment('market.sales.clipsSold', clipsToSell);
+    this.gameState.increment('market.sales.income', revenue);
+    this.gameState.increment('market.totalRevenue', revenue);
+    this.gameState.set('market.transaction', revenue);
+
+    errorHandler.debug(`Sold ${clipsToSell} clips for $${revenue.toFixed(2)}`);
+
+    return { clipsSold: clipsToSell, revenue };
   }
 
   /**
-   * Sell clips manually (for button click)
+   * Raise clip price
+   * @param {number} amount - Amount to increase price (default 0.01)
+   * @returns {boolean} Whether price was raised
    */
-  sellClips(amount = null) {
-    const unsoldClips = gameState.get('resources.unsoldClips');
-    const margin = gameState.get('market.margin');
+  raisePrice(amount = 0.01) {
+    const currentMargin = this.gameState.get('market.pricing.margin');
+    const newMargin = Math.round((currentMargin + amount) * 100) / 100;
 
-    // If no amount specified, sell all
-    const clipsToSell = amount || unsoldClips;
+    this.gameState.set('market.pricing.margin', newMargin);
+    this.updateDemandDisplay();
 
-    if (clipsToSell > 0 && clipsToSell <= unsoldClips) {
-      const revenue = clipsToSell * margin;
-      gameState.increment('resources.funds', revenue);
-      gameState.decrement('resources.unsoldClips', clipsToSell);
-      gameState.increment('resources.clipsSold', clipsToSell);
-
-      this.trackRevenue(revenue);
-      return true;
-    }
-
-    return false;
+    errorHandler.debug(`Price raised to $${newMargin.toFixed(2)}`);
+    return true;
   }
 
   /**
-   * Track revenue for averaging
+   * Lower clip price
+   * @param {number} amount - Amount to decrease price (default 0.01)
+   * @returns {boolean} Whether price was lowered
    */
-  trackRevenue(revenue) {
-    const incomeTracker = gameState.get('market.incomeTracker') || [];
-    incomeTracker.push(revenue);
+  lowerPrice(amount = 0.01) {
+    const currentMargin = this.gameState.get('market.pricing.margin');
 
-    // Keep only recent revenue data
-    if (incomeTracker.length > 100) {
-      incomeTracker.shift();
+    if (currentMargin <= amount) {
+      return false; // Can't go below minimum
     }
 
-    gameState.set('market.incomeTracker', incomeTracker);
-    gameState.set('market.income', revenue);
+    const newMargin = Math.round((currentMargin - amount) * 100) / 100;
+    this.gameState.set('market.pricing.margin', newMargin);
+    this.updateDemandDisplay();
+
+    errorHandler.debug(`Price lowered to $${newMargin.toFixed(2)}`);
+    return true;
   }
 
   /**
-   * Update average revenue calculation
-   */
-  updateRevenueTracking() {
-    const incomeTracker = gameState.get('market.incomeTracker') || [];
-
-    if (incomeTracker.length > 0) {
-      const avgRev = incomeTracker.reduce((a, b) => a + b, 0) / incomeTracker.length;
-      gameState.set('market.avgRev', avgRev);
-    }
-  }
-
-  /**
-   * Adjust clip price
-   */
-  adjustPrice(direction) {
-    const currentMargin = gameState.get('market.margin');
-    const adjustment = 0.01;
-
-    if (direction === 'raise') {
-      const newMargin = Math.min(5, currentMargin + adjustment);
-      gameState.set('market.margin', newMargin);
-    } else if (direction === 'lower') {
-      const newMargin = Math.max(0.01, currentMargin - adjustment);
-      gameState.set('market.margin', newMargin);
-    }
-
-    // Record price in history
-    this.priceHistory.push({
-      time: Date.now(),
-      price: gameState.get('market.margin'),
-    });
-
-    if (this.priceHistory.length > this.maxPriceHistory) {
-      this.priceHistory.shift();
-    }
-  }
-
-  /**
-   * Buy marketing
+   * Purchase marketing/advertising
+   * @returns {boolean} Whether purchase was successful
    */
   buyMarketing() {
-    const funds = gameState.get('resources.funds');
-    const cost = gameState.get('market.adCost');
+    const adCost = this.gameState.get('market.pricing.adCost');
+    const funds = this.gameState.get('resources.funds');
 
-    if (funds >= cost) {
-      gameState.decrement('resources.funds', cost);
-      gameState.increment('market.marketingLvl');
+    if (funds >= adCost) {
+      const currentLevel = this.gameState.get('market.marketing.level');
 
-      // Increase cost for next level
-      const newCost = Math.ceil(cost * 2);
-      gameState.set('market.adCost', newCost);
+      this.gameState.decrement('resources.funds', adCost);
+      this.gameState.increment('market.marketing.level');
 
+      // Double the cost for next ad purchase
+      this.gameState.set('market.pricing.adCost', Math.floor(adCost * 2));
+
+      errorHandler.debug(`Purchased marketing level ${currentLevel + 1} for $${adCost}`);
       return true;
     }
 
@@ -190,16 +179,36 @@ export class MarketSystem {
   }
 
   /**
-   * Buy wire
+   * Purchase wire
+   * @returns {boolean} Whether purchase was successful
    */
-  buyWire(amount) {
-    const funds = gameState.get('resources.funds');
-    const wireCost = gameState.get('market.wireCost');
-    const totalCost = wireCost * (amount / 1000); // Wire sold in spools of 1000
+  buyWire() {
+    const wireCost = this.gameState.get('market.pricing.wireCost');
+    const funds = this.gameState.get('resources.funds');
 
-    if (funds >= totalCost) {
-      gameState.decrement('resources.funds', totalCost);
-      gameState.increment('resources.wire', amount);
+    if (funds >= wireCost) {
+      const wireSupply = this.gameState.get('market.wire.supply');
+
+      this.gameState.decrement('resources.funds', wireCost);
+      this.gameState.increment('resources.wire', wireSupply);
+      this.gameState.increment('market.wire.purchase');
+
+      // Reset spool tracking for achievements when new wire is bought
+      const currentSpoolClips = this.gameState.get('achievements.currentSpoolClips') || 0;
+      const maxClipsPerSpool = this.gameState.get('achievements.maxClipsPerSpool') || 0;
+      if (currentSpoolClips > maxClipsPerSpool) {
+        this.gameState.set('achievements.maxClipsPerSpool', currentSpoolClips);
+      }
+      this.gameState.set('achievements.currentSpoolClips', 0);
+
+      // Reset wire price timer
+      this.gameState.set('market.wire.priceTimer', 0);
+
+      // Increase base price slightly
+      const basePrice = this.gameState.get('market.pricing.wireBasePrice');
+      this.gameState.set('market.pricing.wireBasePrice', basePrice + 0.05);
+
+      errorHandler.debug(`Purchased ${wireSupply} wire for $${wireCost}`);
       return true;
     }
 
@@ -207,48 +216,209 @@ export class MarketSystem {
   }
 
   /**
-   * Update wire prices (fluctuate based on market)
+   * Toggle automatic wire buying
+   * @returns {boolean} New wire buyer status
    */
-  updateWirePrices() {
-    const basePrice = gameState.get('market.wireBasePrice');
-    const currentPrice = gameState.get('market.wireCost');
+  toggleWireBuyer() {
+    const currentStatus = this.gameState.get('gameState.automation.wireBuyerEnabled');
+    const newStatus = !currentStatus;
 
-    // Random walk with mean reversion
-    const change = (Math.random() - 0.5) * 2;
-    const reversion = (basePrice - currentPrice) * 0.1;
+    this.gameState.set('gameState.automation.wireBuyerEnabled', newStatus);
 
-    const newPrice = Math.max(5, Math.min(50, currentPrice + change + reversion));
-    gameState.set('market.wireCost', Math.round(newPrice * 100) / 100);
+    errorHandler.debug(`Wire buyer ${newStatus ? 'enabled' : 'disabled'}`);
+    return newStatus;
+  }
+
+  /**
+   * Auto-buy wire if conditions are met
+   */
+  processAutoBuyer() {
+    const wireBuyerEnabled = this.gameState.get('gameState.automation.wireBuyerEnabled');
+    const wireBuyerFlag = this.gameState.get('gameState.flags.wireBuyer');
+    const humanFlag = this.gameState.get('gameState.flags.human');
+    const wire = this.gameState.get('resources.wire');
+
+    if (humanFlag === 1 && wireBuyerFlag === 1 && wireBuyerEnabled && wire <= 1) {
+      this.buyWire();
+    }
+  }
+
+  /**
+   * Update wire pricing with market fluctuations
+   */
+  updateWirePricing() {
+    let priceTimer = this.gameState.get('market.wire.priceTimer');
+    priceTimer++;
+    this.gameState.set('market.wire.priceTimer', priceTimer);
+
+    let basePrice = this.gameState.get('market.pricing.wireBasePrice');
+
+    // Gradual price decrease over time
+    if (priceTimer > 250 && basePrice > 15) {
+      basePrice = basePrice - basePrice / 1000;
+      this.gameState.set('market.pricing.wireBasePrice', basePrice);
+      this.gameState.set('market.wire.priceTimer', 0);
+    }
+
+    // Random price fluctuation (1.5% chance per update)
+    if (Math.random() < 0.015) {
+      let priceCounter = this.gameState.get('market.pricing.wirePriceCounter');
+      priceCounter++;
+      this.gameState.set('market.pricing.wirePriceCounter', priceCounter);
+
+      // Sine wave fluctuation
+      const wireAdjust = 6 * Math.sin(priceCounter);
+      const newWireCost = Math.ceil(basePrice + wireAdjust);
+
+      this.gameState.set('market.pricing.wireCost', newWireCost);
+    }
+  }
+
+  /**
+   * Calculate revenue statistics
+   */
+  calculateRevenue() {
+    const currentIncome = this.gameState.get('market.sales.income');
+    const lastIncome = this.lastIncomeUpdate;
+
+    // Calculate income since last update
+    const incomeThisSecond = Math.round((currentIncome - lastIncome) * 100) / 100;
+    this.lastIncomeUpdate = currentIncome;
+
+    // Track income history
+    this.incomeHistory.push(incomeThisSecond);
+    if (this.incomeHistory.length > this.maxIncomeHistory) {
+      this.incomeHistory.shift();
+    }
+
+    // Calculate average revenue over tracked period
+    const totalTracked = this.incomeHistory.reduce((sum, income) => sum + income, 0);
+    const avgRevenue = totalTracked / this.incomeHistory.length;
+
+    this.gameState.set('market.sales.avgRevenue', Math.round(avgRevenue * 100) / 100);
+
+    // Calculate projected revenue based on current market conditions
+    const demand = this.calculateDemand();
+    const margin = this.gameState.get('market.pricing.margin');
+    const unsoldClips = this.gameState.get('resources.unsoldClips');
+
+    let chanceOfPurchase = Math.min(demand / 100, 1);
+    if (unsoldClips < 1) {
+      chanceOfPurchase = 0;
+    }
+
+    const projectedSales = chanceOfPurchase * (0.7 * Math.pow(demand, 1.15)) * 10;
+    const projectedRevenue = projectedSales * margin;
+
+    // Use actual revenue if demand exceeds inventory
+    const finalProjectedRevenue = demand > unsoldClips ? avgRevenue : projectedRevenue;
+
+    this.gameState.set('market.projectedRevenue', finalProjectedRevenue);
+    this.gameState.set('market.projectedSales', projectedSales);
+  }
+
+  /**
+   * Update demand display (called when price changes)
+   */
+  updateDemandDisplay() {
+    const demand = this.calculateDemand();
+    this.gameState.set('market.demand', demand);
   }
 
   /**
    * Get market statistics
+   * @returns {Object} Market statistics
    */
-  getMarketStats() {
+  getStats() {
+    const demand = this.calculateDemand();
+    const margin = this.gameState.get('market.pricing.margin');
+    const avgRevenue = this.gameState.get('market.sales.avgRevenue');
+    const totalIncome = this.gameState.get('market.sales.income');
+    const clipsSold = this.gameState.get('market.sales.clipsSold');
+
     return {
-      demand: gameState.get('market.demand'),
-      margin: gameState.get('market.margin'),
-      unsoldClips: gameState.get('resources.unsoldClips'),
-      avgRevenue: gameState.get('market.avgRev'),
-      marketingLevel: gameState.get('market.marketingLvl'),
-      wireCost: gameState.get('market.wireCost'),
+      currentDemand: demand,
+      clipPrice: margin,
+      averageRevenue: avgRevenue,
+      totalIncome: totalIncome,
+      totalClipsSold: clipsSold,
+      revenuePerClip: clipsSold > 0 ? totalIncome / clipsSold : 0,
+      demandEfficiency: demand > 0 ? avgRevenue / demand : 0,
+      wirePrice: this.gameState.get('market.pricing.wireCost'),
+      marketingLevel: this.gameState.get('market.marketing.level'),
+      marketingCost: this.gameState.get('market.pricing.adCost')
     };
   }
 
   /**
-   * Apply marketing boost (from projects)
+   * Main market system update (called by game loop)
+   * @param {number} timestamp - Current timestamp
+   * @param {number} deltaTime - Time since last update
    */
-  applyMarketingBoost(multiplier) {
-    gameState.set('market.marketingEffectiveness', multiplier);
+  update(timestamp, deltaTime) {
+    performanceMonitor.measure(() => {
+      // Update demand calculation
+      this.updateDemandDisplay();
+
+      // Process sales (multiple times per second)
+      this.processSales();
+
+      // Handle auto wire buyer
+      this.processAutoBuyer();
+
+      // Update wire pricing
+      this.updateWirePricing();
+
+      // Calculate revenue (once per second)
+      if (timestamp - this.lastRevenueCalculation >= 1000) {
+        this.calculateRevenue();
+        this.lastRevenueCalculation = timestamp;
+      }
+    }, 'market.update');
   }
 
   /**
-   * Apply demand boost (from projects)
+   * Reset market system
    */
-  applyDemandBoost(multiplier) {
-    gameState.set('market.demandBoost', multiplier);
+  reset() {
+    this.incomeHistory = [];
+    this.lastIncomeUpdate = 0;
+    this.lastRevenueCalculation = 0;
+    this.wirePriceUpdateTimer = 0;
+
+    errorHandler.info('Market system reset');
+  }
+
+  /**
+   * Get current market efficiency
+   * @returns {number} Market efficiency ratio
+   */
+  getMarketEfficiency() {
+    const demand = this.calculateDemand();
+    const unsoldClips = this.gameState.get('resources.unsoldClips');
+
+    if (demand <= 0) return 0;
+    if (unsoldClips <= 0) return 0;
+
+    // Efficiency is how well current inventory meets demand
+    return Math.min(unsoldClips / demand, 1);
+  }
+
+  /**
+   * Get optimal price suggestion based on demand
+   * @returns {number} Suggested optimal price
+   */
+  getOptimalPrice() {
+    const currentDemand = this.calculateDemand();
+    const marketingLevel = this.gameState.get('market.marketing.level');
+    const marketing = Math.pow(1.1, marketingLevel - 1);
+
+    // Find price that maximizes revenue (demand * price)
+    // This is a simplified optimization
+    const optimalMargin = (0.8 * marketing) / 100;
+
+    return Math.max(0.01, Math.round(optimalMargin * 100) / 100);
   }
 }
 
-// Create singleton instance
-export const marketSystem = new MarketSystem();
+export default MarketSystem;

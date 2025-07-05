@@ -1,286 +1,436 @@
 /**
- * Performance monitoring system
- * @module PerformanceMonitor
+ * Performance Monitor for Universal Paperclips
+ *
+ * Tracks FPS, memory usage, and function performance to ensure
+ * the game runs smoothly and identify bottlenecks.
  */
 
+import { PERFORMANCE } from './constants.js';
 import { errorHandler } from './errorHandler.js';
-import { memoryMonitor } from './memoryMonitor.js';
 
-/**
- * @class PerformanceMonitor
- * @description Tracks game performance metrics and detects performance issues.
- * Monitors FPS, update times, memory usage, and other performance indicators.
- */
-export class PerformanceMonitor {
-  /**
-   * Creates a new PerformanceMonitor instance
-   * @constructor
-   */
+class PerformanceMonitor {
   constructor() {
-    /** @type {Array<number>} Frame time history */
-    this.frameTimes = [];
-    /** @type {number} Maximum frame history size */
-    this.maxFrameHistory = 60;
-    /** @type {number} Last frame timestamp */
-    this.lastFrameTime = performance.now();
-    /** @type {Object} Performance metrics */
+    this.enabled = true;
     this.metrics = {
-      fps: 0,
-      avgFrameTime: 0,
-      maxFrameTime: 0,
-      minFps: 60,
-      updateTime: 0,
-      renderTime: 0,
-      memoryUsage: 0,
-      gcCount: 0,
+      fps: {
+        current: 0,
+        average: 0,
+        min: Infinity,
+        max: 0,
+        samples: [],
+        lastFrame: performance.now()
+      },
+      memory: {
+        used: 0,
+        peak: 0,
+        samples: []
+      },
+      gameLoop: {
+        updateTime: 0,
+        renderTime: 0,
+        totalTime: 0,
+        slowFrames: 0,
+        samples: []
+      },
+      functions: new Map() // Function performance tracking
     };
-    /** @type {number} Performance check interval */
-    this.checkInterval = 1000; // 1 second
-    /** @type {number} Last performance check */
-    this.lastCheck = performance.now();
-    /** @type {boolean} Whether monitoring is active */
-    this.active = true;
-    /** @type {Object} Performance thresholds */
+
     this.thresholds = {
-      minFps: 30,
-      maxFrameTime: 100, // ms
-      maxUpdateTime: 50, // ms
-      maxRenderTime: 16, // ms (60fps target)
-      maxMemoryMB: 100,
+      fps: {
+        warning: PERFORMANCE.MIN_FPS,
+        critical: PERFORMANCE.MIN_FPS * 0.5
+      },
+      frameTime: {
+        warning: PERFORMANCE.FRAME_TIME_TARGET * 2,
+        critical: PERFORMANCE.FRAME_TIME_TARGET * 4
+      },
+      memory: {
+        warning: PERFORMANCE.MAX_MEMORY_USAGE * 0.8,
+        critical: PERFORMANCE.MAX_MEMORY_USAGE
+      }
     };
+
+    this.sampleSize = PERFORMANCE.PERFORMANCE_SAMPLE_SIZE;
+    this.warningCallbacks = [];
+
+    this._startMonitoring();
   }
 
   /**
-   * Start monitoring performance
+   * Start performance monitoring
+   * @private
    */
-  start() {
-    this.active = true;
-    this.lastFrameTime = performance.now();
-    errorHandler.debug('Performance monitoring started');
+  _startMonitoring() {
+    if (!this.enabled) return;
+
+    // Monitor FPS
+    this._monitorFPS();
+
+    // Monitor memory usage
+    this._monitorMemory();
   }
 
   /**
-   * Stop monitoring performance
+   * Monitor FPS using requestAnimationFrame
+   * @private
    */
-  stop() {
-    this.active = false;
-    errorHandler.debug('Performance monitoring stopped');
+  _monitorFPS() {
+    const measureFPS = () => {
+      if (!this.enabled) return;
+
+      const now = performance.now();
+      const delta = now - this.metrics.fps.lastFrame;
+
+      if (delta > 0) {
+        const fps = 1000 / delta;
+        this._recordFPS(fps);
+      }
+
+      this.metrics.fps.lastFrame = now;
+      requestAnimationFrame(measureFPS);
+    };
+
+    requestAnimationFrame(measureFPS);
   }
 
   /**
-   * Record frame timing
+   * Record FPS measurement
+   * @private
    */
-  recordFrame() {
-    if (!this.active) {
-      return;
+  _recordFPS(fps) {
+    this.metrics.fps.current = fps;
+    this.metrics.fps.samples.push(fps);
+
+    // Keep only recent samples
+    if (this.metrics.fps.samples.length > this.sampleSize) {
+      this.metrics.fps.samples.shift();
     }
+
+    // Update statistics
+    this.metrics.fps.min = Math.min(this.metrics.fps.min, fps);
+    this.metrics.fps.max = Math.max(this.metrics.fps.max, fps);
+    this.metrics.fps.average =
+      this.metrics.fps.samples.reduce((a, b) => a + b, 0) / this.metrics.fps.samples.length;
+
+    // Check thresholds
+    this._checkFPSThresholds(fps);
+  }
+
+  /**
+   * Monitor memory usage
+   * @private
+   */
+  _monitorMemory() {
+    const measureMemory = () => {
+      if (!this.enabled) return;
+
+      if ('memory' in performance) {
+        const memory = performance.memory;
+        this._recordMemory(memory.usedJSHeapSize);
+        this.metrics.memory.peak = Math.max(this.metrics.memory.peak, memory.usedJSHeapSize);
+      }
+
+      setTimeout(measureMemory, 1000); // Check every second
+    };
+
+    measureMemory();
+  }
+
+  /**
+   * Record memory measurement
+   * @private
+   */
+  _recordMemory(memoryUsed) {
+    this.metrics.memory.used = memoryUsed;
+    this.metrics.memory.samples.push(memoryUsed);
+
+    // Keep only recent samples
+    if (this.metrics.memory.samples.length > this.sampleSize) {
+      this.metrics.memory.samples.shift();
+    }
+
+    // Check thresholds
+    this._checkMemoryThresholds(memoryUsed);
+  }
+
+  /**
+   * Start measuring game loop performance
+   */
+  startGameLoopMeasurement() {
+    this.gameLoopStart = performance.now();
+  }
+
+  /**
+   * Record update phase time
+   */
+  recordUpdateTime() {
+    if (!this.gameLoopStart) return;
+    this.updateEnd = performance.now();
+    this.metrics.gameLoop.updateTime = this.updateEnd - this.gameLoopStart;
+  }
+
+  /**
+   * End game loop measurement
+   */
+  endGameLoopMeasurement() {
+    if (!this.gameLoopStart) return;
 
     const now = performance.now();
-    const frameTime = now - this.lastFrameTime;
-    this.lastFrameTime = now;
+    const totalTime = now - this.gameLoopStart;
+    const renderTime = now - (this.updateEnd || this.gameLoopStart);
 
-    // Add to frame history
-    this.frameTimes.push(frameTime);
-    if (this.frameTimes.length > this.maxFrameHistory) {
-      this.frameTimes.shift();
+    this.metrics.gameLoop.renderTime = renderTime;
+    this.metrics.gameLoop.totalTime = totalTime;
+
+    // Record sample
+    this.metrics.gameLoop.samples.push({
+      update: this.metrics.gameLoop.updateTime,
+      render: renderTime,
+      total: totalTime,
+      timestamp: now
+    });
+
+    // Keep only recent samples
+    if (this.metrics.gameLoop.samples.length > this.sampleSize) {
+      this.metrics.gameLoop.samples.shift();
     }
 
-    // Update max frame time
-    if (frameTime > this.metrics.maxFrameTime) {
-      this.metrics.maxFrameTime = frameTime;
+    // Check for slow frames
+    if (totalTime > this.thresholds.frameTime.warning) {
+      this.metrics.gameLoop.slowFrames++;
+
+      if (totalTime > this.thresholds.frameTime.critical) {
+        errorHandler.warn('Critical frame time detected:', `${totalTime.toFixed(2)}ms`);
+      }
     }
 
-    // Check if we should update metrics
-    if (now - this.lastCheck >= this.checkInterval) {
-      this.updateMetrics();
-      this.checkPerformance();
-      this.lastCheck = now;
-    }
+    // Reset for next measurement
+    this.gameLoopStart = null;
+    this.updateEnd = null;
   }
 
   /**
-   * Measure function execution time
+   * Measure function performance
    * @param {Function} fn - Function to measure
-   * @param {string} name - Name for logging
+   * @param {string} name - Name for tracking
    * @returns {*} Function result
    */
   measure(fn, name) {
+    if (!this.enabled) {
+      return fn();
+    }
+
     const start = performance.now();
+
     try {
       const result = fn();
-      const duration = performance.now() - start;
 
-      if (name.includes('update')) {
-        this.metrics.updateTime = duration;
-      } else if (name.includes('render')) {
-        this.metrics.renderTime = duration;
-      }
+      const end = performance.now();
+      const duration = end - start;
 
-      // Log slow operations
-      if (duration > 16) {
-        errorHandler.debug(`Slow operation: ${name} took ${duration.toFixed(2)}ms`);
-      }
+      this._recordFunctionPerformance(name, duration, true);
 
       return result;
     } catch (error) {
-      const duration = performance.now() - start;
-      errorHandler.handleError(error, `performanceMonitor.measure.${name}`, { duration });
+      const end = performance.now();
+      const duration = end - start;
+
+      this._recordFunctionPerformance(name, duration, false);
       throw error;
     }
   }
 
   /**
-   * Update performance metrics
-   * @private
+   * Create a performance wrapper for a function
+   * @param {Function} fn - Function to wrap
+   * @param {string} name - Name for tracking
+   * @returns {Function} Wrapped function
    */
-  updateMetrics() {
-    if (this.frameTimes.length === 0) {
-      return;
-    }
-
-    // Calculate average frame time
-    const avgFrameTime = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-    this.metrics.avgFrameTime = avgFrameTime;
-
-    // Calculate FPS
-    this.metrics.fps = 1000 / avgFrameTime;
-
-    // Track minimum FPS
-    if (this.metrics.fps < this.metrics.minFps) {
-      this.metrics.minFps = this.metrics.fps;
-    }
-
-    // Update memory usage if available
-    if (performance.memory) {
-      this.metrics.memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024; // MB
-    }
-
-    // Reset max frame time periodically
-    if (this.metrics.maxFrameTime > 1000) {
-      this.metrics.maxFrameTime = Math.max(...this.frameTimes);
-    }
+  wrap(fn, name) {
+    return (...args) => this.measure(() => fn(...args), name);
   }
 
   /**
-   * Check for performance issues
+   * Record function performance
    * @private
    */
-  checkPerformance() {
-    const issues = [];
-
-    // Check FPS
-    if (this.metrics.fps < this.thresholds.minFps) {
-      issues.push(`Low FPS: ${this.metrics.fps.toFixed(1)} (threshold: ${this.thresholds.minFps})`);
-    }
-
-    // Check frame time spikes
-    if (this.metrics.maxFrameTime > this.thresholds.maxFrameTime) {
-      issues.push(`Frame time spike: ${this.metrics.maxFrameTime.toFixed(1)}ms`);
-    }
-
-    // Check update time
-    if (this.metrics.updateTime > this.thresholds.maxUpdateTime) {
-      issues.push(`Slow update: ${this.metrics.updateTime.toFixed(1)}ms`);
-    }
-
-    // Check render time
-    if (this.metrics.renderTime > this.thresholds.maxRenderTime) {
-      issues.push(`Slow render: ${this.metrics.renderTime.toFixed(1)}ms`);
-    }
-
-    // Check memory usage
-    if (this.metrics.memoryUsage > this.thresholds.maxMemoryMB) {
-      issues.push(`High memory: ${this.metrics.memoryUsage.toFixed(1)}MB`);
-    }
-
-    // Log issues if any
-    if (issues.length > 0) {
-      errorHandler.warn('Performance issues detected', {
-        issues,
-        metrics: this.getMetrics(),
+  _recordFunctionPerformance(name, duration, success) {
+    if (!this.metrics.functions.has(name)) {
+      this.metrics.functions.set(name, {
+        calls: 0,
+        totalTime: 0,
+        averageTime: 0,
+        minTime: Infinity,
+        maxTime: 0,
+        errors: 0,
+        samples: []
       });
     }
+
+    const stats = this.metrics.functions.get(name);
+    stats.calls++;
+    stats.totalTime += duration;
+    stats.averageTime = stats.totalTime / stats.calls;
+    stats.minTime = Math.min(stats.minTime, duration);
+    stats.maxTime = Math.max(stats.maxTime, duration);
+
+    if (!success) {
+      stats.errors++;
+    }
+
+    stats.samples.push({
+      duration,
+      success,
+      timestamp: performance.now()
+    });
+
+    // Keep only recent samples
+    if (stats.samples.length > this.sampleSize) {
+      stats.samples.shift();
+    }
   }
 
   /**
-   * Get current performance metrics
-   * @returns {Object} Current metrics
+   * Check FPS thresholds
+   * @private
    */
-  getMetrics() {
-    return {
-      ...this.metrics,
-      frameCount: this.frameTimes.length,
+  _checkFPSThresholds(fps) {
+    if (fps < this.thresholds.fps.critical) {
+      this._triggerWarning('fps', 'critical', fps);
+    } else if (fps < this.thresholds.fps.warning) {
+      this._triggerWarning('fps', 'warning', fps);
+    }
+  }
+
+  /**
+   * Check memory thresholds
+   * @private
+   */
+  _checkMemoryThresholds(memory) {
+    if (memory > this.thresholds.memory.critical) {
+      this._triggerWarning('memory', 'critical', memory);
+    } else if (memory > this.thresholds.memory.warning) {
+      this._triggerWarning('memory', 'warning', memory);
+    }
+  }
+
+  /**
+   * Trigger performance warning
+   * @private
+   */
+  _triggerWarning(type, level, value) {
+    const warning = {
+      type,
+      level,
+      value,
+      timestamp: Date.now()
     };
+
+    if (level === 'critical') {
+      errorHandler.error(`Performance ${level}:`, `${type} = ${value}`);
+    } else {
+      errorHandler.warn(`Performance ${level}:`, `${type} = ${value}`);
+    }
+
+    this.warningCallbacks.forEach((callback) => {
+      try {
+        callback(warning);
+      } catch (error) {
+        errorHandler.error('Error in performance warning callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Add warning callback
+   * @param {Function} callback - Callback function
+   */
+  addWarningCallback(callback) {
+    this.warningCallbacks.push(callback);
+  }
+
+  /**
+   * Remove warning callback
+   * @param {Function} callback - Callback function
+   */
+  removeWarningCallback(callback) {
+    const index = this.warningCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.warningCallbacks.splice(index, 1);
+    }
   }
 
   /**
    * Get performance report
-   * @returns {string} Formatted performance report
+   * @returns {Object} Performance report
    */
   getReport() {
-    const m = this.metrics;
-    const memStats = memoryMonitor.getStats();
-    const memTrend = memoryMonitor.getTrend();
+    const functionStats = {};
+    this.metrics.functions.forEach((stats, name) => {
+      functionStats[name] = { ...stats, samples: stats.samples.length };
+    });
 
-    let report = `
-Performance Report:
-  FPS: ${m.fps.toFixed(1)} (min: ${m.minFps.toFixed(1)})
-  Avg Frame Time: ${m.avgFrameTime.toFixed(2)}ms
-  Max Frame Time: ${m.maxFrameTime.toFixed(2)}ms
-  Update Time: ${m.updateTime.toFixed(2)}ms
-  Render Time: ${m.renderTime.toFixed(2)}ms
-  Memory Usage: ${m.memoryUsage.toFixed(1)}MB`;
-
-    if (memStats.current) {
-      report += `
-  Memory Details:
-    Used: ${memStats.current.usedMB}MB (${memStats.current.usagePercent}%)
-    Trend: ${memTrend}
-    Tracked Objects: ${memStats.trackedObjects}`;
-    }
-
-    return report.trim();
+    return {
+      fps: {
+        current: Math.round(this.metrics.fps.current),
+        average: Math.round(this.metrics.fps.average),
+        min: Math.round(this.metrics.fps.min),
+        max: Math.round(this.metrics.fps.max)
+      },
+      memory: {
+        used: this.metrics.memory.used,
+        peak: this.metrics.memory.peak,
+        usedMB: Math.round(this.metrics.memory.used / 1024 / 1024),
+        peakMB: Math.round(this.metrics.memory.peak / 1024 / 1024)
+      },
+      gameLoop: {
+        updateTime: Math.round(this.metrics.gameLoop.updateTime * 100) / 100,
+        renderTime: Math.round(this.metrics.gameLoop.renderTime * 100) / 100,
+        totalTime: Math.round(this.metrics.gameLoop.totalTime * 100) / 100,
+        slowFrames: this.metrics.gameLoop.slowFrames
+      },
+      functions: functionStats,
+      enabled: this.enabled
+    };
   }
 
   /**
-   * Reset performance metrics
+   * Reset all metrics
    */
   reset() {
-    this.frameTimes = [];
-    this.metrics = {
-      fps: 0,
-      avgFrameTime: 0,
-      maxFrameTime: 0,
-      minFps: 60,
-      updateTime: 0,
-      renderTime: 0,
-      memoryUsage: 0,
-      gcCount: 0,
-    };
-    this.lastFrameTime = performance.now();
-    this.lastCheck = performance.now();
-    errorHandler.debug('Performance metrics reset');
+    this.metrics.fps.samples = [];
+    this.metrics.fps.min = Infinity;
+    this.metrics.fps.max = 0;
+    this.metrics.memory.samples = [];
+    this.metrics.memory.peak = 0;
+    this.metrics.gameLoop.samples = [];
+    this.metrics.gameLoop.slowFrames = 0;
+    this.metrics.functions.clear();
+
+    errorHandler.info('Performance metrics reset');
   }
 
   /**
-   * Set performance threshold
-   * @param {string} metric - Metric name
-   * @param {number} value - Threshold value
+   * Enable/disable monitoring
+   * @param {boolean} enabled - Whether to enable monitoring
    */
-  setThreshold(metric, value) {
-    if (metric in this.thresholds) {
-      this.thresholds[metric] = value;
-      errorHandler.debug(`Performance threshold set: ${metric} = ${value}`);
-    } else {
-      errorHandler.warn(`Invalid performance metric: ${metric}`);
-    }
+  setEnabled(enabled) {
+    this.enabled = enabled;
+    errorHandler.info(`Performance monitoring ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Get detailed function statistics
+   * @param {string} name - Function name
+   * @returns {Object} Function statistics
+   */
+  getFunctionStats(name) {
+    return this.metrics.functions.get(name) || null;
   }
 }
 
 // Create singleton instance
 export const performanceMonitor = new PerformanceMonitor();
 
-// Export for debugging
-if (typeof window !== 'undefined') {
-  window.UniversalPaperclipsPerformance = performanceMonitor;
-}
+// Export class for testing
+export { PerformanceMonitor };

@@ -68,11 +68,13 @@ paperclips/
 npm install
 
 # Start development server (with hot reload)
-npm run dev
-# Open http://localhost:8080
+npm run dev           # Full development mode with auto-open browser
+npm run dev:quiet     # Silent mode without auto-open
+# Open http://localhost:8080 (if not auto-opened)
 
 # Build for production
-npm run build
+npm run build         # Single build
+npm run build:watch   # Build with file watching
 
 # Run tests
 npm test
@@ -222,12 +224,43 @@ UniversalPaperclips.debug.setLogLevel('debug');
 ## Next Steps
 
 1. **Optimize Render Performance**: Implement requestAnimationFrame batching
-2. **Add Hot Module Reload**: Improve development experience
+2. ✅ **Hot Module Reload**: Enhanced development experience with livereload
 3. **Mobile Optimization**: Responsive design and touch controls
 4. **Accessibility**: ARIA labels and keyboard navigation
 5. **Achievement System**: Track player milestones
 6. **Cloud Saves**: Sync across devices
 7. **Mod Support**: Allow community extensions
+
+## Hot Module Reload
+
+The development environment now includes enhanced hot module reload capabilities:
+
+### Features
+- **Automatic Browser Refresh**: Changes to source files trigger instant browser reload
+- **Livereload Integration**: Watches both `src/` and `docs/` directories
+- **Fast Rebuild**: Optimized Rollup configuration with file watching
+- **Development Scripts**: Multiple development modes available
+
+### How It Works
+1. **File Watching**: Rollup watches all files in `src/` directory
+2. **Livereload Server**: Runs on port 35729 and communicates with browser
+3. **Automatic Injection**: Livereload script automatically injected in development
+4. **HTTP Server**: Serves files from `docs/` with disabled caching
+
+### Development Workflow
+```bash
+# Start development with hot reload
+npm run dev           # Opens browser automatically
+npm run dev:quiet     # Silent mode
+
+# Make changes to any file in src/
+# Browser automatically refreshes with your changes
+```
+
+### Configuration
+- **Rollup Config**: Enhanced watch options with chokidar
+- **Livereload**: Watches multiple directories with reduced delay
+- **HTTP Server**: Configured for development with cache disabled
 
 ## Testing
 

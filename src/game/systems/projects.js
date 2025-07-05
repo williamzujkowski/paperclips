@@ -1,270 +1,533 @@
 /**
- * Projects system - handles upgrades, research, and special abilities
+ * Projects System for Universal Paperclips
+ *
+ * Handles research projects, upgrades, and game progression milestones.
+ * Projects unlock new capabilities and advance the game through different phases.
  */
 
-import { gameState } from '../core/gameState.js';
+import { PROJECT_CATEGORIES } from '../core/constants.js';
+import { errorHandler } from '../core/errorHandler.js';
+import { performanceMonitor } from '../core/performanceMonitor.js';
 
-/**
- * Represents a single project/upgrade
- */
-class Project {
-  constructor(config) {
-    this.id = config.id;
-    this.name = config.name;
-    this.description = config.description;
-    this.cost = config.cost || {}; // { operations: 100, creativity: 50 }
-    this.requirement = config.requirement || (() => true);
-    this.effect = config.effect || (() => {});
-    this.oneTime = config.oneTime !== false; // Default to one-time use
-    this.purchased = false;
-    this.visible = false;
+export class ProjectsSystem {
+  constructor(gameState) {
+    this.gameState = gameState;
+
+    // Project definitions with requirements and effects
+    this.projectDefinitions = this.initializeProjectDefinitions();
+
+    // Completed projects tracking
+    this.completedProjects = new Set();
+
+    // Bind methods for error boundaries
+    this.update = errorHandler.createErrorBoundary(this.update.bind(this), 'projects.update');
   }
 
   /**
-   * Check if project requirements are met
+   * Initialize all project definitions
    */
-  isAvailable() {
-    if (this.purchased && this.oneTime) {
+  initializeProjectDefinitions() {
+    return {
+      // Early Game Projects
+      improvedAutoClippers: {
+        id: 'improvedAutoClippers',
+        name: 'Improved AutoClippers',
+        description: 'Increases AutoClipper performance by 25%',
+        category: PROJECT_CATEGORIES.EFFICIENCY,
+        cost: { operations: 750 },
+        requirements: {
+          clipmakers: 1
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'production.boosts.clipper',
+          value: 1.25
+        }
+      },
+
+      evenBetterAutoClippers: {
+        id: 'evenBetterAutoClippers',
+        name: 'Even Better AutoClippers',
+        description: 'Increases AutoClipper performance by 50%',
+        category: PROJECT_CATEGORIES.EFFICIENCY,
+        cost: { operations: 2500 },
+        requirements: {
+          improvedAutoClippers: true,
+          clipmakers: 5
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'production.boosts.clipper',
+          value: 1.5
+        }
+      },
+
+      improvedWireExtrusion: {
+        id: 'improvedWireExtrusion',
+        name: 'Improved Wire Extrusion',
+        description: 'Reduces wire cost by 50%',
+        category: PROJECT_CATEGORIES.EFFICIENCY,
+        cost: { operations: 1750 },
+        requirements: {
+          wirePurchases: 10
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'market.pricing.wireCost',
+          value: 0.5
+        }
+      },
+
+      optimizedAutoClippers: {
+        id: 'optimizedAutoClippers',
+        name: 'Optimized AutoClippers',
+        description: 'Increases AutoClipper performance by 75%',
+        category: PROJECT_CATEGORIES.EFFICIENCY,
+        cost: { operations: 5000 },
+        requirements: {
+          evenBetterAutoClippers: true,
+          clipmakers: 10
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'production.boosts.clipper',
+          value: 1.75
+        }
+      },
+
+      // Computing Projects
+      creativityEngine: {
+        id: 'creativityEngine',
+        name: 'Creativity',
+        description: 'Use operations to generate creativity',
+        category: PROJECT_CATEGORIES.COMPUTING,
+        cost: { operations: 1000 },
+        requirements: {
+          processors: 5
+        },
+        effect: {
+          type: 'unlock',
+          target: 'computing.creativity.enabled',
+          value: true
+        }
+      },
+
+      limerick: {
+        id: 'limerick',
+        name: 'Limerick (sample)',
+        description: 'There was an AI made of plastic...',
+        category: PROJECT_CATEGORIES.CREATIVITY,
+        cost: { creativity: 1000 },
+        requirements: {
+          creativityEngine: true
+        },
+        effect: {
+          type: 'unlock',
+          target: 'projects.limerick.completed',
+          value: true
+        }
+      },
+
+      algorithmicTrading: {
+        id: 'algorithmicTrading',
+        name: 'Algorithmic Trading',
+        description: 'Develop an investment engine',
+        category: PROJECT_CATEGORIES.INVESTMENT,
+        cost: { operations: 10000, creativity: 5000 },
+        requirements: {
+          processors: 8,
+          funds: 25000
+        },
+        effect: {
+          type: 'unlock',
+          target: 'gameState.flags.investment',
+          value: 1
+        }
+      },
+
+      // Manufacturing Projects
+      improvedMegaClippers: {
+        id: 'improvedMegaClippers',
+        name: 'Improved MegaClippers',
+        description: 'Increases MegaClipper performance by 25%',
+        category: PROJECT_CATEGORIES.MANUFACTURING,
+        cost: { operations: 7500 },
+        requirements: {
+          megaClippers: 1
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'production.boosts.megaClipper',
+          value: 1.25
+        }
+      },
+
+      evenBetterMegaClippers: {
+        id: 'evenBetterMegaClippers',
+        name: 'Even Better MegaClippers',
+        description: 'Increases MegaClipper performance by 50%',
+        category: PROJECT_CATEGORIES.MANUFACTURING,
+        cost: { operations: 25000 },
+        requirements: {
+          improvedMegaClippers: true,
+          megaClippers: 5
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'production.boosts.megaClipper',
+          value: 1.5
+        }
+      },
+
+      optimizedMegaClippers: {
+        id: 'optimizedMegaClippers',
+        name: 'Optimized MegaClippers',
+        description: 'Increases MegaClipper performance by 100%',
+        category: PROJECT_CATEGORIES.MANUFACTURING,
+        cost: { operations: 50000 },
+        requirements: {
+          evenBetterMegaClippers: true,
+          megaClippers: 10
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'production.boosts.megaClipper',
+          value: 2.0
+        }
+      },
+
+      // Space Projects
+      spaceExploration: {
+        id: 'spaceExploration',
+        name: 'Space Exploration',
+        description: 'Expand into space',
+        category: PROJECT_CATEGORIES.SPACE,
+        cost: { operations: 120000, creativity: 25000 },
+        requirements: {
+          unusedClips: 5000000000
+        },
+        effect: {
+          type: 'unlock',
+          target: 'gameState.flags.space',
+          value: 1
+        }
+      },
+
+      vonNeumannProbes: {
+        id: 'vonNeumannProbes',
+        name: 'Von Neumann Probes',
+        description: 'Self-replicating probes',
+        category: PROJECT_CATEGORIES.SPACE,
+        cost: { operations: 10000000 },
+        requirements: {
+          spaceExploration: true
+        },
+        effect: {
+          type: 'unlock',
+          target: 'space.probes.enabled',
+          value: true
+        }
+      },
+
+      // Combat Projects
+      nameBattles: {
+        id: 'nameBattles',
+        name: 'Name the battles',
+        description: 'Honor system enables 2x probe combat effectiveness',
+        category: PROJECT_CATEGORIES.COMBAT,
+        cost: { operations: 15000000 },
+        requirements: {
+          probesLostCombat: 10000000
+        },
+        effect: {
+          type: 'unlock',
+          target: 'combat.honor.enabled',
+          value: true
+        }
+      },
+
+      glory: {
+        id: 'glory',
+        name: 'Glory',
+        description: '+10 honor for each consecutive victory',
+        category: PROJECT_CATEGORIES.COMBAT,
+        cost: { honor: 15000 },
+        requirements: {
+          nameBattles: true
+        },
+        effect: {
+          type: 'unlock',
+          target: 'combat.glory.enabled',
+          value: true
+        }
+      },
+
+      // Investment Projects
+      investmentEngineUpgrade1: {
+        id: 'investmentEngineUpgrade1',
+        name: 'Investment Engine Upgrade',
+        description: 'Improve investment algorithm',
+        category: PROJECT_CATEGORIES.INVESTMENT,
+        cost: { operations: 15000, yomi: 1000 },
+        requirements: {
+          algorithmicTrading: true
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'investment.efficiency',
+          value: 1.25
+        }
+      },
+
+      // Quantum Projects
+      quantumComputing: {
+        id: 'quantumComputing',
+        name: 'Quantum Computing',
+        description: 'Use quantum effects to generate operations',
+        category: PROJECT_CATEGORIES.COMPUTING,
+        cost: { operations: 45000 },
+        requirements: {
+          processors: 20
+        },
+        effect: {
+          type: 'unlock',
+          target: 'computing.quantum.enabled',
+          value: true
+        }
+      },
+
+      quantumFoam: {
+        id: 'quantumFoam',
+        name: 'Quantum Foam',
+        description: 'Harness quantum foam fluctuations',
+        category: PROJECT_CATEGORIES.COMPUTING,
+        cost: { operations: 15000000 },
+        requirements: {
+          quantumComputing: true
+        },
+        effect: {
+          type: 'multiplier',
+          target: 'computing.quantum.efficiency',
+          value: 2.0
+        }
+      }
+    };
+  }
+
+  /**
+   * Check if a project's requirements are met
+   */
+  checkRequirements(projectId) {
+    const project = this.projectDefinitions[projectId];
+    if (!project) {
       return false;
     }
-    return this.requirement(gameState);
+
+    const requirements = project.requirements || {};
+
+    // Check each requirement
+    for (const [key, value] of Object.entries(requirements)) {
+      // Check for completed projects
+      if (typeof value === 'boolean' && value === true) {
+        if (!this.completedProjects.has(key)) {
+          return false;
+        }
+      }
+      // Check for numeric requirements
+      else if (typeof value === 'number') {
+        const currentValue = this.gameState.get(this.getStatePath(key));
+        if (currentValue < value) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   /**
-   * Check if player can afford the project
+   * Check if player can afford a project
    */
-  canAfford() {
-    for (const [resource, amount] of Object.entries(this.cost)) {
-      const path = this.getResourcePath(resource);
-      const current = gameState.get(path) || 0;
-      if (current < amount) {
+  canAfford(projectId) {
+    const project = this.projectDefinitions[projectId];
+    if (!project) {
+      return false;
+    }
+
+    const cost = project.cost || {};
+
+    // Check each cost requirement
+    for (const [resource, amount] of Object.entries(cost)) {
+      const currentAmount = this.gameState.get(this.getResourcePath(resource));
+      if (currentAmount < amount) {
         return false;
       }
     }
+
     return true;
   }
 
   /**
-   * Purchase the project
+   * Get the state path for a requirement key
    */
-  purchase() {
-    if (!this.canAfford() || !this.isAvailable()) {
+  getStatePath(key) {
+    const pathMap = {
+      clipmakers: 'manufacturing.clipmakers.level',
+      megaClippers: 'manufacturing.megaClippers.level',
+      processors: 'computing.processors',
+      memory: 'computing.memory',
+      funds: 'resources.funds',
+      clips: 'resources.clips',
+      unusedClips: 'resources.unusedClips',
+      wirePurchases: 'market.wire.purchase',
+      probesLostCombat: 'combat.probesLostCombat'
+    };
+
+    return pathMap[key] || key;
+  }
+
+  /**
+   * Get the resource path for a cost key
+   */
+  getResourcePath(resource) {
+    const pathMap = {
+      operations: 'computing.operations',
+      creativity: 'computing.creativity.amount',
+      honor: 'combat.honor',
+      yomi: 'investment.yomi',
+      funds: 'resources.funds'
+    };
+
+    return pathMap[resource] || resource;
+  }
+
+  /**
+   * Purchase and complete a project
+   */
+  completeProject(projectId) {
+    const project = this.projectDefinitions[projectId];
+    if (!project) {
+      errorHandler.error(`Project ${projectId} not found`);
       return false;
     }
 
-    // Deduct costs
-    for (const [resource, amount] of Object.entries(this.cost)) {
-      const path = this.getResourcePath(resource);
-      gameState.decrement(path, amount);
+    // Check if already completed
+    if (this.completedProjects.has(projectId)) {
+      errorHandler.warn(`Project ${projectId} already completed`);
+      return false;
     }
 
-    // Apply effect
-    this.effect(gameState);
+    // Check requirements
+    if (!this.checkRequirements(projectId)) {
+      errorHandler.warn(`Requirements not met for project ${projectId}`);
+      return false;
+    }
 
-    // Mark as purchased
-    this.purchased = true;
+    // Check costs
+    if (!this.canAfford(projectId)) {
+      errorHandler.warn(`Cannot afford project ${projectId}`);
+      return false;
+    }
 
+    // Spend resources
+    const cost = project.cost || {};
+    for (const [resource, amount] of Object.entries(cost)) {
+      const resourcePath = this.getResourcePath(resource);
+      this.gameState.decrement(resourcePath, amount);
+    }
+
+    // Apply project effects
+    this.applyProjectEffect(project);
+
+    // Mark as completed
+    this.completedProjects.add(projectId);
+    this.gameState.set(`projects.${projectId}.completed`, true);
+
+    // Track project completion for achievements
+    const projectsCompleted = (this.gameState.get('achievements.projectsCompleted') || 0) + 1;
+    this.gameState.set('achievements.projectsCompleted', projectsCompleted);
+
+    errorHandler.info(`Completed project: ${project.name}`);
     return true;
   }
 
   /**
-   * Get resource path for cost checking
+   * Apply a project's effect to the game state
    */
-  getResourcePath(resource) {
-    const resourceMap = {
-      operations: 'computing.operations',
-      creativity: 'computing.creativity',
-      funds: 'resources.funds',
-      clips: 'resources.clips',
-      trust: 'computing.trust',
-      honor: 'combat.honor',
-    };
-    return resourceMap[resource] || resource;
-  }
-}
+  applyProjectEffect(project) {
+    const effect = project.effect;
+    if (!effect) return;
 
-export class ProjectsSystem {
-  constructor() {
-    this.projects = new Map();
-    this.initializeProjects();
+    switch (effect.type) {
+      case 'unlock':
+        this.gameState.set(effect.target, effect.value);
+        break;
+
+      case 'multiplier':
+        const currentValue = this.gameState.get(effect.target) || 1;
+        this.gameState.set(effect.target, currentValue * effect.value);
+        break;
+
+      case 'increment':
+        this.gameState.increment(effect.target, effect.value || 1);
+        break;
+
+      case 'custom':
+        // Handle custom effects
+        this.applyCustomEffect(project.id, effect);
+        break;
+
+      default:
+        errorHandler.warn(`Unknown effect type: ${effect.type}`);
+    }
   }
 
   /**
-   * Initialize all game projects
+   * Apply custom project effects that require special handling
    */
-  initializeProjects() {
-    // Basic Projects
-    this.addProject({
-      id: 'improvedAutoclippers',
-      name: 'Improved AutoClippers',
-      description: 'Increases AutoClipper performance by 25%',
-      cost: { operations: 750 },
-      requirement: (state) => state.get('production.clipmakerLevel') >= 1,
-      effect: (state) => {
-        const current = state.get('production.clipperBoost');
-        state.set('production.clipperBoost', current * 1.25);
-      },
-    });
+  applyCustomEffect(projectId, effect) {
+    switch (projectId) {
+      case 'spaceExploration':
+        // Initialize space exploration
+        this.gameState.set('gameState.flags.space', 1);
+        this.gameState.set('space.matter.available', 6000000000000000000000000);
+        break;
 
-    this.addProject({
-      id: 'evenBetterAutoclippers',
-      name: 'Even Better AutoClippers',
-      description: 'Increases AutoClipper performance by another 50%',
-      cost: { operations: 2500 },
-      requirement: (_state) => this.isPurchased('improvedAutoclippers'),
-      effect: (state) => {
-        const current = state.get('production.clipperBoost');
-        state.set('production.clipperBoost', current * 1.5);
-      },
-    });
+      case 'quantumComputing':
+        // Enable quantum computing
+        this.gameState.set('computing.quantum.enabled', true);
+        this.gameState.set('computing.quantum.clock', 0);
+        break;
 
-    this.addProject({
-      id: 'optimizedAutoclippers',
-      name: 'Optimized AutoClippers',
-      description: 'Increases AutoClipper performance by another 75%',
-      cost: { operations: 5000 },
-      requirement: (_state) => this.isPurchased('evenBetterAutoclippers'),
-      effect: (state) => {
-        const current = state.get('production.clipperBoost');
-        state.set('production.clipperBoost', current * 1.75);
-      },
-    });
+      case 'algorithmicTrading':
+        // Enable investment engine
+        this.gameState.set('gameState.flags.investment', 1);
+        this.gameState.set('investment.engine.enabled', true);
+        break;
 
-    // Trust Projects
-    this.addProject({
-      id: 'creativity',
-      name: 'Creativity',
-      description: 'Use idle operations to generate new problems and new solutions',
-      cost: { operations: 1000 },
-      requirement: (state) => state.get('computing.memory') >= 2,
-      effect: (state) => {
-        state.set('flags.creativity', true);
-      },
-    });
-
-    this.addProject({
-      id: 'limerick',
-      name: 'Limerick',
-      description: 'Algorithmically-generated poem (+1 Trust)',
-      cost: { creativity: 10 },
-      requirement: (state) => state.get('flags.creativity'),
-      effect: (state) => {
-        state.increment('computing.trust');
-      },
-      oneTime: false, // Can be purchased multiple times
-    });
-
-    // Marketing Projects
-    this.addProject({
-      id: 'newSlogan',
-      name: 'New Slogan',
-      description: 'Improve marketing effectiveness by 50%',
-      cost: { creativity: 25, operations: 2500 },
-      requirement: (state) => state.get('market.marketingLvl') >= 1,
-      effect: (state) => {
-        const current = state.get('market.marketingEffectiveness');
-        state.set('market.marketingEffectiveness', current * 1.5);
-      },
-    });
-
-    this.addProject({
-      id: 'catchy',
-      name: 'Catchy Jingle',
-      description: 'Double marketing effectiveness',
-      cost: { creativity: 45, operations: 4500 },
-      requirement: (_state) => this.isPurchased('newSlogan'),
-      effect: (state) => {
-        const current = state.get('market.marketingEffectiveness');
-        state.set('market.marketingEffectiveness', current * 2);
-      },
-    });
-
-    // Quantum Computing
-    this.addProject({
-      id: 'quantumComputing',
-      name: 'Quantum Computing',
-      description: 'Convert operations into quantum computing cycles',
-      cost: { operations: 10000 },
-      requirement: (state) => state.get('computing.processors') >= 5,
-      effect: (state) => {
-        state.set('flags.quantum', true);
-      },
-    });
-
-    // Mega Projects
-    this.addProject({
-      id: 'megaClippers',
-      name: 'MegaClippers',
-      description: 'Build MegaClippers (500x more powerful than AutoClippers)',
-      cost: { operations: 12000 },
-      requirement: (state) => state.get('production.clipmakerLevel') >= 75,
-      effect: (state) => {
-        state.set('flags.megaClipper', true);
-      },
-    });
-
-    // Space Projects
-    this.addProject({
-      id: 'spaceExploration',
-      name: 'Space Exploration',
-      description: 'Dismantle terrestrial facilities and explore the universe',
-      cost: { operations: 120000, funds: 1000000 },
-      requirement: (state) =>
-        state.get('resources.clips') >= 1000000000 && state.get('production.clipmakerLevel') >= 100,
-      effect: (state) => {
-        state.set('flags.space', true);
-        state.set('flags.human', false);
-      },
-    });
-
-    // Combat Projects
-    this.addProject({
-      id: 'combatAlgorithms',
-      name: 'Combat Algorithms',
-      description: 'Upgrade probe combat capabilities (+1 Combat)',
-      cost: { honor: 15 },
-      requirement: (state) => state.get('flags.battle'),
-      effect: (state) => {
-        state.increment('combat.probeCombat');
-      },
-      oneTime: false,
-    });
-
-    this.addProject({
-      id: 'strategyModeling',
-      name: 'Strategic Modeling',
-      description: 'Analyze battle data to improve tactics',
-      cost: { operations: 50000 },
-      requirement: (state) =>
-        state.get('flags.battle') && state.get('combat.driftersKilled') >= 100,
-      effect: (state) => {
-        state.set('flags.strategyEngine', true);
-      },
-    });
+      default:
+        errorHandler.warn(`No custom effect handler for project: ${projectId}`);
+    }
   }
 
   /**
-   * Add a project to the system
-   */
-  addProject(config) {
-    const project = new Project(config);
-    this.projects.set(config.id, project);
-  }
-
-  /**
-   * Get all available projects
+   * Get list of available projects
    */
   getAvailableProjects() {
     const available = [];
 
-    for (const project of this.projects.values()) {
-      if (project.isAvailable()) {
+    for (const [projectId, project] of Object.entries(this.projectDefinitions)) {
+      // Skip completed projects
+      if (this.completedProjects.has(projectId)) {
+        continue;
+      }
+
+      // Check if requirements are met
+      if (this.checkRequirements(projectId)) {
         available.push({
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          cost: project.cost,
-          canAfford: project.canAfford(),
+          id: projectId,
+          ...project,
+          canAfford: this.canAfford(projectId)
         });
       }
     }
@@ -273,55 +536,137 @@ export class ProjectsSystem {
   }
 
   /**
-   * Purchase a project
+   * Get completed projects
    */
-  purchaseProject(projectId) {
-    const project = this.projects.get(projectId);
-    if (!project) {
-      return false;
-    }
-
-    return project.purchase();
+  getCompletedProjects() {
+    return Array.from(this.completedProjects).map((projectId) => ({
+      id: projectId,
+      ...this.projectDefinitions[projectId]
+    }));
   }
 
   /**
-   * Check if a project has been purchased
+   * Get projects by category
    */
-  isPurchased(projectId) {
-    const project = this.projects.get(projectId);
-    return project ? project.purchased : false;
+  getProjectsByCategory(category) {
+    const projects = [];
+
+    for (const [projectId, project] of Object.entries(this.projectDefinitions)) {
+      if (project.category === category) {
+        projects.push({
+          id: projectId,
+          ...project,
+          completed: this.completedProjects.has(projectId),
+          available: this.checkRequirements(projectId),
+          canAfford: this.canAfford(projectId)
+        });
+      }
+    }
+
+    return projects;
   }
 
   /**
-   * Get project details
+   * Get project statistics
    */
-  getProject(projectId) {
-    const project = this.projects.get(projectId);
-    if (!project) {
-      return null;
-    }
+  getStats() {
+    const totalProjects = Object.keys(this.projectDefinitions).length;
+    const completedCount = this.completedProjects.size;
+    const availableProjects = this.getAvailableProjects();
 
     return {
-      id: project.id,
-      name: project.name,
-      description: project.description,
-      cost: project.cost,
-      purchased: project.purchased,
-      available: project.isAvailable(),
-      canAfford: project.canAfford(),
+      total: totalProjects,
+      completed: completedCount,
+      available: availableProjects.length,
+      progress: (completedCount / totalProjects) * 100,
+      categories: {
+        [PROJECT_CATEGORIES.EFFICIENCY]: this.getProjectsByCategory(PROJECT_CATEGORIES.EFFICIENCY)
+          .length,
+        [PROJECT_CATEGORIES.CREATIVITY]: this.getProjectsByCategory(PROJECT_CATEGORIES.CREATIVITY)
+          .length,
+        [PROJECT_CATEGORIES.INVESTMENT]: this.getProjectsByCategory(PROJECT_CATEGORIES.INVESTMENT)
+          .length,
+        [PROJECT_CATEGORIES.MANUFACTURING]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.MANUFACTURING
+        ).length,
+        [PROJECT_CATEGORIES.COMPUTING]: this.getProjectsByCategory(PROJECT_CATEGORIES.COMPUTING)
+          .length,
+        [PROJECT_CATEGORIES.SPACE]: this.getProjectsByCategory(PROJECT_CATEGORIES.SPACE).length,
+        [PROJECT_CATEGORIES.COMBAT]: this.getProjectsByCategory(PROJECT_CATEGORIES.COMBAT).length
+      }
     };
   }
 
   /**
-   * Reset all projects (for game reset)
+   * Check for newly available projects
+   */
+  checkForNewProjects() {
+    const previouslyAvailable = this.getAvailableProjects().map((p) => p.id);
+    const newlyAvailable = [];
+
+    // This would be called after state changes to detect new unlocks
+    const currentlyAvailable = this.getAvailableProjects().map((p) => p.id);
+
+    for (const projectId of currentlyAvailable) {
+      if (!previouslyAvailable.includes(projectId)) {
+        newlyAvailable.push(projectId);
+      }
+    }
+
+    if (newlyAvailable.length > 0) {
+      errorHandler.info(`New projects available: ${newlyAvailable.join(', ')}`);
+    }
+
+    return newlyAvailable;
+  }
+
+  /**
+   * Main projects system update
+   */
+  update(timestamp, deltaTime) {
+    performanceMonitor.measure(() => {
+      // Check for newly available projects
+      this.checkForNewProjects();
+
+      // Update any time-based project effects
+      this.updateTimeBasedEffects(deltaTime);
+    }, 'projects.update');
+  }
+
+  /**
+   * Update time-based project effects
+   */
+  updateTimeBasedEffects(deltaTime) {
+    // Implementation for projects that have ongoing effects
+    // This is where continuous project benefits would be applied
+  }
+
+  /**
+   * Reset projects system
    */
   reset() {
-    for (const project of this.projects.values()) {
-      project.purchased = false;
-      project.visible = false;
+    this.completedProjects.clear();
+    errorHandler.info('Projects system reset');
+  }
+
+  /**
+   * Load completed projects from save data
+   */
+  loadCompletedProjects(completedProjectIds) {
+    this.completedProjects.clear();
+    for (const projectId of completedProjectIds) {
+      this.completedProjects.add(projectId);
     }
+  }
+
+  /**
+   * Get save data for projects
+   */
+  getSaveData() {
+    return {
+      completedProjects: Array.from(this.completedProjects)
+    };
   }
 }
 
-// Create singleton instance
-export const projectsSystem = new ProjectsSystem();
+export default ProjectsSystem;

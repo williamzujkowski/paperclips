@@ -1,128 +1,133 @@
 /**
- * Production system - handles paperclip manufacturing and automation
+ * Production System for Universal Paperclips
+ *
+ * Handles all clip production mechanics including manual clipping,
+ * AutoClippers, MegaClippers, and Factories.
  */
 
-import { gameState } from '../core/gameState.js';
-import { memoryProfiler } from '../utils/memoryProfiler.js';
+import { BALANCE } from '../core/constants.js';
+import { errorHandler } from '../core/errorHandler.js';
+import { performanceMonitor } from '../core/performanceMonitor.js';
 
 export class ProductionSystem {
-  constructor() {
-    this.baseClipTime = 1000; // milliseconds per manual clip
-    this.lastClipTime = 0;
+  constructor(gameState) {
+    this.gameState = gameState;
+    this.lastClipCount = 0;
+    this.clipRateTracker = [];
+    this.maxTrackerSize = 100;
+
+    // Bind methods for error boundaries
+    this.update = errorHandler.createErrorBoundary(this.update.bind(this), 'production.update');
   }
 
   /**
-   * Update production rates and process automated production
+   * Core clip production function - consumes wire to make clips
+   * @param {number} amount - Amount of clips to produce
+   * @returns {number} Actual clips produced
    */
-  update(deltaTime) {
-    const stopProfile = memoryProfiler.startProfile('production.update');
+  produceClips(amount) {
+    if (amount <= 0) return 0;
 
-    // Calculate clip production rate
-    this.updateClipRate();
+    const wire = this.gameState.get('resources.wire');
+    const actualAmount = Math.min(amount, wire);
 
-    // Process automated production
-    this.processAutomatedProduction(deltaTime);
-
-    // Update wire consumption
-    this.updateWireConsumption();
-
-    // Update factory systems if unlocked
-    if (gameState.get('flags.factory')) {
-      this.updateFactoryProduction(deltaTime);
-    }
-
-    stopProfile();
-  }
-
-  /**
-   * Calculate current clip production rate
-   */
-  updateClipRate() {
-    let rate = 0;
-
-    // Add clipmaker production
-    const clipmakerLevel = gameState.get('production.clipmakerLevel');
-    const clipperBoost = gameState.get('production.clipperBoost');
-    if (clipmakerLevel > 0) {
-      rate += clipmakerLevel * clipperBoost;
-    }
-
-    // Add megaclipper production
-    const megaClipperLevel = gameState.get('production.megaClipperLevel');
-    const megaClipperBoost = gameState.get('production.megaClipperBoost');
-    if (megaClipperLevel > 0) {
-      rate += megaClipperLevel * megaClipperBoost * 500;
-    }
-
-    gameState.set('production.clipRate', rate);
-    gameState.set('production.clipRateTemp', rate);
-  }
-
-  /**
-   * Process automated clip production
-   */
-  processAutomatedProduction(deltaTime) {
-    const clipRate = gameState.get('production.clipRate');
-    const wire = gameState.get('resources.wire');
-
-    if (clipRate > 0 && wire > 0) {
-      // Calculate clips to produce this tick
-      const clipsToMake = (clipRate * deltaTime) / 1000;
-      const wireNeeded = Math.ceil(clipsToMake);
-
-      if (wire >= wireNeeded) {
-        // Produce clips
-        gameState.increment('resources.clips', clipsToMake);
-        gameState.increment('resources.unusedClips', clipsToMake);
-        gameState.decrement('resources.wire', wireNeeded);
-      } else {
-        // Partial production based on available wire
-        const partialClips = wire;
-        gameState.increment('resources.clips', partialClips);
-        gameState.increment('resources.unusedClips', partialClips);
-        gameState.set('resources.wire', 0);
+    if (actualAmount > 0) {
+      // Check for endgame condition
+      const dismantle = this.gameState.get('endGame.dismantle');
+      if (dismantle >= 4) {
+        return 0; // Stop production during endgame
       }
+
+      // Produce clips
+      this.gameState.increment('resources.clips', actualAmount);
+      this.gameState.increment('resources.totalClips', actualAmount);
+      this.gameState.increment('resources.unsoldClips', actualAmount);
+      this.gameState.increment('resources.unusedClips', actualAmount);
+      this.gameState.decrement('resources.wire', actualAmount);
+
+      // Track clips per spool for achievements
+      const currentSpoolClips =
+        (this.gameState.get('achievements.currentSpoolClips') || 0) + actualAmount;
+      this.gameState.set('achievements.currentSpoolClips', currentSpoolClips);
+
+      // Update production tracking
+      this.trackProduction(actualAmount);
     }
+
+    return actualAmount;
   }
 
   /**
-   * Make a single paperclip manually
+   * Manual clip production (clicking)
+   * @param {number} amount - Number of clicks/clips to produce
+   * @returns {number} Clips produced
    */
-  makeClip() {
-    const wire = gameState.get('resources.wire');
-
-    if (wire >= 1) {
-      gameState.increment('resources.clips');
-      gameState.increment('resources.unusedClips');
-      gameState.decrement('resources.wire');
-
-      // Track manual clip production for achievements
-      gameState.increment('meta.manualClips');
-
-      return true;
-    }
-
-    return false;
+  manualClip(amount = 1) {
+    return performanceMonitor.measure(() => {
+      return this.produceClips(amount);
+    }, 'production.manualClip');
   }
 
   /**
-   * Buy an auto-clipper
+   * AutoClipper production update
+   * @returns {number} Clips produced this update
+   */
+  updateAutoClippers() {
+    const level = this.gameState.get('manufacturing.clipmakers.level');
+    if (level <= 0) return 0;
+
+    const boost = this.gameState.get('production.boosts.clipper');
+    const rate = boost * (level / 100); // Each clipmaker produces level/100 clips per tick
+
+    return this.produceClips(rate);
+  }
+
+  /**
+   * MegaClipper production update
+   * @returns {number} Clips produced this update
+   */
+  updateMegaClippers() {
+    const level = this.gameState.get('manufacturing.megaClippers.level');
+    if (level <= 0) return 0;
+
+    const boost = this.gameState.get('production.boosts.megaClipper');
+    const rate = boost * (level * 5); // Each MegaClipper produces 5 clips per tick
+
+    return this.produceClips(rate);
+  }
+
+  /**
+   * Factory production update
+   * @returns {number} Clips produced this update
+   */
+  updateFactories() {
+    const level = this.gameState.get('manufacturing.factories.level');
+    if (level <= 0) return 0;
+
+    const boost = this.gameState.get('production.boosts.factory');
+    const powMod = this.gameState.get('power.modifier') || 1;
+    const factoryRate = BALANCE.FACTORY_RATE;
+
+    const rate = powMod * boost * (level * factoryRate);
+
+    return this.produceClips(rate);
+  }
+
+  /**
+   * Purchase an AutoClipper
+   * @returns {boolean} Whether purchase was successful
    */
   buyAutoClipper() {
-    const funds = gameState.get('resources.funds');
-    const cost = gameState.get('market.clipperCost');
+    const level = this.gameState.get('manufacturing.clipmakers.level');
+    const cost = this.calculateAutoClipperCost(level);
+    const funds = this.gameState.get('resources.funds');
 
     if (funds >= cost) {
-      gameState.decrement('resources.funds', cost);
-      gameState.increment('production.clipmakerLevel');
+      this.gameState.decrement('resources.funds', cost);
+      this.gameState.increment('manufacturing.clipmakers.level');
+      this.gameState.set('manufacturing.clipmakers.cost', this.calculateAutoClipperCost(level + 1));
 
-      // Increase cost for next clipper
-      const newCost = Math.ceil(cost * 1.1);
-      gameState.set('market.clipperCost', newCost);
-
-      // Update clip rate
-      this.updateClipRate();
-
+      errorHandler.debug(`Purchased AutoClipper #${level + 1} for $${cost}`);
       return true;
     }
 
@@ -130,23 +135,32 @@ export class ProductionSystem {
   }
 
   /**
-   * Buy a mega-clipper
+   * Calculate AutoClipper cost
+   * @param {number} level - Current level
+   * @returns {number} Cost for next AutoClipper
+   */
+  calculateAutoClipperCost(level) {
+    return Math.round((Math.pow(1.1, level) + BALANCE.CLIPMAKER_BASE_COST) * 100) / 100;
+  }
+
+  /**
+   * Purchase a MegaClipper
+   * @returns {boolean} Whether purchase was successful
    */
   buyMegaClipper() {
-    const funds = gameState.get('resources.funds');
-    const cost = gameState.get('market.megaClipperCost');
+    const level = this.gameState.get('manufacturing.megaClippers.level');
+    const cost = this.calculateMegaClipperCost(level);
+    const funds = this.gameState.get('resources.funds');
 
     if (funds >= cost) {
-      gameState.decrement('resources.funds', cost);
-      gameState.increment('production.megaClipperLevel');
+      this.gameState.decrement('resources.funds', cost);
+      this.gameState.increment('manufacturing.megaClippers.level');
+      this.gameState.set(
+        'manufacturing.megaClippers.cost',
+        this.calculateMegaClipperCost(level + 1)
+      );
 
-      // Increase cost for next mega-clipper
-      const newCost = Math.ceil(cost * 1.12);
-      gameState.set('market.megaClipperCost', newCost);
-
-      // Update clip rate
-      this.updateClipRate();
-
+      errorHandler.debug(`Purchased MegaClipper #${level + 1} for $${cost}`);
       return true;
     }
 
@@ -154,77 +168,199 @@ export class ProductionSystem {
   }
 
   /**
-   * Update wire consumption tracking
+   * Calculate MegaClipper cost
+   * @param {number} level - Current level
+   * @returns {number} Cost for next MegaClipper
    */
-  updateWireConsumption() {
-    const clipRate = gameState.get('production.clipRate');
-    const wireConsumptionRate = clipRate; // 1 wire per clip
-
-    gameState.set('production.wireConsumptionRate', wireConsumptionRate);
+  calculateMegaClipperCost(level) {
+    // Cost grows exponentially
+    return Math.pow(1.2, level) * BALANCE.MEGACLIPPER_BASE_COST;
   }
 
   /**
-   * Update factory production (space phase)
+   * Purchase a Factory
+   * @returns {boolean} Whether purchase was successful
    */
-  updateFactoryProduction(deltaTime) {
-    const factoryLevel = gameState.get('infrastructure.factoryLevel');
-    const factoryBoost = gameState.get('production.factoryBoost');
-    const availableMatter = gameState.get('resources.availableMatter');
+  buyFactory() {
+    const level = this.gameState.get('manufacturing.factories.level');
+    const cost = this.calculateFactoryCost(level);
+    const unusedClips = this.gameState.get('resources.unusedClips');
 
-    if (factoryLevel > 0 && availableMatter > 0) {
-      const productionRate = factoryLevel * factoryBoost;
-      const matterToProcess = Math.min((productionRate * deltaTime) / 1000, availableMatter);
+    if (unusedClips >= cost) {
+      this.gameState.decrement('resources.unusedClips', cost);
+      this.gameState.increment('manufacturing.factories.level');
+      this.gameState.set('manufacturing.factories.cost', this.calculateFactoryCost(level + 1));
 
-      if (matterToProcess > 0) {
-        gameState.decrement('resources.availableMatter', matterToProcess);
-        gameState.increment('resources.processedMatter', matterToProcess);
-        gameState.increment('resources.wire', matterToProcess * 1000); // 1 matter = 1000 wire
-      }
+      errorHandler.debug(`Purchased Factory #${level + 1} for ${cost} clips`);
+      return true;
     }
+
+    return false;
   }
 
   /**
-   * Get current production statistics
+   * Calculate Factory cost using legacy formula
+   * @param {number} level - Current level
+   * @returns {number} Cost for next Factory
    */
-  getProductionStats() {
+  calculateFactoryCost(level) {
+    let baseCost = BALANCE.FACTORY_BASE_COST;
+
+    // Apply the complex factory cost modifier from legacy code
+    let fcmod = 1;
+    if (level > 0 && level < 8) {
+      fcmod = 11 - level;
+    } else if (level > 7 && level < 13) {
+      fcmod = 2;
+    } else if (level > 12 && level < 20) {
+      fcmod = 1.5;
+    } else if (level > 19 && level < 39) {
+      fcmod = 1.25;
+    } else if (level > 38 && level < 79) {
+      fcmod = 1.15;
+    } else if (level >= 79) {
+      fcmod = 1.1;
+    }
+
+    // Calculate total cost with compounding
+    let totalCost = baseCost;
+    for (let i = 0; i < level; i++) {
+      totalCost *= fcmod;
+    }
+
+    return Math.floor(totalCost);
+  }
+
+  /**
+   * Track clip production for rate calculation
+   * @param {number} clipsProduced - Clips produced this update
+   */
+  trackProduction(clipsProduced) {
+    this.clipRateTracker.push(clipsProduced);
+
+    // Keep only recent samples
+    if (this.clipRateTracker.length > this.maxTrackerSize) {
+      this.clipRateTracker.shift();
+    }
+
+    // Calculate and update clip rate
+    const totalProduced = this.clipRateTracker.reduce((sum, clips) => sum + clips, 0);
+    const rate = totalProduced / this.clipRateTracker.length;
+
+    this.gameState.set('production.clipRate', rate);
+  }
+
+  /**
+   * Get current production rates
+   * @returns {Object} Production rates for all systems
+   */
+  getProductionRates() {
+    const autoClipperLevel = this.gameState.get('manufacturing.clipmakers.level');
+    const megaClipperLevel = this.gameState.get('manufacturing.megaClippers.level');
+    const factoryLevel = this.gameState.get('manufacturing.factories.level');
+
+    const clipperBoost = this.gameState.get('production.boosts.clipper');
+    const megaClipperBoost = this.gameState.get('production.boosts.megaClipper');
+    const factoryBoost = this.gameState.get('production.boosts.factory');
+    const powMod = this.gameState.get('power.modifier') || 1;
+
     return {
-      clipRate: gameState.get('production.clipRate'),
-      clipmakerLevel: gameState.get('production.clipmakerLevel'),
-      megaClipperLevel: gameState.get('production.megaClipperLevel'),
-      factoryLevel: gameState.get('infrastructure.factoryLevel'),
-      wireConsumptionRate: gameState.get('production.wireConsumptionRate') || 0,
-      factoryRate: gameState.get('production.factoryRate'),
+      autoClippers: clipperBoost * (autoClipperLevel / 100),
+      megaClippers: megaClipperBoost * (megaClipperLevel * 5),
+      factories: powMod * factoryBoost * (factoryLevel * BALANCE.FACTORY_RATE),
+      total: 0 // Will be calculated by summing the above
     };
   }
 
   /**
-   * Apply production boost to specific producer type
-   * @param {string} type - Type of boost ('clipper', 'megaClipper', or 'factory')
-   * @param {number} multiplier - Boost multiplier to apply
-   * @returns {void}
-   * @example
-   * productionSystem.applyProductionBoost('clipper', 2.0); // Double clipper speed
+   * Get production statistics
+   * @returns {Object} Production statistics
    */
-  applyProductionBoost(type, multiplier) {
-    switch (type) {
-      case 'clipper':
-        gameState.set('production.clipperBoost', multiplier);
-        break;
-      case 'megaClipper':
-        gameState.set('production.megaClipperBoost', multiplier);
-        break;
-      case 'factory':
-        gameState.set('production.factoryBoost', multiplier);
-        break;
-      case 'drone':
-        gameState.set('production.droneBoost', multiplier);
-        break;
+  getStats() {
+    const rates = this.getProductionRates();
+    rates.total = rates.autoClippers + rates.megaClippers + rates.factories;
+
+    return {
+      currentRate: this.gameState.get('production.clipRate'),
+      theoreticalRates: rates,
+      wireEfficiency: this.calculateWireEfficiency(),
+      totalClipsProduced: this.gameState.get('resources.clips'),
+      autoClipperCount: this.gameState.get('manufacturing.clipmakers.level'),
+      megaClipperCount: this.gameState.get('manufacturing.megaClippers.level'),
+      factoryCount: this.gameState.get('manufacturing.factories.level')
+    };
+  }
+
+  /**
+   * Calculate wire efficiency (clips per wire)
+   * @returns {number} Wire efficiency ratio
+   */
+  calculateWireEfficiency() {
+    const totalClips = this.gameState.get('resources.clips');
+    const startingWire = BALANCE.STARTING_WIRE;
+    const currentWire = this.gameState.get('resources.wire');
+    const wireUsed = startingWire - currentWire;
+
+    return wireUsed > 0 ? totalClips / wireUsed : 1;
+  }
+
+  /**
+   * Main production system update
+   * Called by the game loop
+   */
+  update() {
+    performanceMonitor.measure(() => {
+      // Update all production systems
+      const autoClipperProduction = this.updateAutoClippers();
+      const megaClipperProduction = this.updateMegaClippers();
+      const factoryProduction = this.updateFactories();
+
+      // Track total production this tick
+      const totalProduction = autoClipperProduction + megaClipperProduction + factoryProduction;
+
+      if (totalProduction > 0) {
+        this.trackProduction(totalProduction);
+      }
+
+      // Update temporary tracking values
+      this.gameState.set('production.clipRateTemp', totalProduction);
+    }, 'production.update');
+  }
+
+  /**
+   * Reset production system
+   */
+  reset() {
+    this.clipRateTracker = [];
+    this.lastClipCount = 0;
+    errorHandler.info('Production system reset');
+  }
+
+  /**
+   * Check if production is possible
+   * @returns {boolean} Whether production can occur
+   */
+  canProduce() {
+    const wire = this.gameState.get('resources.wire');
+    const dismantle = this.gameState.get('endGame.dismantle');
+
+    return wire > 0 && dismantle < 4;
+  }
+
+  /**
+   * Estimate time to produce target clips
+   * @param {number} targetClips - Target number of clips
+   * @returns {number} Estimated time in seconds
+   */
+  estimateProductionTime(targetClips) {
+    const currentRate = this.gameState.get('production.clipRate');
+
+    if (currentRate <= 0) {
+      return Infinity;
     }
 
-    // Recalculate rates
-    this.updateClipRate();
+    return targetClips / currentRate;
   }
 }
 
-// Create singleton instance
-export const productionSystem = new ProductionSystem();
+export default ProductionSystem;

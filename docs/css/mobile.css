@@ -1,0 +1,718 @@
+/* Universal Paperclips - Mobile Responsive CSS */
+
+/* ===== Variables ===== */
+:root {
+    --primary-color: #007cba;
+    --primary-hover: #005a87;
+    --success-color: #28a745;
+    --success-hover: #218838;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --bg-color: #f0f0f0;
+    --card-bg: white;
+    --text-color: #333;
+    --text-secondary: #666;
+    --border-color: #ddd;
+    --min-touch-target: 44px;
+    --mobile-padding: 10px;
+    --desktop-padding: 20px;
+    --header-height: 60px;
+}
+
+/* ===== Base Responsive Styles ===== */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    margin: 0;
+    padding: var(--desktop-padding);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* ===== Mobile Navigation Header ===== */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background: var(--card-bg);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000;
+    padding: 0 var(--mobile-padding);
+    align-items: center;
+    justify-content: space-between;
+    transition: box-shadow 0.3s ease;
+}
+
+.mobile-header.scrolled {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.mobile-header h1 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.hamburger span {
+    width: 100%;
+    height: 3px;
+    background: var(--text-color);
+    transition: all 0.3s;
+}
+
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* ===== Mobile Navigation Menu ===== */
+.mobile-nav {
+    display: none;
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--card-bg);
+    z-index: 999;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.mobile-nav.active {
+    transform: translateX(0);
+}
+
+.mobile-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.mobile-nav-item {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-nav-link {
+    display: block;
+    padding: 15px var(--mobile-padding);
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: bold;
+    min-height: var(--min-touch-target);
+    display: flex;
+    align-items: center;
+}
+
+.mobile-nav-link:active {
+    background: var(--bg-color);
+}
+
+/* ===== Container Adjustments ===== */
+.game-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    transition: padding-top 0.3s ease;
+}
+
+/* ===== Section Styles ===== */
+.game-section {
+    background: var(--card-bg);
+    margin: 20px 0;
+    padding: var(--desktop-padding);
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.game-section h2 {
+    margin-top: 0;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+/* Collapsible sections for mobile */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.section-toggle {
+    display: none;
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.section-content {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.section-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* ===== Stats Grid Responsive ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--bg-color);
+    border-radius: 3px;
+    min-height: var(--min-touch-target);
+}
+
+.stat-label {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.stat-value {
+    font-family: monospace;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* ===== Button Styles ===== */
+.button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 1rem;
+    min-height: var(--min-touch-target);
+    min-width: var(--min-touch-target);
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+}
+
+.button:hover {
+    background: var(--primary-hover);
+}
+
+.button:active {
+    transform: scale(0.98);
+}
+
+.button:disabled, .button.disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.button.primary {
+    background: var(--success-color);
+    font-size: 1.1rem;
+    padding: 15px 30px;
+    font-weight: bold;
+}
+
+.button.primary:hover {
+    background: var(--success-hover);
+}
+
+.button.danger {
+    background: var(--danger-color);
+}
+
+/* ===== Controls Layout ===== */
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 15px 0;
+    align-items: center;
+}
+
+.price-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ===== Slider Styles ===== */
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 15px 0;
+    padding: 10px 0;
+}
+
+.slider-container label {
+    font-weight: bold;
+    min-width: 100px;
+}
+
+.slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: var(--border-color);
+    outline: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    cursor: pointer;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: var(--primary-color);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.slider:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+}
+
+.slider:active::-moz-range-thumb {
+    transform: scale(1.2);
+}
+
+/* ===== Performance Stats Mobile ===== */
+.performance-stats {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-family: monospace;
+    max-width: 200px;
+}
+
+/* ===== Feedback Messages Mobile ===== */
+.feedback {
+    position: fixed;
+    top: 70px;
+    right: 10px;
+    left: 10px;
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 12px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 1001;
+    display: none;
+    text-align: center;
+}
+
+/* ===== Mobile Breakpoints ===== */
+
+/* Tablet Portrait and below */
+@media (max-width: 768px) {
+    body {
+        padding: 0;
+        padding-top: var(--header-height);
+    }
+    
+    .mobile-header {
+        display: flex;
+    }
+    
+    .mobile-nav {
+        display: block;
+    }
+    
+    .game-header {
+        margin-bottom: 20px;
+        padding: var(--mobile-padding);
+    }
+    
+    .game-header h1 {
+        display: none; /* Hidden as it's in mobile header */
+    }
+    
+    .game-header p {
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    
+    .game-section {
+        margin: 10px;
+        padding: 15px;
+        border-radius: 0;
+    }
+    
+    .game-section h2 {
+        font-size: 1.3rem;
+        padding-bottom: 8px;
+    }
+    
+    .section-toggle {
+        display: block;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .button {
+        width: 100%;
+        margin: 5px 0;
+    }
+    
+    .price-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .price-controls .button {
+        flex: 1;
+        margin: 0 5px;
+    }
+    
+    .slider-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .slider-container label {
+        min-width: auto;
+        margin-bottom: 5px;
+    }
+    
+    .slider {
+        width: 100%;
+    }
+    
+    /* Keyboard shortcuts on mobile */
+    .game-section:last-child {
+        display: none;
+    }
+}
+
+/* Mobile Landscape */
+@media (max-width: 768px) and (orientation: landscape) {
+    .mobile-header {
+        height: 50px;
+    }
+    
+    body {
+        padding-top: 50px;
+    }
+    
+    .mobile-nav {
+        top: 50px;
+    }
+    
+    .game-section {
+        padding: 10px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .button {
+        width: auto;
+        flex: 1;
+        min-width: 120px;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 320px) {
+    .mobile-header h1 {
+        font-size: 1rem;
+    }
+    
+    .game-section {
+        margin: 5px;
+        padding: 10px;
+    }
+    
+    .game-section h2 {
+        font-size: 1.1rem;
+    }
+    
+    .stat-item {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+    
+    .button {
+        font-size: 0.9rem;
+        padding: 10px 15px;
+    }
+    
+    .feedback {
+        font-size: 0.9rem;
+        padding: 10px 15px;
+    }
+}
+
+/* Large Desktop */
+@media (min-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .controls {
+        align-items: center;
+    }
+    
+    .price-controls {
+        flex: 0 0 auto;
+    }
+}
+
+/* ===== Touch-friendly Adjustments ===== */
+@media (hover: none) and (pointer: coarse) {
+    .button {
+        min-height: 48px;
+    }
+    
+    .button.touch-active {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+    
+    .slider::-webkit-slider-thumb {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .slider::-moz-range-thumb {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .stat-item {
+        padding: 15px;
+    }
+}
+
+/* ===== Accessibility ===== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #1a1a1a;
+        --card-bg: #2a2a2a;
+        --text-color: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --border-color: #444;
+        --primary-color: #0d6ebd;
+        --primary-hover: #0a58a2;
+    }
+    
+    .mobile-header {
+        background: var(--card-bg);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    
+    .mobile-nav {
+        background: var(--card-bg);
+    }
+    
+    .mobile-nav-link:active {
+        background: var(--bg-color);
+    }
+    
+    .stat-item {
+        background: #333;
+    }
+    
+    .slider {
+        background: #555;
+    }
+    
+    .game-section {
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+}
+
+/* ===== Project List Styles ===== */
+#projectList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#projectList .button {
+    width: 100%;
+    text-align: left;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.4;
+}
+
+#projectList .button span {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin-top: 5px;
+}
+
+/* ===== Landscape Optimizations ===== */
+@media (orientation: landscape) and (max-height: 500px) {
+    .game-section {
+        margin: 5px;
+        padding: 10px;
+    }
+    
+    .stats-grid {
+        gap: 5px;
+    }
+    
+    .stat-item {
+        padding: 8px;
+    }
+    
+    .mobile-header {
+        height: 45px;
+    }
+    
+    body {
+        padding-top: 45px;
+    }
+}
+
+/* ===== Fixed Elements Mobile Optimization ===== */
+@media (max-width: 768px) {
+    .performance-stats {
+        font-size: 10px;
+        padding: 8px;
+        bottom: 5px;
+        right: 5px;
+        max-width: 150px;
+    }
+    
+    .feedback {
+        animation: slideInFade 0.3s ease;
+    }
+}
+
+@keyframes slideInFade {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== Viewport Height Fix ===== */
+.mobile-nav {
+    height: calc(100vh - var(--header-height));
+    height: calc(calc(var(--vh, 1vh) * 100) - var(--header-height));
+}
+
+/* ===== Print Styles ===== */
+@media print {
+    .mobile-header,
+    .mobile-nav,
+    .button,
+    .slider-container,
+    .controls,
+    .performance-stats,
+    .feedback {
+        display: none !important;
+    }
+    
+    body {
+        padding: 0;
+        background: white;
+        color: black;
+    }
+    
+    .game-section {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}
