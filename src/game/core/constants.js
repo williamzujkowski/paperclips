@@ -71,7 +71,7 @@ export const BALANCE = {
   // Matter
   MATTER_AVAILABLE: Math.pow(10, 24) * 6000,
   MATTER_TOTAL: Math.pow(10, 54) * 30,
-  MATTER_FOUND: Math.pow(10, 24) * 6000
+  MATTER_FOUND: Math.pow(10, 24) * 6000,
 };
 
 // Timing Constants
@@ -85,7 +85,7 @@ export const TIMING = {
   OPERATIONS_FADE_DELAY: 800,
 
   // Wire price timer
-  WIRE_PRICE_TIMER_MAX: 100
+  WIRE_PRICE_TIMER_MAX: 100,
 };
 
 // UI Constants
@@ -96,25 +96,25 @@ export const UI = {
 
   // Element IDs (for reference)
   ELEMENTS: {
-    CLIPS_DISPLAY: 'clips',
-    FUNDS_DISPLAY: 'funds',
-    WIRE_DISPLAY: 'wire',
-    OPERATIONS_DISPLAY: 'operations',
-    TRUST_DISPLAY: 'trust',
-    PROCESSORS_DISPLAY: 'processors',
-    MEMORY_DISPLAY: 'memory'
-  }
+    CLIPS_DISPLAY: "clips",
+    FUNDS_DISPLAY: "funds",
+    WIRE_DISPLAY: "wire",
+    OPERATIONS_DISPLAY: "operations",
+    TRUST_DISPLAY: "trust",
+    PROCESSORS_DISPLAY: "processors",
+    MEMORY_DISPLAY: "memory",
+  },
 };
 
 // Feature Flags
 export const FEATURES = {
-  QUANTUM_COMPUTING: 'quantum',
-  SPACE_EXPLORATION: 'space',
-  COMBAT_SYSTEM: 'combat',
-  SWARM_COMPUTING: 'swarm',
-  INVESTMENT_ENGINE: 'investment',
-  WIRE_PRODUCTION: 'wireProduction',
-  TOURNAMENTS: 'tournaments'
+  QUANTUM_COMPUTING: "quantum",
+  SPACE_EXPLORATION: "space",
+  COMBAT_SYSTEM: "combat",
+  SWARM_COMPUTING: "swarm",
+  INVESTMENT_ENGINE: "investment",
+  WIRE_PRODUCTION: "wireProduction",
+  TOURNAMENTS: "tournaments",
 };
 
 // Game Phases
@@ -124,36 +124,36 @@ export const PHASES = {
   COMPUTATION: 2, // Trust and processors
   SPACE: 3, // Space exploration
   COMBAT: 4, // Probe combat
-  ENDGAME: 5 // Final stages
+  ENDGAME: 5, // Final stages
 };
 
 // Project Categories
 export const PROJECT_CATEGORIES = {
-  EFFICIENCY: 'efficiency',
-  CREATIVITY: 'creativity',
-  INVESTMENT: 'investment',
-  MANUFACTURING: 'manufacturing',
-  COMPUTING: 'computing',
-  SPACE: 'space',
-  COMBAT: 'combat'
+  EFFICIENCY: "efficiency",
+  CREATIVITY: "creativity",
+  INVESTMENT: "investment",
+  MANUFACTURING: "manufacturing",
+  COMPUTING: "computing",
+  SPACE: "space",
+  COMBAT: "combat",
 };
 
 // Error Messages
 export const ERRORS = {
-  INSUFFICIENT_FUNDS: 'Insufficient funds',
-  INSUFFICIENT_WIRE: 'Insufficient wire',
-  INSUFFICIENT_TRUST: 'Insufficient trust',
-  INSUFFICIENT_OPERATIONS: 'Insufficient operations',
-  SAVE_FAILED: 'Failed to save game',
-  LOAD_FAILED: 'Failed to load game',
-  INVALID_SAVE: 'Invalid save data'
+  INSUFFICIENT_FUNDS: "Insufficient funds",
+  INSUFFICIENT_WIRE: "Insufficient wire",
+  INSUFFICIENT_TRUST: "Insufficient trust",
+  INSUFFICIENT_OPERATIONS: "Insufficient operations",
+  SAVE_FAILED: "Failed to save game",
+  LOAD_FAILED: "Failed to load game",
+  INVALID_SAVE: "Invalid save data",
 };
 
 // Achievement Thresholds
 export const ACHIEVEMENTS = {
   CLIPS_MILESTONES: [
-    1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000, 10000000000, 100000000000,
-    1000000000000
+    1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000, 10000000000,
+    100000000000, 1000000000000,
   ],
   FUNDS_MILESTONES: [1000, 10000, 100000, 1000000, 10000000, 100000000],
   TIME_MILESTONES: [
@@ -164,8 +164,8 @@ export const ACHIEVEMENTS = {
     7200000, // 2 hours
     14400000, // 4 hours
     28800000, // 8 hours
-    86400000 // 24 hours
-  ]
+    86400000, // 24 hours
+  ],
 };
 
 // Mathematical Constants
@@ -191,7 +191,7 @@ export const MATH = {
   // Rounding precision
   CURRENCY_PRECISION: 2,
   RATE_PRECISION: 2,
-  LARGE_NUMBER_PRECISION: 3
+  LARGE_NUMBER_PRECISION: 3,
 };
 
 // Audio Constants
@@ -201,16 +201,16 @@ export const AUDIO = {
     LOW: 0.25,
     MEDIUM: 0.5,
     HIGH: 0.75,
-    MAX: 1.0
+    MAX: 1.0,
   },
 
   // Audio file paths (when implemented)
   SOUNDS: {
-    CLICK: 'audio/click.wav',
-    SUCCESS: 'audio/success.wav',
-    ERROR: 'audio/error.wav',
-    THRENODY: 'audio/threnody.mp3'
-  }
+    CLICK: "audio/click.wav",
+    SUCCESS: "audio/success.wav",
+    ERROR: "audio/error.wav",
+    THRENODY: "audio/threnody.mp3",
+  },
 };
 
 // Performance Constants
@@ -231,7 +231,7 @@ export const PERFORMANCE = {
 
   // Debounce delays
   SAVE_DEBOUNCE: 1000,
-  RESIZE_DEBOUNCE: 250
+  RESIZE_DEBOUNCE: 250,
 };
 
 // Debug Constants
@@ -240,20 +240,20 @@ export const DEBUG = {
     ERROR: 0,
     WARN: 1,
     INFO: 2,
-    DEBUG: 3
+    DEBUG: 3,
   },
 
   // Debug commands
   COMMANDS: {
-    ADD_CLIPS: 'addClips',
-    ADD_FUNDS: 'addFunds',
-    ADD_WIRE: 'addWire',
-    RESET_GAME: 'reset',
-    EXPORT_SAVE: 'export',
-    IMPORT_SAVE: 'import',
-    GET_STATE: 'getState',
-    SET_LOG_LEVEL: 'setLogLevel'
-  }
+    ADD_CLIPS: "addClips",
+    ADD_FUNDS: "addFunds",
+    ADD_WIRE: "addWire",
+    RESET_GAME: "reset",
+    EXPORT_SAVE: "export",
+    IMPORT_SAVE: "import",
+    GET_STATE: "getState",
+    SET_LOG_LEVEL: "setLogLevel",
+  },
 };
 
 // Version Information
@@ -261,8 +261,8 @@ export const VERSION = {
   MAJOR: 2,
   MINOR: 0,
   PATCH: 0,
-  BUILD: 'development',
-  FULL: '2.0.0-development'
+  BUILD: "development",
+  FULL: "2.0.0-development",
 };
 
 // Export all constants as a single object for convenience
@@ -279,5 +279,5 @@ export const CONSTANTS = {
   AUDIO,
   PERFORMANCE,
   DEBUG,
-  VERSION
+  VERSION,
 };

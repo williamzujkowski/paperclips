@@ -5,8 +5,8 @@
  * the game runs smoothly and identify bottlenecks.
  */
 
-import { PERFORMANCE } from './constants.js';
-import { errorHandler } from './errorHandler.js';
+import { PERFORMANCE } from "./constants.js";
+import { errorHandler } from "./errorHandler.js";
 
 class PerformanceMonitor {
   constructor() {
@@ -18,36 +18,36 @@ class PerformanceMonitor {
         min: Infinity,
         max: 0,
         samples: [],
-        lastFrame: performance.now()
+        lastFrame: performance.now(),
       },
       memory: {
         used: 0,
         peak: 0,
-        samples: []
+        samples: [],
       },
       gameLoop: {
         updateTime: 0,
         renderTime: 0,
         totalTime: 0,
         slowFrames: 0,
-        samples: []
+        samples: [],
       },
-      functions: new Map() // Function performance tracking
+      functions: new Map(), // Function performance tracking
     };
 
     this.thresholds = {
       fps: {
         warning: PERFORMANCE.MIN_FPS,
-        critical: PERFORMANCE.MIN_FPS * 0.5
+        critical: PERFORMANCE.MIN_FPS * 0.5,
       },
       frameTime: {
         warning: PERFORMANCE.FRAME_TIME_TARGET * 2,
-        critical: PERFORMANCE.FRAME_TIME_TARGET * 4
+        critical: PERFORMANCE.FRAME_TIME_TARGET * 4,
       },
       memory: {
         warning: PERFORMANCE.MAX_MEMORY_USAGE * 0.8,
-        critical: PERFORMANCE.MAX_MEMORY_USAGE
-      }
+        critical: PERFORMANCE.MAX_MEMORY_USAGE,
+      },
     };
 
     this.sampleSize = PERFORMANCE.PERFORMANCE_SAMPLE_SIZE;
@@ -110,7 +110,8 @@ class PerformanceMonitor {
     this.metrics.fps.min = Math.min(this.metrics.fps.min, fps);
     this.metrics.fps.max = Math.max(this.metrics.fps.max, fps);
     this.metrics.fps.average =
-      this.metrics.fps.samples.reduce((a, b) => a + b, 0) / this.metrics.fps.samples.length;
+      this.metrics.fps.samples.reduce((a, b) => a + b, 0) /
+      this.metrics.fps.samples.length;
 
     // Check thresholds
     this._checkFPSThresholds(fps);
@@ -124,10 +125,13 @@ class PerformanceMonitor {
     const measureMemory = () => {
       if (!this.enabled) return;
 
-      if ('memory' in performance) {
+      if ("memory" in performance) {
         const memory = performance.memory;
         this._recordMemory(memory.usedJSHeapSize);
-        this.metrics.memory.peak = Math.max(this.metrics.memory.peak, memory.usedJSHeapSize);
+        this.metrics.memory.peak = Math.max(
+          this.metrics.memory.peak,
+          memory.usedJSHeapSize,
+        );
       }
 
       setTimeout(measureMemory, 1000); // Check every second
@@ -187,7 +191,7 @@ class PerformanceMonitor {
       update: this.metrics.gameLoop.updateTime,
       render: renderTime,
       total: totalTime,
-      timestamp: now
+      timestamp: now,
     });
 
     // Keep only recent samples
@@ -200,7 +204,10 @@ class PerformanceMonitor {
       this.metrics.gameLoop.slowFrames++;
 
       if (totalTime > this.thresholds.frameTime.critical) {
-        errorHandler.warn('Critical frame time detected:', `${totalTime.toFixed(2)}ms`);
+        errorHandler.warn(
+          "Critical frame time detected:",
+          `${totalTime.toFixed(2)}ms`,
+        );
       }
     }
 
@@ -263,7 +270,7 @@ class PerformanceMonitor {
         minTime: Infinity,
         maxTime: 0,
         errors: 0,
-        samples: []
+        samples: [],
       });
     }
 
@@ -281,7 +288,7 @@ class PerformanceMonitor {
     stats.samples.push({
       duration,
       success,
-      timestamp: performance.now()
+      timestamp: performance.now(),
     });
 
     // Keep only recent samples
@@ -296,9 +303,9 @@ class PerformanceMonitor {
    */
   _checkFPSThresholds(fps) {
     if (fps < this.thresholds.fps.critical) {
-      this._triggerWarning('fps', 'critical', fps);
+      this._triggerWarning("fps", "critical", fps);
     } else if (fps < this.thresholds.fps.warning) {
-      this._triggerWarning('fps', 'warning', fps);
+      this._triggerWarning("fps", "warning", fps);
     }
   }
 
@@ -308,9 +315,9 @@ class PerformanceMonitor {
    */
   _checkMemoryThresholds(memory) {
     if (memory > this.thresholds.memory.critical) {
-      this._triggerWarning('memory', 'critical', memory);
+      this._triggerWarning("memory", "critical", memory);
     } else if (memory > this.thresholds.memory.warning) {
-      this._triggerWarning('memory', 'warning', memory);
+      this._triggerWarning("memory", "warning", memory);
     }
   }
 
@@ -323,10 +330,10 @@ class PerformanceMonitor {
       type,
       level,
       value,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
-    if (level === 'critical') {
+    if (level === "critical") {
       errorHandler.error(`Performance ${level}:`, `${type} = ${value}`);
     } else {
       errorHandler.warn(`Performance ${level}:`, `${type} = ${value}`);
@@ -336,7 +343,7 @@ class PerformanceMonitor {
       try {
         callback(warning);
       } catch (error) {
-        errorHandler.error('Error in performance warning callback:', error);
+        errorHandler.error("Error in performance warning callback:", error);
       }
     });
   }
@@ -375,22 +382,22 @@ class PerformanceMonitor {
         current: Math.round(this.metrics.fps.current),
         average: Math.round(this.metrics.fps.average),
         min: Math.round(this.metrics.fps.min),
-        max: Math.round(this.metrics.fps.max)
+        max: Math.round(this.metrics.fps.max),
       },
       memory: {
         used: this.metrics.memory.used,
         peak: this.metrics.memory.peak,
         usedMB: Math.round(this.metrics.memory.used / 1024 / 1024),
-        peakMB: Math.round(this.metrics.memory.peak / 1024 / 1024)
+        peakMB: Math.round(this.metrics.memory.peak / 1024 / 1024),
       },
       gameLoop: {
         updateTime: Math.round(this.metrics.gameLoop.updateTime * 100) / 100,
         renderTime: Math.round(this.metrics.gameLoop.renderTime * 100) / 100,
         totalTime: Math.round(this.metrics.gameLoop.totalTime * 100) / 100,
-        slowFrames: this.metrics.gameLoop.slowFrames
+        slowFrames: this.metrics.gameLoop.slowFrames,
       },
       functions: functionStats,
-      enabled: this.enabled
+      enabled: this.enabled,
     };
   }
 
@@ -407,7 +414,7 @@ class PerformanceMonitor {
     this.metrics.gameLoop.slowFrames = 0;
     this.metrics.functions.clear();
 
-    errorHandler.info('Performance metrics reset');
+    errorHandler.info("Performance metrics reset");
   }
 
   /**
@@ -416,7 +423,9 @@ class PerformanceMonitor {
    */
   setEnabled(enabled) {
     this.enabled = enabled;
-    errorHandler.info(`Performance monitoring ${enabled ? 'enabled' : 'disabled'}`);
+    errorHandler.info(
+      `Performance monitoring ${enabled ? "enabled" : "disabled"}`,
+    );
   }
 
   /**

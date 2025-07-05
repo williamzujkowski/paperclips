@@ -17,7 +17,7 @@ export class GameState {
       funds: 0,
       wire: 1000,
       nanoWire: 0,
-      bankroll: 0
+      bankroll: 0,
     };
 
     this.production = {
@@ -30,25 +30,25 @@ export class GameState {
         clipper: 1,
         megaClipper: 1,
         factory: 1,
-        drone: 1
-      }
+        drone: 1,
+      },
     };
 
     this.manufacturing = {
       clipmakers: {
         level: 0,
-        cost: 5
+        cost: 5,
       },
       megaClippers: {
         level: 0,
-        cost: 500
+        cost: 500,
       },
       factories: {
         level: 0,
         cost: 100000000,
         rate: 1000000000,
-        powerConsumption: 0
-      }
+        powerConsumption: 0,
+      },
     };
 
     this.market = {
@@ -57,27 +57,27 @@ export class GameState {
         wireCost: 20,
         wireBasePrice: 20,
         wirePriceCounter: 0,
-        adCost: 100
+        adCost: 100,
       },
       demand: 5,
       demandBoost: 1,
       marketing: {
         level: 1,
-        effectiveness: 1
+        effectiveness: 1,
       },
       sales: {
         clipsSold: 0,
         avgRevenue: 0,
         income: 0,
-        incomeTracker: [0]
+        incomeTracker: [0],
       },
       totalRevenue: 0,
       wire: {
         supply: 1000,
         purchase: 0,
         buyerStatus: 1,
-        priceTimer: 0
-      }
+        priceTimer: 0,
+      },
     };
 
     this.computing = {
@@ -88,54 +88,54 @@ export class GameState {
         amount: 0,
         enabled: false,
         speed: 1,
-        counter: 0
+        counter: 0,
       },
       trust: {
         current: 2,
         nextThreshold: 3000,
         max: 20,
-        maxCost: 91117.99
+        maxCost: 91117.99,
       },
       quantum: {
         enabled: false,
         clock: 0,
         chipCost: 10000,
         nextChip: 0,
-        fade: 1
+        fade: 1,
       },
       operations: {
         temp: 0,
         standard: 0,
         fade: 0,
         fadeTimer: 0,
-        fadeDelay: 800
+        fadeDelay: 800,
       },
-      transaction: 1
+      transaction: 1,
     };
 
     this.space = {
       probes: {
-        count: 0
+        count: 0,
       },
       harvesters: {
         level: 0,
         cost: 1000000,
         rate: 26180337,
-        powerConsumption: 0
+        powerConsumption: 0,
       },
       wireDrones: {
         level: 0,
         cost: 1000000,
         rate: 16180339,
-        powerConsumption: 0
+        powerConsumption: 0,
       },
       matter: {
         available: Math.pow(10, 24) * 6000,
         acquired: 0,
         processed: 0,
         total: Math.pow(10, 54) * 30,
-        found: Math.pow(10, 24) * 6000
-      }
+        found: Math.pow(10, 24) * 6000,
+      },
     };
 
     this.power = {
@@ -145,18 +145,18 @@ export class GameState {
         level: 0,
         cost: 10000000,
         rate: 50,
-        bill: 0
+        bill: 0,
       },
       batteries: {
         level: 0,
         cost: 1000000,
         capacity: 10000,
-        bill: 0
+        bill: 0,
       },
       consumption: {
         factory: 200,
-        drone: 1
-      }
+        drone: 1,
+      },
     };
 
     this.combat = {
@@ -167,21 +167,21 @@ export class GameState {
         counter: 0,
         enabled: false,
         message: 0,
-        synchCost: 5000
+        synchCost: 5000,
       },
       entertainment: {
         cost: 10000,
         boredom: {
           level: 0,
           enabled: false,
-          message: 0
-        }
+          message: 0,
+        },
       },
       threnody: {
         cost: 50000,
         audio: null, // Will be initialized when needed
-        loaded: false
-      }
+        loaded: false,
+      },
     };
 
     this.swarm = {
@@ -191,13 +191,13 @@ export class GameState {
         received: 0,
         next: 0,
         period: 125000,
-        countdown: 125000
-      }
+        countdown: 125000,
+      },
     };
 
     this.prestige = {
       u: 0,
-      s: 0
+      s: 0,
     };
 
     this.gameState = {
@@ -226,19 +226,19 @@ export class GameState {
         ego: 0,
         toth: 0,
         safety: false,
-        test: 0
+        test: 0,
       },
       automation: {
         tourneyStatus: 1,
-        wireBuyerEnabled: false
-      }
+        wireBuyerEnabled: false,
+      },
     };
 
     this.ui = {
       blinkCounter: 0,
       sliderPos: 0,
       driftKingMessageCost: 1,
-      bribe: 1000000
+      bribe: 1000000,
     };
 
     this.endGame = {
@@ -250,15 +250,15 @@ export class GameState {
         end3: 0,
         end4: 0,
         end5: 0,
-        end6: 0
-      }
+        end6: 0,
+      },
     };
 
     this.legacy = {
       x: 0,
       fib1: 2,
       fib2: 3,
-      boostLvl: 0
+      boostLvl: 0,
     };
 
     this._changeListeners = [];
@@ -274,7 +274,7 @@ export class GameState {
       return this;
     }
 
-    const keys = path.split('.');
+    const keys = path.split(".");
     let current = this;
 
     for (const key of keys) {
@@ -297,7 +297,7 @@ export class GameState {
       return;
     }
 
-    const keys = path.split('.');
+    const keys = path.split(".");
     const lastKey = keys.pop();
     let current = this;
 
@@ -362,7 +362,7 @@ export class GameState {
         try {
           listener(path, oldValue, newValue);
         } catch (error) {
-          console.error('Error in change listener:', error);
+          console.error("Error in change listener:", error);
         }
       });
     }
@@ -381,21 +381,24 @@ export class GameState {
         computing: this.computing,
         space: this.space,
         power: this.power,
-        combat: { ...this.combat, threnody: { ...this.combat.threnody, audio: null } },
+        combat: {
+          ...this.combat,
+          threnody: { ...this.combat.threnody, audio: null },
+        },
         swarm: this.swarm,
         prestige: this.prestige,
         gameState: this.gameState,
         ui: this.ui,
         endGame: this.endGame,
         legacy: this.legacy,
-        version: '2.0.0',
-        timestamp: Date.now()
+        version: "2.0.0",
+        timestamp: Date.now(),
       };
 
-      localStorage.setItem('paperclips-save', JSON.stringify(saveData));
+      localStorage.setItem("paperclips-save", JSON.stringify(saveData));
       return true;
     } catch (error) {
-      console.error('Failed to save game state:', error);
+      console.error("Failed to save game state:", error);
       return false;
     }
   }
@@ -405,7 +408,7 @@ export class GameState {
    */
   load() {
     try {
-      const saveData = localStorage.getItem('paperclips-save');
+      const saveData = localStorage.getItem("paperclips-save");
       if (!saveData) {
         return false;
       }
@@ -417,7 +420,7 @@ export class GameState {
 
       return true;
     } catch (error) {
-      console.error('Failed to load game state:', error);
+      console.error("Failed to load game state:", error);
       return false;
     }
   }
@@ -431,10 +434,10 @@ export class GameState {
       for (const key in source) {
         if (
           source[key] !== null &&
-          typeof source[key] === 'object' &&
+          typeof source[key] === "object" &&
           !Array.isArray(source[key])
         ) {
-          if (!target[key] || typeof target[key] !== 'object') {
+          if (!target[key] || typeof target[key] !== "object") {
             target[key] = {};
           }
           merge(target[key], source[key]);
@@ -455,12 +458,12 @@ export class GameState {
 
     // Copy all properties from initial state
     Object.keys(initialState).forEach((key) => {
-      if (key !== '_changeListeners') {
+      if (key !== "_changeListeners") {
         this[key] = JSON.parse(JSON.stringify(initialState[key]));
       }
     });
 
-    this._notifyChange('*', null, 'reset');
+    this._notifyChange("*", null, "reset");
   }
 
   /**
@@ -475,15 +478,18 @@ export class GameState {
       computing: this.computing,
       space: this.space,
       power: this.power,
-      combat: { ...this.combat, threnody: { ...this.combat.threnody, audio: null } },
+      combat: {
+        ...this.combat,
+        threnody: { ...this.combat.threnody, audio: null },
+      },
       swarm: this.swarm,
       prestige: this.prestige,
       gameState: this.gameState,
       ui: this.ui,
       endGame: this.endGame,
       legacy: this.legacy,
-      version: '2.0.0',
-      timestamp: Date.now()
+      version: "2.0.0",
+      timestamp: Date.now(),
     };
     return JSON.stringify(saveData, null, 2);
   }
@@ -496,10 +502,10 @@ export class GameState {
     try {
       const data = JSON.parse(jsonString);
       this._mergeState(data);
-      this._notifyChange('*', null, 'import');
+      this._notifyChange("*", null, "import");
       return true;
     } catch (error) {
-      console.error('Failed to import game state:', error);
+      console.error("Failed to import game state:", error);
       return false;
     }
   }

@@ -5,10 +5,10 @@
  * requestAnimationFrame-based loop for better performance and consistency.
  */
 
-import { TIMING } from './constants.js';
-import { errorHandler } from './errorHandler.js';
-import { performanceMonitor } from './performanceMonitor.js';
-import { gameState } from './gameState.js';
+import { TIMING } from "./constants.js";
+import { errorHandler } from "./errorHandler.js";
+import { performanceMonitor } from "./performanceMonitor.js";
+import { gameState } from "./gameState.js";
 
 class GameLoop {
   constructor() {
@@ -20,14 +20,14 @@ class GameLoop {
     this.timers = {
       fast: { interval: TIMING.FAST_LOOP_INTERVAL, lastUpdate: 0 },
       medium: { interval: TIMING.MEDIUM_LOOP_INTERVAL, lastUpdate: 0 },
-      slow: { interval: TIMING.SLOW_LOOP_INTERVAL, lastUpdate: 0 }
+      slow: { interval: TIMING.SLOW_LOOP_INTERVAL, lastUpdate: 0 },
     };
 
     // System update callbacks
     this.systems = {
       fast: [], // 100 FPS - critical game logic
       medium: [], // 10 FPS - UI updates
-      slow: [] // 1 FPS - background tasks
+      slow: [], // 1 FPS - background tasks
     };
 
     // Renderer callbacks
@@ -36,11 +36,11 @@ class GameLoop {
     // Initialize error boundary
     this.boundLoop = errorHandler.createErrorBoundary(
       this._loop.bind(this),
-      'gameLoop.main',
+      "gameLoop.main",
       () => {
-        errorHandler.error('Game loop crashed, attempting restart');
+        errorHandler.error("Game loop crashed, attempting restart");
         this.restart();
-      }
+      },
     );
   }
 
@@ -49,7 +49,7 @@ class GameLoop {
    */
   start() {
     if (this.running) {
-      errorHandler.warn('Game loop already running');
+      errorHandler.warn("Game loop already running");
       return;
     }
 
@@ -61,7 +61,7 @@ class GameLoop {
       timer.lastUpdate = this.lastFrame;
     });
 
-    errorHandler.info('Game loop started');
+    errorHandler.info("Game loop started");
     this._requestFrame();
   }
 
@@ -80,7 +80,7 @@ class GameLoop {
       this.frameId = null;
     }
 
-    errorHandler.info('Game loop stopped');
+    errorHandler.info("Game loop stopped");
   }
 
   /**
@@ -97,19 +97,21 @@ class GameLoop {
    * @param {Function} updateFn - Update function
    * @param {string} name - System name for debugging
    */
-  addSystem(frequency, updateFn, name = 'unknown') {
+  addSystem(frequency, updateFn, name = "unknown") {
     if (!this.systems[frequency]) {
       errorHandler.error(`Invalid frequency: ${frequency}`);
       return;
     }
 
-    const wrappedUpdate = errorHandler.createErrorBoundary(updateFn, `system.${name}`, () =>
-      errorHandler.warn(`System ${name} failed, skipping update`)
+    const wrappedUpdate = errorHandler.createErrorBoundary(
+      updateFn,
+      `system.${name}`,
+      () => errorHandler.warn(`System ${name} failed, skipping update`),
     );
 
     this.systems[frequency].push({
       update: wrappedUpdate,
-      name
+      name,
     });
 
     errorHandler.debug(`System ${name} added to ${frequency} tier`);
@@ -125,7 +127,9 @@ class GameLoop {
       return;
     }
 
-    const index = this.systems[frequency].findIndex((system) => system.name === name);
+    const index = this.systems[frequency].findIndex(
+      (system) => system.name === name,
+    );
     if (index !== -1) {
       this.systems[frequency].splice(index, 1);
       errorHandler.debug(`System ${name} removed from ${frequency} tier`);
@@ -137,14 +141,16 @@ class GameLoop {
    * @param {Function} renderFn - Render function
    * @param {string} name - Renderer name for debugging
    */
-  addRenderer(renderFn, name = 'unknown') {
-    const wrappedRender = errorHandler.createErrorBoundary(renderFn, `renderer.${name}`, () =>
-      errorHandler.warn(`Renderer ${name} failed, skipping render`)
+  addRenderer(renderFn, name = "unknown") {
+    const wrappedRender = errorHandler.createErrorBoundary(
+      renderFn,
+      `renderer.${name}`,
+      () => errorHandler.warn(`Renderer ${name} failed, skipping render`),
     );
 
     this.renderers.push({
       render: wrappedRender,
-      name
+      name,
     });
 
     errorHandler.debug(`Renderer ${name} added`);
@@ -155,7 +161,9 @@ class GameLoop {
    * @param {string} name - Renderer name
    */
   removeRenderer(name) {
-    const index = this.renderers.findIndex((renderer) => renderer.name === name);
+    const index = this.renderers.findIndex(
+      (renderer) => renderer.name === name,
+    );
     if (index !== -1) {
       this.renderers.splice(index, 1);
       errorHandler.debug(`Renderer ${name} removed`);
@@ -185,8 +193,8 @@ class GameLoop {
       this.lastFrame = timestamp;
 
       // Update game state ticks
-      gameState.increment('gameState.ticks');
-      gameState.increment('gameState.elapsedTime', deltaTime);
+      gameState.increment("gameState.ticks");
+      gameState.increment("gameState.elapsedTime", deltaTime);
 
       // Update systems based on their timing
       this._updateSystems(timestamp, deltaTime);
@@ -201,7 +209,7 @@ class GameLoop {
       // Request next frame
       this._requestFrame();
     } catch (error) {
-      errorHandler.handleError(error, 'gameLoop.main', { timestamp }, true);
+      errorHandler.handleError(error, "gameLoop.main", { timestamp }, true);
       this.restart();
     }
   }
@@ -212,18 +220,18 @@ class GameLoop {
    */
   _updateSystems(timestamp, deltaTime) {
     // Fast systems (100 FPS equivalent)
-    if (this._shouldUpdate('fast', timestamp)) {
-      this._updateSystemTier('fast', timestamp, deltaTime);
+    if (this._shouldUpdate("fast", timestamp)) {
+      this._updateSystemTier("fast", timestamp, deltaTime);
     }
 
     // Medium systems (10 FPS equivalent)
-    if (this._shouldUpdate('medium', timestamp)) {
-      this._updateSystemTier('medium', timestamp, deltaTime);
+    if (this._shouldUpdate("medium", timestamp)) {
+      this._updateSystemTier("medium", timestamp, deltaTime);
     }
 
     // Slow systems (1 FPS equivalent)
-    if (this._shouldUpdate('slow', timestamp)) {
-      this._updateSystemTier('slow', timestamp, deltaTime);
+    if (this._shouldUpdate("slow", timestamp)) {
+      this._updateSystemTier("slow", timestamp, deltaTime);
     }
   }
 
@@ -254,13 +262,13 @@ class GameLoop {
       try {
         performanceMonitor.measure(
           () => system.update(timestamp, deltaTime),
-          `system.${system.name}`
+          `system.${system.name}`,
         );
       } catch (error) {
         errorHandler.handleError(error, `gameLoop.system.${system.name}`, {
           tier,
           timestamp,
-          deltaTime
+          deltaTime,
         });
       }
     }
@@ -275,12 +283,12 @@ class GameLoop {
       try {
         performanceMonitor.measure(
           () => renderer.render(timestamp, deltaTime),
-          `renderer.${renderer.name}`
+          `renderer.${renderer.name}`,
         );
       } catch (error) {
         errorHandler.handleError(error, `gameLoop.renderer.${renderer.name}`, {
           timestamp,
-          deltaTime
+          deltaTime,
         });
       }
     }
@@ -297,10 +305,10 @@ class GameLoop {
       systems: {
         fast: this.systems.fast.length,
         medium: this.systems.medium.length,
-        slow: this.systems.slow.length
+        slow: this.systems.slow.length,
       },
       renderers: this.renderers.length,
-      timers: { ...this.timers }
+      timers: { ...this.timers },
     };
   }
 
@@ -311,15 +319,15 @@ class GameLoop {
   getSystemInfo() {
     const info = {};
 
-    ['fast', 'medium', 'slow'].forEach((tier) => {
+    ["fast", "medium", "slow"].forEach((tier) => {
       info[tier] = this.systems[tier].map((system) => ({
         name: system.name,
-        lastUpdate: this.timers[tier].lastUpdate
+        lastUpdate: this.timers[tier].lastUpdate,
       }));
     });
 
     info.renderers = this.renderers.map((renderer) => ({
-      name: renderer.name
+      name: renderer.name,
     }));
 
     return info;
@@ -332,13 +340,13 @@ class GameLoop {
     const timestamp = performance.now();
     const deltaTime = timestamp - this.lastFrame;
 
-    ['fast', 'medium', 'slow'].forEach((tier) => {
+    ["fast", "medium", "slow"].forEach((tier) => {
       this._updateSystemTier(tier, timestamp, deltaTime);
     });
 
     this._render(timestamp, deltaTime);
 
-    errorHandler.debug('Forced update of all systems');
+    errorHandler.debug("Forced update of all systems");
   }
 
   /**
@@ -350,7 +358,7 @@ class GameLoop {
     }
 
     this.paused = true;
-    errorHandler.info('Game loop paused');
+    errorHandler.info("Game loop paused");
   }
 
   /**
@@ -369,7 +377,7 @@ class GameLoop {
       timer.lastUpdate = this.lastFrame;
     });
 
-    errorHandler.info('Game loop resumed');
+    errorHandler.info("Game loop resumed");
   }
 
   /**

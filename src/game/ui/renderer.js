@@ -9,11 +9,11 @@ import {
   formatNumber,
   formatCurrency,
   formatRate,
-  formatDuration
-} from '../../utils/formatting.js';
-import { errorHandler } from '../core/errorHandler.js';
-import { performanceMonitor } from '../core/performanceMonitor.js';
-import { PERFORMANCE } from '../core/constants.js';
+  formatDuration,
+} from "../../utils/formatting.js";
+import { errorHandler } from "../core/errorHandler.js";
+import { performanceMonitor } from "../core/performanceMonitor.js";
+import { PERFORMANCE } from "../core/constants.js";
 
 export class Renderer {
   constructor(gameState) {
@@ -33,7 +33,10 @@ export class Renderer {
     this.cacheElements();
 
     // Bind methods
-    this.render = errorHandler.createErrorBoundary(this.render.bind(this), 'renderer.render');
+    this.render = errorHandler.createErrorBoundary(
+      this.render.bind(this),
+      "renderer.render",
+    );
   }
 
   /**
@@ -57,7 +60,7 @@ export class Renderer {
 
       // Production displays
       clipRate: (element, value) => {
-        element.textContent = formatRate(value, 'clips');
+        element.textContent = formatRate(value, "clips");
       },
       autoClippers: (element, value) => {
         element.textContent = formatNumber(value);
@@ -74,7 +77,7 @@ export class Renderer {
         element.textContent = formatCurrency(value, true);
       },
       demand: (element, value) => {
-        element.textContent = value.toFixed(2) + '%';
+        element.textContent = value.toFixed(2) + "%";
       },
       marketing: (element, value) => {
         element.textContent = formatNumber(value);
@@ -122,14 +125,14 @@ export class Renderer {
         element.textContent = formatCurrency(value);
       },
       processorCost: (element, value) => {
-        element.textContent = formatNumber(value) + ' ops';
+        element.textContent = formatNumber(value) + " ops";
       },
       memoryCost: (element, value) => {
-        element.textContent = formatNumber(value) + ' ops';
+        element.textContent = formatNumber(value) + " ops";
       },
       achievementCount: (element, value) => {
         element.textContent = `(${value.unlocked}/${value.total})`;
-      }
+      },
     };
   }
 
@@ -187,7 +190,9 @@ export class Renderer {
     try {
       updater(element, value);
     } catch (error) {
-      errorHandler.handleError(error, `renderer.updateElement.${elementId}`, { value });
+      errorHandler.handleError(error, `renderer.updateElement.${elementId}`, {
+        value,
+      });
     }
   }
 
@@ -195,78 +200,99 @@ export class Renderer {
    * Update resource displays
    */
   updateResources() {
-    this.queueUpdate('clips', this.gameState.get('resources.clips'));
-    this.queueUpdate('funds', this.gameState.get('resources.funds'));
-    this.queueUpdate('wire', this.gameState.get('resources.wire'));
-    this.queueUpdate('unsoldClips', this.gameState.get('resources.unsoldClips'));
+    this.queueUpdate("clips", this.gameState.get("resources.clips"));
+    this.queueUpdate("funds", this.gameState.get("resources.funds"));
+    this.queueUpdate("wire", this.gameState.get("resources.wire"));
+    this.queueUpdate(
+      "unsoldClips",
+      this.gameState.get("resources.unsoldClips"),
+    );
   }
 
   /**
    * Update production displays
    */
   updateProduction() {
-    this.queueUpdate('clipRate', this.gameState.get('production.clipRate'));
-    this.queueUpdate('autoClippers', this.gameState.get('manufacturing.clipmakers.level'));
-    this.queueUpdate('megaClippers', this.gameState.get('manufacturing.megaClippers.level'));
-    this.queueUpdate('factories', this.gameState.get('manufacturing.factories.level'));
+    this.queueUpdate("clipRate", this.gameState.get("production.clipRate"));
+    this.queueUpdate(
+      "autoClippers",
+      this.gameState.get("manufacturing.clipmakers.level"),
+    );
+    this.queueUpdate(
+      "megaClippers",
+      this.gameState.get("manufacturing.megaClippers.level"),
+    );
+    this.queueUpdate(
+      "factories",
+      this.gameState.get("manufacturing.factories.level"),
+    );
   }
 
   /**
    * Update market displays
    */
   updateMarket() {
-    this.queueUpdate('margin', this.gameState.get('market.pricing.margin'));
-    this.queueUpdate('demand', this.gameState.get('market.demand'));
-    this.queueUpdate('marketing', this.gameState.get('market.marketing.level'));
-    this.queueUpdate('avgRev', this.gameState.get('market.sales.avgRevenue'));
-    this.queueUpdate('wireCost', this.gameState.get('market.pricing.wireCost'));
+    this.queueUpdate("margin", this.gameState.get("market.pricing.margin"));
+    this.queueUpdate("demand", this.gameState.get("market.demand"));
+    this.queueUpdate("marketing", this.gameState.get("market.marketing.level"));
+    this.queueUpdate("avgRev", this.gameState.get("market.sales.avgRevenue"));
+    this.queueUpdate("wireCost", this.gameState.get("market.pricing.wireCost"));
   }
 
   /**
    * Update computing displays
    */
   updateComputing() {
-    this.queueUpdate('operations', this.gameState.get('computing.operations'));
-    this.queueUpdate('creativity', this.gameState.get('computing.creativity.amount'));
-    this.queueUpdate('processors', this.gameState.get('computing.processors'));
-    this.queueUpdate('memory', this.gameState.get('computing.memory'));
-    this.queueUpdate('trust', this.gameState.get('computing.trust.current'));
+    this.queueUpdate("operations", this.gameState.get("computing.operations"));
+    this.queueUpdate(
+      "creativity",
+      this.gameState.get("computing.creativity.amount"),
+    );
+    this.queueUpdate("processors", this.gameState.get("computing.processors"));
+    this.queueUpdate("memory", this.gameState.get("computing.memory"));
+    this.queueUpdate("trust", this.gameState.get("computing.trust.current"));
   }
 
   /**
    * Update combat displays
    */
   updateCombat() {
-    this.queueUpdate('honor', this.gameState.get('combat.honor'));
-    this.queueUpdate('probes', this.gameState.get('space.probes.count'));
+    this.queueUpdate("honor", this.gameState.get("combat.honor"));
+    this.queueUpdate("probes", this.gameState.get("space.probes.count"));
   }
 
   /**
    * Update cost displays
    */
   updateCosts() {
-    this.queueUpdate('autoClipperCost', this.gameState.get('manufacturing.clipmakers.cost'));
-    this.queueUpdate('megaClipperCost', this.gameState.get('manufacturing.megaClippers.cost'));
-    this.queueUpdate('adCost', this.gameState.get('market.pricing.adCost'));
+    this.queueUpdate(
+      "autoClipperCost",
+      this.gameState.get("manufacturing.clipmakers.cost"),
+    );
+    this.queueUpdate(
+      "megaClipperCost",
+      this.gameState.get("manufacturing.megaClippers.cost"),
+    );
+    this.queueUpdate("adCost", this.gameState.get("market.pricing.adCost"));
 
     // Calculate dynamic costs
-    const processors = this.gameState.get('computing.processors');
-    const memory = this.gameState.get('computing.memory');
+    const processors = this.gameState.get("computing.processors");
+    const memory = this.gameState.get("computing.memory");
 
-    this.queueUpdate('processorCost', Math.pow(2, processors) * 1000);
-    this.queueUpdate('memoryCost', Math.pow(2, memory) * 1000);
+    this.queueUpdate("processorCost", Math.pow(2, processors) * 1000);
+    this.queueUpdate("memoryCost", Math.pow(2, memory) * 1000);
   }
 
   /**
    * Update button states (enabled/disabled)
    */
   updateButtonStates() {
-    this.updateButtonState('buyAutoClipper', this.canAffordAutoClipper());
-    this.updateButtonState('buyMegaClipper', this.canAffordMegaClipper());
-    this.updateButtonState('buyWire', this.canAffordWire());
-    this.updateButtonState('buyAds', this.canAffordAds());
-    this.updateButtonState('buyProcessor', this.canAffordProcessor());
-    this.updateButtonState('buyMemory', this.canAffordMemory());
+    this.updateButtonState("buyAutoClipper", this.canAffordAutoClipper());
+    this.updateButtonState("buyMegaClipper", this.canAffordMegaClipper());
+    this.updateButtonState("buyWire", this.canAffordWire());
+    this.updateButtonState("buyAds", this.canAffordAds());
+    this.updateButtonState("buyProcessor", this.canAffordProcessor());
+    this.updateButtonState("buyMemory", this.canAffordMemory());
   }
 
   /**
@@ -276,7 +302,7 @@ export class Renderer {
     const button = document.getElementById(buttonId);
     if (button) {
       button.disabled = !canAfford;
-      button.className = canAfford ? 'button' : 'button disabled';
+      button.className = canAfford ? "button" : "button disabled";
     }
   }
 
@@ -284,8 +310,8 @@ export class Renderer {
    * Check if player can afford AutoClipper
    */
   canAffordAutoClipper() {
-    const funds = this.gameState.get('resources.funds');
-    const cost = this.gameState.get('manufacturing.clipmakers.cost');
+    const funds = this.gameState.get("resources.funds");
+    const cost = this.gameState.get("manufacturing.clipmakers.cost");
     return funds >= cost;
   }
 
@@ -293,8 +319,8 @@ export class Renderer {
    * Check if player can afford MegaClipper
    */
   canAffordMegaClipper() {
-    const funds = this.gameState.get('resources.funds');
-    const cost = this.gameState.get('manufacturing.megaClippers.cost');
+    const funds = this.gameState.get("resources.funds");
+    const cost = this.gameState.get("manufacturing.megaClippers.cost");
     return funds >= cost;
   }
 
@@ -302,8 +328,8 @@ export class Renderer {
    * Check if player can afford wire
    */
   canAffordWire() {
-    const funds = this.gameState.get('resources.funds');
-    const cost = this.gameState.get('market.pricing.wireCost');
+    const funds = this.gameState.get("resources.funds");
+    const cost = this.gameState.get("market.pricing.wireCost");
     return funds >= cost;
   }
 
@@ -311,8 +337,8 @@ export class Renderer {
    * Check if player can afford advertising
    */
   canAffordAds() {
-    const funds = this.gameState.get('resources.funds');
-    const cost = this.gameState.get('market.pricing.adCost');
+    const funds = this.gameState.get("resources.funds");
+    const cost = this.gameState.get("market.pricing.adCost");
     return funds >= cost;
   }
 
@@ -320,9 +346,9 @@ export class Renderer {
    * Check if player can afford processor
    */
   canAffordProcessor() {
-    const operations = this.gameState.get('computing.operations');
-    const processors = this.gameState.get('computing.processors');
-    const trust = this.gameState.get('computing.trust.current');
+    const operations = this.gameState.get("computing.operations");
+    const processors = this.gameState.get("computing.processors");
+    const trust = this.gameState.get("computing.trust.current");
     const cost = Math.pow(2, processors) * 1000;
 
     return operations >= cost && processors < trust;
@@ -332,9 +358,9 @@ export class Renderer {
    * Check if player can afford memory
    */
   canAffordMemory() {
-    const operations = this.gameState.get('computing.operations');
-    const memory = this.gameState.get('computing.memory');
-    const trust = this.gameState.get('computing.trust.current');
+    const operations = this.gameState.get("computing.operations");
+    const memory = this.gameState.get("computing.memory");
+    const trust = this.gameState.get("computing.trust.current");
     const cost = Math.pow(2, memory) * 1000;
 
     return operations >= cost && memory < trust;
@@ -344,15 +370,18 @@ export class Renderer {
    * Update UI sections based on game flags
    */
   updateSectionVisibility() {
-    const flags = this.gameState.get('gameState.flags');
+    const flags = this.gameState.get("gameState.flags");
 
-    this.toggleSection('businessDiv', flags.autoClipper >= 1);
-    this.toggleSection('projectsDiv', flags.projects >= 1);
-    this.toggleSection('manufactureDiv', flags.megaClipper >= 1);
-    this.toggleSection('computeDiv', flags.comp >= 1);
-    this.toggleSection('investmentDiv', flags.investment >= 1);
-    this.toggleSection('spaceDiv', flags.space >= 1);
-    this.toggleSection('combatDiv', flags.space >= 1 && this.gameState.get('combat.battleEnabled'));
+    this.toggleSection("businessDiv", flags.autoClipper >= 1);
+    this.toggleSection("projectsDiv", flags.projects >= 1);
+    this.toggleSection("manufactureDiv", flags.megaClipper >= 1);
+    this.toggleSection("computeDiv", flags.comp >= 1);
+    this.toggleSection("investmentDiv", flags.investment >= 1);
+    this.toggleSection("spaceDiv", flags.space >= 1);
+    this.toggleSection(
+      "combatDiv",
+      flags.space >= 1 && this.gameState.get("combat.battleEnabled"),
+    );
   }
 
   /**
@@ -361,7 +390,7 @@ export class Renderer {
   toggleSection(sectionId, visible) {
     const section = document.getElementById(sectionId);
     if (section) {
-      section.style.display = visible ? 'block' : 'none';
+      section.style.display = visible ? "block" : "none";
     }
   }
 
@@ -369,12 +398,12 @@ export class Renderer {
    * Update projects display
    */
   updateProjects() {
-    const projectsContainer = document.getElementById('projectList');
+    const projectsContainer = document.getElementById("projectList");
     if (!projectsContainer) return;
 
     // This would be implemented to show available projects
     // For now, just clear the container
-    projectsContainer.innerHTML = '';
+    projectsContainer.innerHTML = "";
   }
 
   /**
@@ -382,14 +411,16 @@ export class Renderer {
    */
   updateAchievements() {
     // Update achievement count in the button
-    const achievements = this.gameState.get('achievements');
+    const achievements = this.gameState.get("achievements");
     if (achievements) {
       const stats = achievements.stats || { totalUnlocked: 0 };
-      const totalAchievements = Object.keys(window.achievementSystem?.achievements || {}).length;
+      const totalAchievements = Object.keys(
+        window.achievementSystem?.achievements || {},
+      ).length;
 
-      this.queueUpdate('achievementCount', {
+      this.queueUpdate("achievementCount", {
         unlocked: stats.totalUnlocked,
-        total: totalAchievements
+        total: totalAchievements,
       });
     }
   }
@@ -398,7 +429,7 @@ export class Renderer {
    * Create performance display
    */
   updatePerformanceDisplay() {
-    const perfElement = document.getElementById('performanceDisplay');
+    const perfElement = document.getElementById("performanceDisplay");
     if (!perfElement) return;
 
     const report = performanceMonitor.getReport();
@@ -440,9 +471,11 @@ export class Renderer {
 
       // Log if we have a backlog of updates
       if (hasMoreUpdates && this.pendingUpdates.size > 50) {
-        errorHandler.warn(`Renderer backlog: ${this.pendingUpdates.size} pending updates`);
+        errorHandler.warn(
+          `Renderer backlog: ${this.pendingUpdates.size} pending updates`,
+        );
       }
-    }, 'renderer.render');
+    }, "renderer.render");
   }
 
   /**
@@ -469,7 +502,7 @@ export class Renderer {
 
     this.pendingUpdates.clear();
 
-    errorHandler.debug('Forced complete UI update');
+    errorHandler.debug("Forced complete UI update");
   }
 
   /**
@@ -488,7 +521,7 @@ export class Renderer {
       cachedElements: this.elements.size,
       pendingUpdates: this.pendingUpdates.size,
       maxUpdatesPerFrame: this.maxUpdatesPerFrame,
-      availableUpdaters: Object.keys(this.elementUpdaters).length
+      availableUpdaters: Object.keys(this.elementUpdaters).length,
     };
   }
 
@@ -499,7 +532,7 @@ export class Renderer {
     this.pendingUpdates.clear();
     this.refreshCache();
 
-    errorHandler.info('Renderer reset');
+    errorHandler.info("Renderer reset");
   }
 }
 

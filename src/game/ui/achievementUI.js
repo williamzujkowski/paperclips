@@ -6,11 +6,11 @@
 import {
   achievementSystem,
   AchievementCategory,
-  AchievementRarity
-} from '../systems/achievements.js';
-import { gameState } from '../core/gameState.js';
-import { errorHandler } from '../core/errorHandler.js';
-import { formatNumber } from '../../utils/formatting.js';
+  AchievementRarity,
+} from "../systems/achievements.js";
+import { gameState } from "../core/gameState.js";
+import { errorHandler } from "../core/errorHandler.js";
+import { formatNumber } from "../../utils/formatting.js";
 
 /**
  * Achievement UI class
@@ -18,8 +18,8 @@ import { formatNumber } from '../../utils/formatting.js';
 export class AchievementUI {
   constructor() {
     this.isVisible = false;
-    this.currentFilter = 'all';
-    this.currentSort = 'unlock';
+    this.currentFilter = "all";
+    this.currentSort = "unlock";
     this.notificationContainer = null;
     this.achievementPanel = null;
     this.achievementList = null;
@@ -32,7 +32,7 @@ export class AchievementUI {
    * Initialize the achievement UI
    */
   initialize() {
-    errorHandler.info('Initializing achievement UI');
+    errorHandler.info("Initializing achievement UI");
     this.createAchievementPanel();
     this.bindAchievementEvents();
   }
@@ -42,13 +42,13 @@ export class AchievementUI {
    */
   bindEvents() {
     // Listen for achievement unlocked events
-    window.addEventListener('achievementUnlocked', (event) => {
+    window.addEventListener("achievementUnlocked", (event) => {
       this.showNotification(event.detail);
     });
 
     // Listen for escape key to close panel
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && this.isVisible) {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && this.isVisible) {
         this.hidePanel();
       }
     });
@@ -58,9 +58,9 @@ export class AchievementUI {
    * Create notification container
    */
   createNotificationContainer() {
-    this.notificationContainer = document.createElement('div');
-    this.notificationContainer.id = 'achievementNotifications';
-    this.notificationContainer.className = 'achievement-notifications';
+    this.notificationContainer = document.createElement("div");
+    this.notificationContainer.id = "achievementNotifications";
+    this.notificationContainer.className = "achievement-notifications";
     this.notificationContainer.innerHTML = `
       <style>
         .achievement-notifications {
@@ -161,10 +161,10 @@ export class AchievementUI {
    * Create achievement panel
    */
   createAchievementPanel() {
-    this.achievementPanel = document.createElement('div');
-    this.achievementPanel.id = 'achievementPanel';
-    this.achievementPanel.className = 'achievement-panel';
-    this.achievementPanel.style.display = 'none';
+    this.achievementPanel = document.createElement("div");
+    this.achievementPanel.id = "achievementPanel";
+    this.achievementPanel.className = "achievement-panel";
+    this.achievementPanel.style.display = "none";
 
     this.achievementPanel.innerHTML = `
       <style>
@@ -434,28 +434,28 @@ export class AchievementUI {
     `;
 
     document.body.appendChild(this.achievementPanel);
-    this.achievementList = document.getElementById('achievementList');
+    this.achievementList = document.getElementById("achievementList");
   }
 
   /**
    * Bind achievement panel events
    */
   bindAchievementEvents() {
-    const filterSelect = document.getElementById('achievementFilter');
-    const sortSelect = document.getElementById('achievementSort');
+    const filterSelect = document.getElementById("achievementFilter");
+    const sortSelect = document.getElementById("achievementSort");
 
-    filterSelect.addEventListener('change', (e) => {
+    filterSelect.addEventListener("change", (e) => {
       this.currentFilter = e.target.value;
       this.updateAchievementList();
     });
 
-    sortSelect.addEventListener('change', (e) => {
+    sortSelect.addEventListener("change", (e) => {
       this.currentSort = e.target.value;
       this.updateAchievementList();
     });
 
     // Close panel when clicking background
-    this.achievementPanel.addEventListener('click', (e) => {
+    this.achievementPanel.addEventListener("click", (e) => {
       if (e.target === this.achievementPanel) {
         this.hidePanel();
       }
@@ -467,7 +467,7 @@ export class AchievementUI {
    * @param {Object} achievement - The achievement object
    */
   showNotification(achievement) {
-    const notification = document.createElement('div');
+    const notification = document.createElement("div");
     notification.className = `achievement-notification rarity-${achievement.rarity}`;
 
     notification.innerHTML = `
@@ -482,7 +482,7 @@ export class AchievementUI {
     `;
 
     // Add click handler to open achievement panel
-    notification.addEventListener('click', () => {
+    notification.addEventListener("click", () => {
       this.showPanel();
       this.hideNotification(notification);
     });
@@ -490,7 +490,7 @@ export class AchievementUI {
     this.notificationContainer.appendChild(notification);
 
     // Show animation
-    setTimeout(() => notification.classList.add('show'), 100);
+    setTimeout(() => notification.classList.add("show"), 100);
 
     // Auto-hide after 5 seconds
     setTimeout(() => this.hideNotification(notification), 5000);
@@ -501,7 +501,7 @@ export class AchievementUI {
    * @param {HTMLElement} notification - The notification element
    */
   hideNotification(notification) {
-    notification.classList.add('hide');
+    notification.classList.add("hide");
     setTimeout(() => {
       if (notification.parentNode) {
         notification.parentNode.removeChild(notification);
@@ -514,12 +514,12 @@ export class AchievementUI {
    */
   showPanel() {
     this.isVisible = true;
-    this.achievementPanel.style.display = 'flex';
+    this.achievementPanel.style.display = "flex";
     this.updateAchievementList();
     this.updateStats();
 
     // Add escape key listener
-    document.addEventListener('keydown', this.handleEscapeKey);
+    document.addEventListener("keydown", this.handleEscapeKey);
   }
 
   /**
@@ -527,10 +527,10 @@ export class AchievementUI {
    */
   hidePanel() {
     this.isVisible = false;
-    this.achievementPanel.style.display = 'none';
+    this.achievementPanel.style.display = "none";
 
     // Remove escape key listener
-    document.removeEventListener('keydown', this.handleEscapeKey);
+    document.removeEventListener("keydown", this.handleEscapeKey);
   }
 
   /**
@@ -538,7 +538,7 @@ export class AchievementUI {
    * @param {KeyboardEvent} event - The keyboard event
    */
   handleEscapeKey = (event) => {
-    if (event.key === 'Escape') {
+    if (event.key === "Escape") {
       this.hidePanel();
     }
   };
@@ -548,7 +548,7 @@ export class AchievementUI {
    */
   updateStats() {
     const stats = achievementSystem.getStatistics();
-    const statsElement = document.getElementById('achievementStats');
+    const statsElement = document.getElementById("achievementStats");
 
     if (statsElement) {
       statsElement.innerHTML = `
@@ -567,9 +567,9 @@ export class AchievementUI {
     if (!this.achievementList) return;
 
     const achievements = this.getFilteredAndSortedAchievements();
-    const unlocked = gameState.get('achievements.unlocked') || {};
+    const unlocked = gameState.get("achievements.unlocked") || {};
 
-    this.achievementList.innerHTML = '';
+    this.achievementList.innerHTML = "";
 
     if (achievements.length === 0) {
       this.achievementList.innerHTML =
@@ -581,15 +581,22 @@ export class AchievementUI {
 
     achievements.forEach((achievement) => {
       // Add category separator if needed
-      if (this.currentSort === 'category' && achievement.category !== currentCategory) {
+      if (
+        this.currentSort === "category" &&
+        achievement.category !== currentCategory
+      ) {
         currentCategory = achievement.category;
-        const separator = document.createElement('div');
-        separator.className = 'category-separator';
-        separator.textContent = currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1);
+        const separator = document.createElement("div");
+        separator.className = "category-separator";
+        separator.textContent =
+          currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1);
         this.achievementList.appendChild(separator);
       }
 
-      const card = this.createAchievementCard(achievement, unlocked[achievement.id]);
+      const card = this.createAchievementCard(
+        achievement,
+        unlocked[achievement.id],
+      );
       this.achievementList.appendChild(card);
     });
   }
@@ -601,20 +608,24 @@ export class AchievementUI {
    * @returns {HTMLElement} The achievement card element
    */
   createAchievementCard(achievement, unlockTime) {
-    const card = document.createElement('div');
+    const card = document.createElement("div");
     const isUnlocked = !!unlockTime;
     const progress = achievementSystem.getProgress(achievement.id);
     const isHidden = achievement.hidden && !isUnlocked;
 
-    card.className = `achievement-card ${isUnlocked ? 'unlocked' : 'locked'} ${isHidden ? 'hidden' : ''}`;
+    card.className = `achievement-card ${isUnlocked ? "unlocked" : "locked"} ${isHidden ? "hidden" : ""}`;
 
-    const unlockDate = unlockTime ? new Date(unlockTime).toLocaleDateString() : '';
-    const name = isHidden ? '???' : achievement.name;
-    const description = isHidden ? 'Hidden achievement' : achievement.description;
-    const icon = isHidden ? '❓' : achievement.icon;
+    const unlockDate = unlockTime
+      ? new Date(unlockTime).toLocaleDateString()
+      : "";
+    const name = isHidden ? "???" : achievement.name;
+    const description = isHidden
+      ? "Hidden achievement"
+      : achievement.description;
+    const icon = isHidden ? "❓" : achievement.icon;
 
     card.innerHTML = `
-      ${unlockTime ? `<div class="unlock-date">${unlockDate}</div>` : ''}
+      ${unlockTime ? `<div class="unlock-date">${unlockDate}</div>` : ""}
       <div class="header">
         <div class="icon">${icon}</div>
         <div class="info">
@@ -633,7 +644,7 @@ export class AchievementUI {
           <div class="progress-text">${progress.toFixed(1)}% complete</div>
         </div>
       `
-          : ''
+          : ""
       }
     `;
 
@@ -646,42 +657,52 @@ export class AchievementUI {
    */
   getFilteredAndSortedAchievements() {
     let achievements = Object.values(achievementSystem.achievements);
-    const unlocked = gameState.get('achievements.unlocked') || {};
+    const unlocked = gameState.get("achievements.unlocked") || {};
 
     // Apply filter
-    if (this.currentFilter !== 'all') {
-      if (this.currentFilter === 'unlocked') {
+    if (this.currentFilter !== "all") {
+      if (this.currentFilter === "unlocked") {
         achievements = achievements.filter((a) => unlocked[a.id]);
-      } else if (this.currentFilter === 'locked') {
+      } else if (this.currentFilter === "locked") {
         achievements = achievements.filter((a) => !unlocked[a.id]);
-      } else if (Object.values(AchievementCategory).includes(this.currentFilter)) {
-        achievements = achievements.filter((a) => a.category === this.currentFilter);
+      } else if (
+        Object.values(AchievementCategory).includes(this.currentFilter)
+      ) {
+        achievements = achievements.filter(
+          (a) => a.category === this.currentFilter,
+        );
       }
     }
 
     // Apply sort
     achievements.sort((a, b) => {
       switch (this.currentSort) {
-        case 'name':
+        case "name":
           return a.name.localeCompare(b.name);
 
-        case 'rarity':
-          const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+        case "rarity":
+          const rarityOrder = [
+            "common",
+            "uncommon",
+            "rare",
+            "epic",
+            "legendary",
+          ];
           const aIndex = rarityOrder.indexOf(a.rarity);
           const bIndex = rarityOrder.indexOf(b.rarity);
           return bIndex - aIndex; // Reverse order (legendary first)
 
-        case 'category':
+        case "category":
           const categoryCompare = a.category.localeCompare(b.category);
           if (categoryCompare !== 0) return categoryCompare;
           return a.name.localeCompare(b.name);
 
-        case 'progress':
+        case "progress":
           const aProgress = achievementSystem.getProgress(a.id);
           const bProgress = achievementSystem.getProgress(b.id);
           return bProgress - aProgress;
 
-        case 'unlock':
+        case "unlock":
         default:
           const aUnlocked = !!unlocked[a.id];
           const bUnlocked = !!unlocked[b.id];
@@ -701,22 +722,24 @@ export class AchievementUI {
   exportAchievements() {
     try {
       const data = achievementSystem.exportAchievements();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
 
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `paperclips-achievements-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `paperclips-achievements-${new Date().toISOString().split("T")[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
       URL.revokeObjectURL(url);
 
-      this.showMessage('Achievements exported successfully!');
+      this.showMessage("Achievements exported successfully!");
     } catch (error) {
-      errorHandler.log('error', 'Error exporting achievements', error);
-      this.showMessage('Error exporting achievements', 'error');
+      errorHandler.log("error", "Error exporting achievements", error);
+      this.showMessage("Error exporting achievements", "error");
     }
   }
 
@@ -729,21 +752,21 @@ export class AchievementUI {
 
       if (navigator.share) {
         navigator.share({
-          title: 'Universal Paperclips Achievements',
+          title: "Universal Paperclips Achievements",
           text: shareText,
-          url: window.location.href
+          url: window.location.href,
         });
       } else if (navigator.clipboard) {
         navigator.clipboard.writeText(shareText).then(() => {
-          this.showMessage('Achievement summary copied to clipboard!');
+          this.showMessage("Achievement summary copied to clipboard!");
         });
       } else {
         // Fallback: show text in a dialog
-        prompt('Copy your achievement summary:', shareText);
+        prompt("Copy your achievement summary:", shareText);
       }
     } catch (error) {
-      errorHandler.log('error', 'Error sharing achievements', error);
-      this.showMessage('Error sharing achievements', 'error');
+      errorHandler.log("error", "Error sharing achievements", error);
+      this.showMessage("Error sharing achievements", "error");
     }
   }
 
@@ -752,18 +775,18 @@ export class AchievementUI {
    * @param {string} message - The message to show
    * @param {string} type - Message type ('success' or 'error')
    */
-  showMessage(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `achievement-notification rarity-${type === 'success' ? 'uncommon' : 'rare'}`;
+  showMessage(message, type = "success") {
+    const notification = document.createElement("div");
+    notification.className = `achievement-notification rarity-${type === "success" ? "uncommon" : "rare"}`;
     notification.innerHTML = `
       <div class="header">
-        <div class="icon">${type === 'success' ? '✅' : '❌'}</div>
+        <div class="icon">${type === "success" ? "✅" : "❌"}</div>
         <div class="title">${message}</div>
       </div>
     `;
 
     this.notificationContainer.appendChild(notification);
-    setTimeout(() => notification.classList.add('show'), 100);
+    setTimeout(() => notification.classList.add("show"), 100);
     setTimeout(() => this.hideNotification(notification), 3000);
   }
 
@@ -773,13 +796,15 @@ export class AchievementUI {
   updateProgress() {
     if (!this.isVisible) return;
 
-    const cards = this.achievementList.querySelectorAll('.achievement-card.locked');
+    const cards = this.achievementList.querySelectorAll(
+      ".achievement-card.locked",
+    );
     cards.forEach((card) => {
       const achievementId = card.dataset.achievementId;
       if (achievementId) {
         const progress = achievementSystem.getProgress(achievementId);
-        const progressFill = card.querySelector('.progress-fill');
-        const progressText = card.querySelector('.progress-text');
+        const progressFill = card.querySelector(".progress-fill");
+        const progressText = card.querySelector(".progress-text");
 
         if (progressFill) {
           progressFill.style.width = `${progress}%`;

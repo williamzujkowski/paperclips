@@ -5,9 +5,9 @@
  * Projects unlock new capabilities and advance the game through different phases.
  */
 
-import { PROJECT_CATEGORIES } from '../core/constants.js';
-import { errorHandler } from '../core/errorHandler.js';
-import { performanceMonitor } from '../core/performanceMonitor.js';
+import { PROJECT_CATEGORIES } from "../core/constants.js";
+import { errorHandler } from "../core/errorHandler.js";
+import { performanceMonitor } from "../core/performanceMonitor.js";
 
 export class ProjectsSystem {
   constructor(gameState) {
@@ -20,7 +20,10 @@ export class ProjectsSystem {
     this.completedProjects = new Set();
 
     // Bind methods for error boundaries
-    this.update = errorHandler.createErrorBoundary(this.update.bind(this), 'projects.update');
+    this.update = errorHandler.createErrorBoundary(
+      this.update.bind(this),
+      "projects.update",
+    );
   }
 
   /**
@@ -30,287 +33,287 @@ export class ProjectsSystem {
     return {
       // Early Game Projects
       improvedAutoClippers: {
-        id: 'improvedAutoClippers',
-        name: 'Improved AutoClippers',
-        description: 'Increases AutoClipper performance by 25%',
+        id: "improvedAutoClippers",
+        name: "Improved AutoClippers",
+        description: "Increases AutoClipper performance by 25%",
         category: PROJECT_CATEGORIES.EFFICIENCY,
         cost: { operations: 750 },
         requirements: {
-          clipmakers: 1
+          clipmakers: 1,
         },
         effect: {
-          type: 'multiplier',
-          target: 'production.boosts.clipper',
-          value: 1.25
-        }
+          type: "multiplier",
+          target: "production.boosts.clipper",
+          value: 1.25,
+        },
       },
 
       evenBetterAutoClippers: {
-        id: 'evenBetterAutoClippers',
-        name: 'Even Better AutoClippers',
-        description: 'Increases AutoClipper performance by 50%',
+        id: "evenBetterAutoClippers",
+        name: "Even Better AutoClippers",
+        description: "Increases AutoClipper performance by 50%",
         category: PROJECT_CATEGORIES.EFFICIENCY,
         cost: { operations: 2500 },
         requirements: {
           improvedAutoClippers: true,
-          clipmakers: 5
+          clipmakers: 5,
         },
         effect: {
-          type: 'multiplier',
-          target: 'production.boosts.clipper',
-          value: 1.5
-        }
+          type: "multiplier",
+          target: "production.boosts.clipper",
+          value: 1.5,
+        },
       },
 
       improvedWireExtrusion: {
-        id: 'improvedWireExtrusion',
-        name: 'Improved Wire Extrusion',
-        description: 'Reduces wire cost by 50%',
+        id: "improvedWireExtrusion",
+        name: "Improved Wire Extrusion",
+        description: "Reduces wire cost by 50%",
         category: PROJECT_CATEGORIES.EFFICIENCY,
         cost: { operations: 1750 },
         requirements: {
-          wirePurchases: 10
+          wirePurchases: 10,
         },
         effect: {
-          type: 'multiplier',
-          target: 'market.pricing.wireCost',
-          value: 0.5
-        }
+          type: "multiplier",
+          target: "market.pricing.wireCost",
+          value: 0.5,
+        },
       },
 
       optimizedAutoClippers: {
-        id: 'optimizedAutoClippers',
-        name: 'Optimized AutoClippers',
-        description: 'Increases AutoClipper performance by 75%',
+        id: "optimizedAutoClippers",
+        name: "Optimized AutoClippers",
+        description: "Increases AutoClipper performance by 75%",
         category: PROJECT_CATEGORIES.EFFICIENCY,
         cost: { operations: 5000 },
         requirements: {
           evenBetterAutoClippers: true,
-          clipmakers: 10
+          clipmakers: 10,
         },
         effect: {
-          type: 'multiplier',
-          target: 'production.boosts.clipper',
-          value: 1.75
-        }
+          type: "multiplier",
+          target: "production.boosts.clipper",
+          value: 1.75,
+        },
       },
 
       // Computing Projects
       creativityEngine: {
-        id: 'creativityEngine',
-        name: 'Creativity',
-        description: 'Use operations to generate creativity',
+        id: "creativityEngine",
+        name: "Creativity",
+        description: "Use operations to generate creativity",
         category: PROJECT_CATEGORIES.COMPUTING,
         cost: { operations: 1000 },
         requirements: {
-          processors: 5
+          processors: 5,
         },
         effect: {
-          type: 'unlock',
-          target: 'computing.creativity.enabled',
-          value: true
-        }
+          type: "unlock",
+          target: "computing.creativity.enabled",
+          value: true,
+        },
       },
 
       limerick: {
-        id: 'limerick',
-        name: 'Limerick (sample)',
-        description: 'There was an AI made of plastic...',
+        id: "limerick",
+        name: "Limerick (sample)",
+        description: "There was an AI made of plastic...",
         category: PROJECT_CATEGORIES.CREATIVITY,
         cost: { creativity: 1000 },
         requirements: {
-          creativityEngine: true
+          creativityEngine: true,
         },
         effect: {
-          type: 'unlock',
-          target: 'projects.limerick.completed',
-          value: true
-        }
+          type: "unlock",
+          target: "projects.limerick.completed",
+          value: true,
+        },
       },
 
       algorithmicTrading: {
-        id: 'algorithmicTrading',
-        name: 'Algorithmic Trading',
-        description: 'Develop an investment engine',
+        id: "algorithmicTrading",
+        name: "Algorithmic Trading",
+        description: "Develop an investment engine",
         category: PROJECT_CATEGORIES.INVESTMENT,
         cost: { operations: 10000, creativity: 5000 },
         requirements: {
           processors: 8,
-          funds: 25000
+          funds: 25000,
         },
         effect: {
-          type: 'unlock',
-          target: 'gameState.flags.investment',
-          value: 1
-        }
+          type: "unlock",
+          target: "gameState.flags.investment",
+          value: 1,
+        },
       },
 
       // Manufacturing Projects
       improvedMegaClippers: {
-        id: 'improvedMegaClippers',
-        name: 'Improved MegaClippers',
-        description: 'Increases MegaClipper performance by 25%',
+        id: "improvedMegaClippers",
+        name: "Improved MegaClippers",
+        description: "Increases MegaClipper performance by 25%",
         category: PROJECT_CATEGORIES.MANUFACTURING,
         cost: { operations: 7500 },
         requirements: {
-          megaClippers: 1
+          megaClippers: 1,
         },
         effect: {
-          type: 'multiplier',
-          target: 'production.boosts.megaClipper',
-          value: 1.25
-        }
+          type: "multiplier",
+          target: "production.boosts.megaClipper",
+          value: 1.25,
+        },
       },
 
       evenBetterMegaClippers: {
-        id: 'evenBetterMegaClippers',
-        name: 'Even Better MegaClippers',
-        description: 'Increases MegaClipper performance by 50%',
+        id: "evenBetterMegaClippers",
+        name: "Even Better MegaClippers",
+        description: "Increases MegaClipper performance by 50%",
         category: PROJECT_CATEGORIES.MANUFACTURING,
         cost: { operations: 25000 },
         requirements: {
           improvedMegaClippers: true,
-          megaClippers: 5
+          megaClippers: 5,
         },
         effect: {
-          type: 'multiplier',
-          target: 'production.boosts.megaClipper',
-          value: 1.5
-        }
+          type: "multiplier",
+          target: "production.boosts.megaClipper",
+          value: 1.5,
+        },
       },
 
       optimizedMegaClippers: {
-        id: 'optimizedMegaClippers',
-        name: 'Optimized MegaClippers',
-        description: 'Increases MegaClipper performance by 100%',
+        id: "optimizedMegaClippers",
+        name: "Optimized MegaClippers",
+        description: "Increases MegaClipper performance by 100%",
         category: PROJECT_CATEGORIES.MANUFACTURING,
         cost: { operations: 50000 },
         requirements: {
           evenBetterMegaClippers: true,
-          megaClippers: 10
+          megaClippers: 10,
         },
         effect: {
-          type: 'multiplier',
-          target: 'production.boosts.megaClipper',
-          value: 2.0
-        }
+          type: "multiplier",
+          target: "production.boosts.megaClipper",
+          value: 2.0,
+        },
       },
 
       // Space Projects
       spaceExploration: {
-        id: 'spaceExploration',
-        name: 'Space Exploration',
-        description: 'Expand into space',
+        id: "spaceExploration",
+        name: "Space Exploration",
+        description: "Expand into space",
         category: PROJECT_CATEGORIES.SPACE,
         cost: { operations: 120000, creativity: 25000 },
         requirements: {
-          unusedClips: 5000000000
+          unusedClips: 5000000000,
         },
         effect: {
-          type: 'unlock',
-          target: 'gameState.flags.space',
-          value: 1
-        }
+          type: "unlock",
+          target: "gameState.flags.space",
+          value: 1,
+        },
       },
 
       vonNeumannProbes: {
-        id: 'vonNeumannProbes',
-        name: 'Von Neumann Probes',
-        description: 'Self-replicating probes',
+        id: "vonNeumannProbes",
+        name: "Von Neumann Probes",
+        description: "Self-replicating probes",
         category: PROJECT_CATEGORIES.SPACE,
         cost: { operations: 10000000 },
         requirements: {
-          spaceExploration: true
+          spaceExploration: true,
         },
         effect: {
-          type: 'unlock',
-          target: 'space.probes.enabled',
-          value: true
-        }
+          type: "unlock",
+          target: "space.probes.enabled",
+          value: true,
+        },
       },
 
       // Combat Projects
       nameBattles: {
-        id: 'nameBattles',
-        name: 'Name the battles',
-        description: 'Honor system enables 2x probe combat effectiveness',
+        id: "nameBattles",
+        name: "Name the battles",
+        description: "Honor system enables 2x probe combat effectiveness",
         category: PROJECT_CATEGORIES.COMBAT,
         cost: { operations: 15000000 },
         requirements: {
-          probesLostCombat: 10000000
+          probesLostCombat: 10000000,
         },
         effect: {
-          type: 'unlock',
-          target: 'combat.honor.enabled',
-          value: true
-        }
+          type: "unlock",
+          target: "combat.honor.enabled",
+          value: true,
+        },
       },
 
       glory: {
-        id: 'glory',
-        name: 'Glory',
-        description: '+10 honor for each consecutive victory',
+        id: "glory",
+        name: "Glory",
+        description: "+10 honor for each consecutive victory",
         category: PROJECT_CATEGORIES.COMBAT,
         cost: { honor: 15000 },
         requirements: {
-          nameBattles: true
+          nameBattles: true,
         },
         effect: {
-          type: 'unlock',
-          target: 'combat.glory.enabled',
-          value: true
-        }
+          type: "unlock",
+          target: "combat.glory.enabled",
+          value: true,
+        },
       },
 
       // Investment Projects
       investmentEngineUpgrade1: {
-        id: 'investmentEngineUpgrade1',
-        name: 'Investment Engine Upgrade',
-        description: 'Improve investment algorithm',
+        id: "investmentEngineUpgrade1",
+        name: "Investment Engine Upgrade",
+        description: "Improve investment algorithm",
         category: PROJECT_CATEGORIES.INVESTMENT,
         cost: { operations: 15000, yomi: 1000 },
         requirements: {
-          algorithmicTrading: true
+          algorithmicTrading: true,
         },
         effect: {
-          type: 'multiplier',
-          target: 'investment.efficiency',
-          value: 1.25
-        }
+          type: "multiplier",
+          target: "investment.efficiency",
+          value: 1.25,
+        },
       },
 
       // Quantum Projects
       quantumComputing: {
-        id: 'quantumComputing',
-        name: 'Quantum Computing',
-        description: 'Use quantum effects to generate operations',
+        id: "quantumComputing",
+        name: "Quantum Computing",
+        description: "Use quantum effects to generate operations",
         category: PROJECT_CATEGORIES.COMPUTING,
         cost: { operations: 45000 },
         requirements: {
-          processors: 20
+          processors: 20,
         },
         effect: {
-          type: 'unlock',
-          target: 'computing.quantum.enabled',
-          value: true
-        }
+          type: "unlock",
+          target: "computing.quantum.enabled",
+          value: true,
+        },
       },
 
       quantumFoam: {
-        id: 'quantumFoam',
-        name: 'Quantum Foam',
-        description: 'Harness quantum foam fluctuations',
+        id: "quantumFoam",
+        name: "Quantum Foam",
+        description: "Harness quantum foam fluctuations",
         category: PROJECT_CATEGORIES.COMPUTING,
         cost: { operations: 15000000 },
         requirements: {
-          quantumComputing: true
+          quantumComputing: true,
         },
         effect: {
-          type: 'multiplier',
-          target: 'computing.quantum.efficiency',
-          value: 2.0
-        }
-      }
+          type: "multiplier",
+          target: "computing.quantum.efficiency",
+          value: 2.0,
+        },
+      },
     };
   }
 
@@ -328,13 +331,13 @@ export class ProjectsSystem {
     // Check each requirement
     for (const [key, value] of Object.entries(requirements)) {
       // Check for completed projects
-      if (typeof value === 'boolean' && value === true) {
+      if (typeof value === "boolean" && value === true) {
         if (!this.completedProjects.has(key)) {
           return false;
         }
       }
       // Check for numeric requirements
-      else if (typeof value === 'number') {
+      else if (typeof value === "number") {
         const currentValue = this.gameState.get(this.getStatePath(key));
         if (currentValue < value) {
           return false;
@@ -372,15 +375,15 @@ export class ProjectsSystem {
    */
   getStatePath(key) {
     const pathMap = {
-      clipmakers: 'manufacturing.clipmakers.level',
-      megaClippers: 'manufacturing.megaClippers.level',
-      processors: 'computing.processors',
-      memory: 'computing.memory',
-      funds: 'resources.funds',
-      clips: 'resources.clips',
-      unusedClips: 'resources.unusedClips',
-      wirePurchases: 'market.wire.purchase',
-      probesLostCombat: 'combat.probesLostCombat'
+      clipmakers: "manufacturing.clipmakers.level",
+      megaClippers: "manufacturing.megaClippers.level",
+      processors: "computing.processors",
+      memory: "computing.memory",
+      funds: "resources.funds",
+      clips: "resources.clips",
+      unusedClips: "resources.unusedClips",
+      wirePurchases: "market.wire.purchase",
+      probesLostCombat: "combat.probesLostCombat",
     };
 
     return pathMap[key] || key;
@@ -391,11 +394,11 @@ export class ProjectsSystem {
    */
   getResourcePath(resource) {
     const pathMap = {
-      operations: 'computing.operations',
-      creativity: 'computing.creativity.amount',
-      honor: 'combat.honor',
-      yomi: 'investment.yomi',
-      funds: 'resources.funds'
+      operations: "computing.operations",
+      creativity: "computing.creativity.amount",
+      honor: "combat.honor",
+      yomi: "investment.yomi",
+      funds: "resources.funds",
     };
 
     return pathMap[resource] || resource;
@@ -444,8 +447,9 @@ export class ProjectsSystem {
     this.gameState.set(`projects.${projectId}.completed`, true);
 
     // Track project completion for achievements
-    const projectsCompleted = (this.gameState.get('achievements.projectsCompleted') || 0) + 1;
-    this.gameState.set('achievements.projectsCompleted', projectsCompleted);
+    const projectsCompleted =
+      (this.gameState.get("achievements.projectsCompleted") || 0) + 1;
+    this.gameState.set("achievements.projectsCompleted", projectsCompleted);
 
     errorHandler.info(`Completed project: ${project.name}`);
     return true;
@@ -459,20 +463,20 @@ export class ProjectsSystem {
     if (!effect) return;
 
     switch (effect.type) {
-      case 'unlock':
+      case "unlock":
         this.gameState.set(effect.target, effect.value);
         break;
 
-      case 'multiplier':
+      case "multiplier":
         const currentValue = this.gameState.get(effect.target) || 1;
         this.gameState.set(effect.target, currentValue * effect.value);
         break;
 
-      case 'increment':
+      case "increment":
         this.gameState.increment(effect.target, effect.value || 1);
         break;
 
-      case 'custom':
+      case "custom":
         // Handle custom effects
         this.applyCustomEffect(project.id, effect);
         break;
@@ -487,22 +491,22 @@ export class ProjectsSystem {
    */
   applyCustomEffect(projectId, effect) {
     switch (projectId) {
-      case 'spaceExploration':
+      case "spaceExploration":
         // Initialize space exploration
-        this.gameState.set('gameState.flags.space', 1);
-        this.gameState.set('space.matter.available', 6000000000000000000000000);
+        this.gameState.set("gameState.flags.space", 1);
+        this.gameState.set("space.matter.available", 6000000000000000000000000);
         break;
 
-      case 'quantumComputing':
+      case "quantumComputing":
         // Enable quantum computing
-        this.gameState.set('computing.quantum.enabled', true);
-        this.gameState.set('computing.quantum.clock', 0);
+        this.gameState.set("computing.quantum.enabled", true);
+        this.gameState.set("computing.quantum.clock", 0);
         break;
 
-      case 'algorithmicTrading':
+      case "algorithmicTrading":
         // Enable investment engine
-        this.gameState.set('gameState.flags.investment', 1);
-        this.gameState.set('investment.engine.enabled', true);
+        this.gameState.set("gameState.flags.investment", 1);
+        this.gameState.set("investment.engine.enabled", true);
         break;
 
       default:
@@ -516,7 +520,9 @@ export class ProjectsSystem {
   getAvailableProjects() {
     const available = [];
 
-    for (const [projectId, project] of Object.entries(this.projectDefinitions)) {
+    for (const [projectId, project] of Object.entries(
+      this.projectDefinitions,
+    )) {
       // Skip completed projects
       if (this.completedProjects.has(projectId)) {
         continue;
@@ -527,7 +533,7 @@ export class ProjectsSystem {
         available.push({
           id: projectId,
           ...project,
-          canAfford: this.canAfford(projectId)
+          canAfford: this.canAfford(projectId),
         });
       }
     }
@@ -541,7 +547,7 @@ export class ProjectsSystem {
   getCompletedProjects() {
     return Array.from(this.completedProjects).map((projectId) => ({
       id: projectId,
-      ...this.projectDefinitions[projectId]
+      ...this.projectDefinitions[projectId],
     }));
   }
 
@@ -551,14 +557,16 @@ export class ProjectsSystem {
   getProjectsByCategory(category) {
     const projects = [];
 
-    for (const [projectId, project] of Object.entries(this.projectDefinitions)) {
+    for (const [projectId, project] of Object.entries(
+      this.projectDefinitions,
+    )) {
       if (project.category === category) {
         projects.push({
           id: projectId,
           ...project,
           completed: this.completedProjects.has(projectId),
           available: this.checkRequirements(projectId),
-          canAfford: this.canAfford(projectId)
+          canAfford: this.canAfford(projectId),
         });
       }
     }
@@ -580,20 +588,28 @@ export class ProjectsSystem {
       available: availableProjects.length,
       progress: (completedCount / totalProjects) * 100,
       categories: {
-        [PROJECT_CATEGORIES.EFFICIENCY]: this.getProjectsByCategory(PROJECT_CATEGORIES.EFFICIENCY)
-          .length,
-        [PROJECT_CATEGORIES.CREATIVITY]: this.getProjectsByCategory(PROJECT_CATEGORIES.CREATIVITY)
-          .length,
-        [PROJECT_CATEGORIES.INVESTMENT]: this.getProjectsByCategory(PROJECT_CATEGORIES.INVESTMENT)
-          .length,
-        [PROJECT_CATEGORIES.MANUFACTURING]: this.getProjectsByCategory(
-          PROJECT_CATEGORIES.MANUFACTURING
+        [PROJECT_CATEGORIES.EFFICIENCY]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.EFFICIENCY,
         ).length,
-        [PROJECT_CATEGORIES.COMPUTING]: this.getProjectsByCategory(PROJECT_CATEGORIES.COMPUTING)
-          .length,
-        [PROJECT_CATEGORIES.SPACE]: this.getProjectsByCategory(PROJECT_CATEGORIES.SPACE).length,
-        [PROJECT_CATEGORIES.COMBAT]: this.getProjectsByCategory(PROJECT_CATEGORIES.COMBAT).length
-      }
+        [PROJECT_CATEGORIES.CREATIVITY]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.CREATIVITY,
+        ).length,
+        [PROJECT_CATEGORIES.INVESTMENT]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.INVESTMENT,
+        ).length,
+        [PROJECT_CATEGORIES.MANUFACTURING]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.MANUFACTURING,
+        ).length,
+        [PROJECT_CATEGORIES.COMPUTING]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.COMPUTING,
+        ).length,
+        [PROJECT_CATEGORIES.SPACE]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.SPACE,
+        ).length,
+        [PROJECT_CATEGORIES.COMBAT]: this.getProjectsByCategory(
+          PROJECT_CATEGORIES.COMBAT,
+        ).length,
+      },
     };
   }
 
@@ -614,7 +630,7 @@ export class ProjectsSystem {
     }
 
     if (newlyAvailable.length > 0) {
-      errorHandler.info(`New projects available: ${newlyAvailable.join(', ')}`);
+      errorHandler.info(`New projects available: ${newlyAvailable.join(", ")}`);
     }
 
     return newlyAvailable;
@@ -630,7 +646,7 @@ export class ProjectsSystem {
 
       // Update any time-based project effects
       this.updateTimeBasedEffects(deltaTime);
-    }, 'projects.update');
+    }, "projects.update");
   }
 
   /**
@@ -646,7 +662,7 @@ export class ProjectsSystem {
    */
   reset() {
     this.completedProjects.clear();
-    errorHandler.info('Projects system reset');
+    errorHandler.info("Projects system reset");
   }
 
   /**
@@ -664,7 +680,7 @@ export class ProjectsSystem {
    */
   getSaveData() {
     return {
-      completedProjects: Array.from(this.completedProjects)
+      completedProjects: Array.from(this.completedProjects),
     };
   }
 }

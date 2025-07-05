@@ -5,7 +5,7 @@
  * needs throughout the game.
  */
 
-import { MATH } from '../game/core/constants.js';
+import { MATH } from "../game/core/constants.js";
 
 /**
  * Format large numbers with appropriate suffixes
@@ -15,7 +15,7 @@ import { MATH } from '../game/core/constants.js';
  */
 export function formatNumber(num, precision = 2) {
   if (num === null || num === undefined || isNaN(num)) {
-    return '0';
+    return "0";
   }
 
   const absNum = Math.abs(num);
@@ -23,7 +23,7 @@ export function formatNumber(num, precision = 2) {
 
   // Handle very small numbers
   if (absNum < 0.001 && absNum > 0) {
-    return (isNegative ? '-' : '') + absNum.toExponential(precision);
+    return (isNegative ? "-" : "") + absNum.toExponential(precision);
   }
 
   // Handle numbers less than 1000
@@ -36,21 +36,21 @@ export function formatNumber(num, precision = 2) {
 
   // Use scientific notation for very large numbers
   if (absNum >= MATH.SCIENTIFIC_NOTATION_THRESHOLD) {
-    return (isNegative ? '-' : '') + absNum.toExponential(precision);
+    return (isNegative ? "-" : "") + absNum.toExponential(precision);
   }
 
   // Use suffix notation for moderately large numbers
   const suffixes = [
-    { value: MATH.TRILLION, suffix: 'T' },
-    { value: MATH.BILLION, suffix: 'B' },
-    { value: MATH.MILLION, suffix: 'M' },
-    { value: MATH.THOUSAND, suffix: 'K' }
+    { value: MATH.TRILLION, suffix: "T" },
+    { value: MATH.BILLION, suffix: "B" },
+    { value: MATH.MILLION, suffix: "M" },
+    { value: MATH.THOUSAND, suffix: "K" },
   ];
 
   for (const { value, suffix } of suffixes) {
     if (absNum >= value) {
       const formatted = (absNum / value).toFixed(precision);
-      return (isNegative ? '-' : '') + formatted + suffix;
+      return (isNegative ? "-" : "") + formatted + suffix;
     }
   }
 
@@ -65,12 +65,12 @@ export function formatNumber(num, precision = 2) {
  */
 export function formatCurrency(amount, showCents = true) {
   if (amount === null || amount === undefined || isNaN(amount)) {
-    return '$0.00';
+    return "$0.00";
   }
 
   const absAmount = Math.abs(amount);
   const isNegative = amount < 0;
-  const prefix = isNegative ? '-$' : '$';
+  const prefix = isNegative ? "-$" : "$";
 
   // For large amounts, use number formatting
   if (absAmount >= MATH.MILLION) {
@@ -93,7 +93,7 @@ export function formatCurrency(amount, showCents = true) {
  */
 export function formatPercentage(value, precision = 1) {
   if (value === null || value === undefined || isNaN(value)) {
-    return '0%';
+    return "0%";
   }
 
   return `${(value * 100).toFixed(precision)}%`;
@@ -107,7 +107,7 @@ export function formatPercentage(value, precision = 1) {
  */
 export function formatDuration(ms, includeMs = false) {
   if (ms === null || ms === undefined || isNaN(ms)) {
-    return '0s';
+    return "0s";
   }
 
   const seconds = Math.floor(ms / 1000) % 60;
@@ -132,10 +132,10 @@ export function formatDuration(ms, includeMs = false) {
 
   if (includeMs && parts.length === 1 && seconds < 10) {
     const milliseconds = Math.floor(ms % 1000);
-    return `${seconds}.${milliseconds.toString().padStart(3, '0')}s`;
+    return `${seconds}.${milliseconds.toString().padStart(3, "0")}s`;
   }
 
-  return parts.join(' ');
+  return parts.join(" ");
 }
 
 /**
@@ -144,7 +144,7 @@ export function formatDuration(ms, includeMs = false) {
  * @param {string} unit - Unit name
  * @returns {string} Formatted rate
  */
-export function formatRate(rate, unit = 'clips') {
+export function formatRate(rate, unit = "clips") {
   if (rate === null || rate === undefined || isNaN(rate)) {
     return `0 ${unit}/sec`;
   }
@@ -159,10 +159,10 @@ export function formatRate(rate, unit = 'clips') {
  */
 export function formatMemorySize(bytes) {
   if (bytes === null || bytes === undefined || isNaN(bytes)) {
-    return '0 B';
+    return "0 B";
   }
 
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const units = ["B", "KB", "MB", "GB", "TB"];
   let size = bytes;
   let unitIndex = 0;
 
@@ -181,7 +181,7 @@ export function formatMemorySize(bytes) {
  */
 export function formatOrdinal(num) {
   if (num === null || num === undefined || isNaN(num)) {
-    return '0th';
+    return "0th";
   }
 
   const lastDigit = num % 10;
@@ -211,7 +211,7 @@ export function formatOrdinal(num) {
  */
 export function truncateText(text, maxLength) {
   if (!text || text.length <= maxLength) {
-    return text || '';
+    return text || "";
   }
 
   return `${text.substring(0, maxLength - 3)}...`;
@@ -224,7 +224,7 @@ export function truncateText(text, maxLength) {
  */
 export function capitalizeWords(text) {
   if (!text) {
-    return '';
+    return "";
   }
 
   return text.replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -237,11 +237,11 @@ export function capitalizeWords(text) {
  */
 export function camelToHuman(text) {
   if (!text) {
-    return '';
+    return "";
   }
 
   return text
-    .replace(/([A-Z])/g, ' $1')
+    .replace(/([A-Z])/g, " $1")
     .replace(/^./, (str) => str.toUpperCase())
     .trim();
 }
@@ -258,16 +258,20 @@ export function formatStats(stats) {
     const humanKey = camelToHuman(key);
     let formattedValue;
 
-    if (typeof value === 'number') {
-      if (key.includes('time') || key.includes('duration')) {
+    if (typeof value === "number") {
+      if (key.includes("time") || key.includes("duration")) {
         formattedValue = formatDuration(value);
-      } else if (key.includes('rate')) {
+      } else if (key.includes("rate")) {
         formattedValue = formatRate(value);
-      } else if (key.includes('percent') || key.includes('ratio')) {
+      } else if (key.includes("percent") || key.includes("ratio")) {
         formattedValue = formatPercentage(value);
-      } else if (key.includes('memory') || key.includes('size')) {
+      } else if (key.includes("memory") || key.includes("size")) {
         formattedValue = formatMemorySize(value);
-      } else if (key.includes('currency') || key.includes('cost') || key.includes('price')) {
+      } else if (
+        key.includes("currency") ||
+        key.includes("cost") ||
+        key.includes("price")
+      ) {
         formattedValue = formatCurrency(value);
       } else {
         formattedValue = formatNumber(value);
@@ -279,7 +283,7 @@ export function formatStats(stats) {
     lines.push(`${humanKey}: ${formattedValue}`);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /**
@@ -291,7 +295,13 @@ export function formatStats(stats) {
  * @param {string} emptyChar - Character to use for empty portion
  * @returns {string} Progress bar
  */
-export function createProgressBar(current, max, width = 20, fillChar = '█', emptyChar = '░') {
+export function createProgressBar(
+  current,
+  max,
+  width = 20,
+  fillChar = "█",
+  emptyChar = "░",
+) {
   if (max <= 0) {
     return emptyChar.repeat(width);
   }
@@ -311,7 +321,7 @@ export function createProgressBar(current, max, width = 20, fillChar = '█', em
  */
 export function formatTable(data, columns) {
   if (!data || !data.length) {
-    return '';
+    return "";
   }
 
   const rows = [];
@@ -321,33 +331,37 @@ export function formatTable(data, columns) {
   columns.forEach((col) => {
     columnWidths[col.key] = Math.max(
       col.title.length,
-      ...data.map((row) => String(row[col.key] || '').length)
+      ...data.map((row) => String(row[col.key] || "").length),
     );
   });
 
   // Header
-  const header = columns.map((col) => col.title.padEnd(columnWidths[col.key])).join(' | ');
+  const header = columns
+    .map((col) => col.title.padEnd(columnWidths[col.key]))
+    .join(" | ");
   rows.push(header);
 
   // Separator
-  const separator = columns.map((col) => '-'.repeat(columnWidths[col.key])).join('-|-');
+  const separator = columns
+    .map((col) => "-".repeat(columnWidths[col.key]))
+    .join("-|-");
   rows.push(separator);
 
   // Data rows
   data.forEach((row) => {
     const formattedRow = columns
       .map((col) => {
-        let value = row[col.key] || '';
+        let value = row[col.key] || "";
         if (col.formatter) {
           value = col.formatter(value, row);
         }
         return String(value).padEnd(columnWidths[col.key]);
       })
-      .join(' | ');
+      .join(" | ");
     rows.push(formattedRow);
   });
 
-  return rows.join('\n');
+  return rows.join("\n");
 }
 
 /**
@@ -396,7 +410,11 @@ function getCachedFormat(num, formatter, key) {
  * @returns {string} Formatted number
  */
 export function formatNumberCached(num, precision = 2) {
-  return getCachedFormat(num, (n) => formatNumber(n, precision), `num_${precision}`);
+  return getCachedFormat(
+    num,
+    (n) => formatNumber(n, precision),
+    `num_${precision}`,
+  );
 }
 
 /**
@@ -406,5 +424,9 @@ export function formatNumberCached(num, precision = 2) {
  * @returns {string} Formatted currency
  */
 export function formatCurrencyCached(amount, showCents = true) {
-  return getCachedFormat(amount, (a) => formatCurrency(a, showCents), `curr_${showCents}`);
+  return getCachedFormat(
+    amount,
+    (a) => formatCurrency(a, showCents),
+    `curr_${showCents}`,
+  );
 }

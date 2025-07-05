@@ -10,7 +10,7 @@
  * original console methods instead of the overridden ones.
  */
 
-import { DEBUG } from './constants.js';
+import { DEBUG } from "./constants.js";
 
 class ErrorHandler {
   constructor() {
@@ -20,7 +20,7 @@ class ErrorHandler {
     this.performance = {
       errorCount: 0,
       recoveryCount: 0,
-      criticalErrors: 0
+      criticalErrors: 0,
     };
 
     // Store original console methods before overriding
@@ -28,7 +28,7 @@ class ErrorHandler {
       error: console.error.bind(console),
       warn: console.warn.bind(console),
       info: console.info.bind(console),
-      log: console.log.bind(console)
+      log: console.log.bind(console),
     };
 
     // Set up global error handling
@@ -41,23 +41,25 @@ class ErrorHandler {
    */
   _setupGlobalHandlers() {
     // Handle uncaught JavaScript errors
-    window.addEventListener('error', (event) => {
-      this.handleError(new Error(event.message), 'global.uncaughtError', {
+    window.addEventListener("error", (event) => {
+      this.handleError(new Error(event.message), "global.uncaughtError", {
         filename: event.filename,
         lineno: event.lineno,
         colno: event.colno,
-        stack: event.error?.stack
+        stack: event.error?.stack,
       });
     });
 
     // Handle unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      this.handleError(event.reason, 'global.unhandledRejection', { promise: event.promise });
+    window.addEventListener("unhandledrejection", (event) => {
+      this.handleError(event.reason, "global.unhandledRejection", {
+        promise: event.promise,
+      });
     });
 
     // Handle console errors
     console.error = (...args) => {
-      this.error('Console error:', ...args);
+      this.error("Console error:", ...args);
       this._originalConsole.error(...args);
     };
   }
@@ -69,7 +71,7 @@ class ErrorHandler {
    * @param {Object} context - Additional context information
    * @param {boolean} critical - Whether this is a critical error
    */
-  handleError(error, source = 'unknown', context = {}, critical = false) {
+  handleError(error, source = "unknown", context = {}, critical = false) {
     const errorObj = {
       timestamp: Date.now(),
       message: error?.message || error,
@@ -77,7 +79,7 @@ class ErrorHandler {
       context,
       critical,
       stack: error?.stack,
-      id: this._generateErrorId()
+      id: this._generateErrorId(),
     };
 
     this.errors.push(errorObj);
@@ -120,7 +122,9 @@ class ErrorHandler {
           try {
             return fallback.apply(this, args);
           } catch (fallbackError) {
-            this.handleError(fallbackError, `errorBoundary.${name}.fallback`, { args });
+            this.handleError(fallbackError, `errorBoundary.${name}.fallback`, {
+              args,
+            });
           }
         }
 
@@ -136,7 +140,7 @@ class ErrorHandler {
    */
   error(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.ERROR) {
-      this._log('ERROR', message, ...args);
+      this._log("ERROR", message, ...args);
     }
   }
 
@@ -147,7 +151,7 @@ class ErrorHandler {
    */
   warn(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.WARN) {
-      this._log('WARN', message, ...args);
+      this._log("WARN", message, ...args);
     }
   }
 
@@ -158,7 +162,7 @@ class ErrorHandler {
    */
   info(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.INFO) {
-      this._log('INFO', message, ...args);
+      this._log("INFO", message, ...args);
     }
   }
 
@@ -169,7 +173,7 @@ class ErrorHandler {
    */
   debug(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.DEBUG) {
-      this._log('DEBUG', message, ...args);
+      this._log("DEBUG", message, ...args);
     }
   }
 
@@ -199,8 +203,12 @@ class ErrorHandler {
     return {
       ...this.performance,
       totalErrors: this.errors.length,
-      criticalErrorRate: this.performance.criticalErrors / Math.max(this.performance.errorCount, 1),
-      recoveryRate: this.performance.recoveryCount / Math.max(this.performance.errorCount, 1)
+      criticalErrorRate:
+        this.performance.criticalErrors /
+        Math.max(this.performance.errorCount, 1),
+      recoveryRate:
+        this.performance.recoveryCount /
+        Math.max(this.performance.errorCount, 1),
     };
   }
 
@@ -212,9 +220,9 @@ class ErrorHandler {
     this.performance = {
       errorCount: 0,
       recoveryCount: 0,
-      criticalErrors: 0
+      criticalErrors: 0,
     };
-    this.info('Error history cleared');
+    this.info("Error history cleared");
   }
 
   /**
@@ -227,10 +235,10 @@ class ErrorHandler {
         errors: this.errors,
         performance: this.performance,
         timestamp: Date.now(),
-        version: '2.0.0'
+        version: "2.0.0",
       },
       null,
-      2
+      2,
     );
   }
 
@@ -247,19 +255,19 @@ class ErrorHandler {
    * @private
    */
   _logError(errorObj) {
-    const level = errorObj.critical ? 'ERROR' : 'WARN';
+    const level = errorObj.critical ? "ERROR" : "WARN";
     const prefix = `[${level}] ${errorObj.source}:`;
     const message = errorObj.message;
 
-    this._originalConsole.log(`%c${prefix}`, 'font-weight: bold; color: red;');
+    this._originalConsole.log(`%c${prefix}`, "font-weight: bold; color: red;");
     this._originalConsole.log(message);
 
     if (errorObj.context && Object.keys(errorObj.context).length > 0) {
-      this._originalConsole.log('Context:', errorObj.context);
+      this._originalConsole.log("Context:", errorObj.context);
     }
 
     if (errorObj.stack) {
-      this._originalConsole.log('Stack:', errorObj.stack);
+      this._originalConsole.log("Stack:", errorObj.stack);
     }
   }
 
@@ -275,7 +283,7 @@ class ErrorHandler {
       gameLoop: () => this._recoverGameLoop(),
       renderer: () => this._recoverRenderer(),
       gameState: () => this._recoverGameState(),
-      localStorage: () => this._recoverLocalStorage()
+      localStorage: () => this._recoverLocalStorage(),
     };
 
     // Try source-specific recovery
@@ -287,7 +295,7 @@ class ErrorHandler {
           this.info(`Recovery attempted for ${source}`);
           return;
         } catch (recoveryError) {
-          this.error('Recovery failed:', recoveryError);
+          this.error("Recovery failed:", recoveryError);
         }
       }
     }
@@ -304,7 +312,7 @@ class ErrorHandler {
    */
   _recoverGameLoop() {
     // Clear any running intervals and restart main loop
-    this.warn('Attempting game loop recovery');
+    this.warn("Attempting game loop recovery");
     // Implementation would restart the game loop
   }
 
@@ -314,7 +322,7 @@ class ErrorHandler {
    */
   _recoverRenderer() {
     // Force a complete UI refresh
-    this.warn('Attempting renderer recovery');
+    this.warn("Attempting renderer recovery");
     // Implementation would refresh the UI
   }
 
@@ -324,7 +332,7 @@ class ErrorHandler {
    */
   _recoverGameState() {
     // Validate and repair game state
-    this.warn('Attempting game state recovery');
+    this.warn("Attempting game state recovery");
     // Implementation would validate and repair state
   }
 
@@ -334,7 +342,7 @@ class ErrorHandler {
    */
   _recoverLocalStorage() {
     // Try to repair or fallback localStorage
-    this.warn('Attempting localStorage recovery');
+    this.warn("Attempting localStorage recovery");
     // Implementation would try to repair save data
   }
 
@@ -343,7 +351,7 @@ class ErrorHandler {
    * @private
    */
   _genericRecovery() {
-    this.warn('Attempting generic recovery');
+    this.warn("Attempting generic recovery");
     // Implementation would try generic recovery strategies
   }
 
@@ -356,16 +364,16 @@ class ErrorHandler {
     const logMessage = `[${timestamp}] [${level}] ${message}`;
 
     switch (level) {
-      case 'ERROR':
+      case "ERROR":
         this._originalConsole.error(logMessage, ...args);
         break;
-      case 'WARN':
+      case "WARN":
         this._originalConsole.warn(logMessage, ...args);
         break;
-      case 'INFO':
+      case "INFO":
         this._originalConsole.info(logMessage, ...args);
         break;
-      case 'DEBUG':
+      case "DEBUG":
         this._originalConsole.log(logMessage, ...args);
         break;
       default:
@@ -378,8 +386,8 @@ class ErrorHandler {
    * @private
    */
   _getLogLevelName(level) {
-    const names = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
-    return names[level] || 'UNKNOWN';
+    const names = ["ERROR", "WARN", "INFO", "DEBUG"];
+    return names[level] || "UNKNOWN";
   }
 
   /**

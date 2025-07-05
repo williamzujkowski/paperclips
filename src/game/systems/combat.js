@@ -5,9 +5,9 @@
  * honor system, and tactical combat visualization.
  */
 
-import { BALANCE } from '../core/constants.js';
-import { errorHandler } from '../core/errorHandler.js';
-import { performanceMonitor } from '../core/performanceMonitor.js';
+import { BALANCE } from "../core/constants.js";
+import { errorHandler } from "../core/errorHandler.js";
+import { performanceMonitor } from "../core/performanceMonitor.js";
 
 export class CombatSystem {
   constructor(gameState) {
@@ -31,16 +31,19 @@ export class CombatSystem {
     this.visualizationEnabled = false;
 
     // Bind methods for error boundaries
-    this.update = errorHandler.createErrorBoundary(this.update.bind(this), 'combat.update');
+    this.update = errorHandler.createErrorBoundary(
+      this.update.bind(this),
+      "combat.update",
+    );
   }
 
   /**
    * Check if war conditions are met and create battles
    */
   checkForBattles() {
-    const probeCount = this.gameState.get('space.probes.count');
-    const drifterCount = this.gameState.get('combat.drifterCount') || 0;
-    const battleEnabled = this.gameState.get('combat.battleEnabled');
+    const probeCount = this.gameState.get("space.probes.count");
+    const drifterCount = this.gameState.get("combat.drifterCount") || 0;
+    const battleEnabled = this.gameState.get("combat.battleEnabled");
 
     // War triggers when drifters exceed threshold and probes exist
     if (drifterCount > this.WAR_TRIGGER && probeCount > 0 && battleEnabled) {
@@ -55,8 +58,8 @@ export class CombatSystem {
    * Create a new battle
    */
   createBattle() {
-    const probeCount = this.gameState.get('space.probes.count');
-    const drifterCount = this.gameState.get('combat.drifterCount');
+    const probeCount = this.gameState.get("space.probes.count");
+    const drifterCount = this.gameState.get("combat.drifterCount");
 
     // Calculate forces for this battle
     const unitSize = this.calculateUnitSize(probeCount, drifterCount);
@@ -73,12 +76,14 @@ export class CombatSystem {
       territory: Math.floor(Math.random() * 1000000), // Territory at stake
       duration: 0,
       active: true,
-      victor: null
+      victor: null,
     };
 
     this.battles.push(battle);
 
-    errorHandler.debug(`Battle created: ${probeForces} probes vs ${drifterForces} drifters`);
+    errorHandler.debug(
+      `Battle created: ${probeForces} probes vs ${drifterForces} drifters`,
+    );
 
     return battle;
   }
@@ -130,10 +135,10 @@ export class CombatSystem {
 
     // Check for battle end conditions
     if (battle.probeShips <= 0) {
-      battle.victor = 'drifters';
+      battle.victor = "drifters";
       battle.active = false;
     } else if (battle.drifterShips <= 0) {
-      battle.victor = 'probes';
+      battle.victor = "probes";
       battle.active = false;
     }
   }
@@ -142,35 +147,37 @@ export class CombatSystem {
    * Resolve combat for a battle tick
    */
   resolveCombat(battle) {
-    const probeCombat = this.gameState.get('combat.probeCombat') || 1;
-    const probeSpeed = this.gameState.get('combat.probeSpeed') || 1;
+    const probeCombat = this.gameState.get("combat.probeCombat") || 1;
+    const probeSpeed = this.gameState.get("combat.probeSpeed") || 1;
     const combatEffectiveness = this.getCombatEffectiveness();
 
     // Random determines who attacks
     if (Math.random() >= this.BATTLE_SPEED) {
       // Drifters attack probes
       const casualties = Math.floor(
-        battle.drifterShips * this.DRIFTER_COMBAT * (1 - this.BATTLE_SPEED)
+        battle.drifterShips * this.DRIFTER_COMBAT * (1 - this.BATTLE_SPEED),
       );
 
       battle.probeShips = Math.max(0, battle.probeShips - casualties);
 
       // Update global probe count
       const globalCasualties = casualties * battle.unitSize;
-      this.gameState.decrement('space.probes.count', globalCasualties);
-      this.gameState.increment('combat.probesLostCombat', globalCasualties);
+      this.gameState.decrement("space.probes.count", globalCasualties);
+      this.gameState.increment("combat.probesLostCombat", globalCasualties);
     } else {
       // Probes attack drifters
       const attackPower = Math.pow(probeCombat, 1.7) * combatEffectiveness;
       const speedBonus = 1 + probeSpeed * 0.2; // OODA loop bonus
 
-      const casualties = Math.floor(battle.probeShips * attackPower * speedBonus);
+      const casualties = Math.floor(
+        battle.probeShips * attackPower * speedBonus,
+      );
 
       battle.drifterShips = Math.max(0, battle.drifterShips - casualties);
 
       // Update global drifter count
       const globalCasualties = casualties * battle.unitSize;
-      this.gameState.decrement('combat.drifterCount', globalCasualties);
+      this.gameState.decrement("combat.drifterCount", globalCasualties);
     }
   }
 
@@ -181,16 +188,18 @@ export class CombatSystem {
     let effectiveness = 1.0;
 
     // Base combat effectiveness
-    const probeCombat = this.gameState.get('combat.probeCombat') || 1;
+    const probeCombat = this.gameState.get("combat.probeCombat") || 1;
 
     // Check for combat projects
-    const nameBattlesProject = this.gameState.get('projects.nameBattles.completed');
+    const nameBattlesProject = this.gameState.get(
+      "projects.nameBattles.completed",
+    );
     if (nameBattlesProject) {
       effectiveness *= 2.0; // 2x combat effectiveness from naming battles
     }
 
     // Attack speed upgrades
-    const attackSpeedFlag = this.gameState.get('combat.attackSpeedFlag');
+    const attackSpeedFlag = this.gameState.get("combat.attackSpeedFlag");
     if (attackSpeedFlag) {
       effectiveness *= 1.1; // 10% bonus from attack speed
     }
@@ -202,40 +211,42 @@ export class CombatSystem {
    * Handle battle outcome (victory or defeat)
    */
   handleBattleOutcome(battle) {
-    const currentHonor = this.gameState.get('combat.honor');
+    const currentHonor = this.gameState.get("combat.honor");
 
-    if (battle.victor === 'probes') {
+    if (battle.victor === "probes") {
       // Victory: Gain honor
       let honorGain = battle.originalDrifterShips;
 
       // Check for Glory project bonus
-      const gloryProject = this.gameState.get('projects.glory.completed');
+      const gloryProject = this.gameState.get("projects.glory.completed");
       if (gloryProject) {
-        const consecutiveWins = this.gameState.get('combat.consecutiveWins') || 0;
+        const consecutiveWins =
+          this.gameState.get("combat.consecutiveWins") || 0;
         honorGain += consecutiveWins * 10; // +10 honor per consecutive win
-        this.gameState.set('combat.consecutiveWins', consecutiveWins + 1);
+        this.gameState.set("combat.consecutiveWins", consecutiveWins + 1);
       }
 
-      this.gameState.set('combat.honor', currentHonor + honorGain);
+      this.gameState.set("combat.honor", currentHonor + honorGain);
 
       // Track battle victory for achievements
-      const battlesWon = (this.gameState.get('achievements.battlesWon') || 0) + 1;
-      this.gameState.set('achievements.battlesWon', battlesWon);
+      const battlesWon =
+        (this.gameState.get("achievements.battlesWon") || 0) + 1;
+      this.gameState.set("achievements.battlesWon", battlesWon);
 
       // Gain territory (available matter)
-      this.gameState.increment('space.matter.available', battle.territory);
+      this.gameState.increment("space.matter.available", battle.territory);
 
       errorHandler.debug(`Battle won! Gained ${honorGain} honor`);
-    } else if (battle.victor === 'drifters') {
+    } else if (battle.victor === "drifters") {
       // Defeat: Lose honor and territory
       const honorLoss = battle.originalProbeShips;
-      this.gameState.set('combat.honor', Math.max(0, currentHonor - honorLoss));
+      this.gameState.set("combat.honor", Math.max(0, currentHonor - honorLoss));
 
       // Lose territory
-      this.gameState.decrement('space.matter.available', battle.territory);
+      this.gameState.decrement("space.matter.available", battle.territory);
 
       // Reset consecutive wins
-      this.gameState.set('combat.consecutiveWins', 0);
+      this.gameState.set("combat.consecutiveWins", 0);
 
       errorHandler.debug(`Battle lost! Lost ${honorLoss} honor`);
     }
@@ -248,27 +259,28 @@ export class CombatSystem {
    * Update battle statistics
    */
   updateBattleStats(battle) {
-    const stats = this.gameState.get('combat.battleStats') || {
+    const stats = this.gameState.get("combat.battleStats") || {
       totalBattles: 0,
       victories: 0,
       defeats: 0,
       probesLost: 0,
-      driftersDestroyed: 0
+      driftersDestroyed: 0,
     };
 
     stats.totalBattles++;
 
-    if (battle.victor === 'probes') {
+    if (battle.victor === "probes") {
       stats.victories++;
     } else {
       stats.defeats++;
     }
 
-    stats.probesLost += (battle.originalProbeShips - battle.probeShips) * battle.unitSize;
+    stats.probesLost +=
+      (battle.originalProbeShips - battle.probeShips) * battle.unitSize;
     stats.driftersDestroyed +=
       (battle.originalDrifterShips - battle.drifterShips) * battle.unitSize;
 
-    this.gameState.set('combat.battleStats', stats);
+    this.gameState.set("combat.battleStats", stats);
   }
 
   /**
@@ -278,16 +290,16 @@ export class CombatSystem {
     const total = combat + speed + replication;
 
     if (total !== 100) {
-      errorHandler.warn('Probe stat allocation must total 100%');
+      errorHandler.warn("Probe stat allocation must total 100%");
       return false;
     }
 
-    this.gameState.set('combat.probeCombat', combat / 100);
-    this.gameState.set('combat.probeSpeed', speed / 100);
-    this.gameState.set('combat.probeReplication', replication / 100);
+    this.gameState.set("combat.probeCombat", combat / 100);
+    this.gameState.set("combat.probeSpeed", speed / 100);
+    this.gameState.set("combat.probeReplication", replication / 100);
 
     errorHandler.debug(
-      `Probe stats allocated: ${combat}% combat, ${speed}% speed, ${replication}% replication`
+      `Probe stats allocated: ${combat}% combat, ${speed}% speed, ${replication}% replication`,
     );
 
     return true;
@@ -297,28 +309,28 @@ export class CombatSystem {
    * Enable combat mode
    */
   enableCombat() {
-    this.gameState.set('combat.battleEnabled', true);
-    errorHandler.info('Combat enabled');
+    this.gameState.set("combat.battleEnabled", true);
+    errorHandler.info("Combat enabled");
   }
 
   /**
    * Disable combat mode
    */
   disableCombat() {
-    this.gameState.set('combat.battleEnabled', false);
+    this.gameState.set("combat.battleEnabled", false);
     this.battles = []; // Clear active battles
-    errorHandler.info('Combat disabled');
+    errorHandler.info("Combat disabled");
   }
 
   /**
    * Get combat statistics
    */
   getStats() {
-    const stats = this.gameState.get('combat.battleStats') || {};
-    const honor = this.gameState.get('combat.honor');
-    const probeCombat = this.gameState.get('combat.probeCombat');
-    const probeSpeed = this.gameState.get('combat.probeSpeed');
-    const probeReplication = this.gameState.get('combat.probeReplication');
+    const stats = this.gameState.get("combat.battleStats") || {};
+    const honor = this.gameState.get("combat.honor");
+    const probeCombat = this.gameState.get("combat.probeCombat");
+    const probeSpeed = this.gameState.get("combat.probeSpeed");
+    const probeReplication = this.gameState.get("combat.probeReplication");
 
     return {
       honor,
@@ -327,17 +339,20 @@ export class CombatSystem {
       probeStats: {
         combat: Math.round((probeCombat || 0) * 100),
         speed: Math.round((probeSpeed || 0) * 100),
-        replication: Math.round((probeReplication || 0) * 100)
+        replication: Math.round((probeReplication || 0) * 100),
       },
       battleHistory: {
         totalBattles: stats.totalBattles || 0,
         victories: stats.victories || 0,
         defeats: stats.defeats || 0,
-        winRate: stats.totalBattles > 0 ? (stats.victories / stats.totalBattles) * 100 : 0,
+        winRate:
+          stats.totalBattles > 0
+            ? (stats.victories / stats.totalBattles) * 100
+            : 0,
         probesLost: stats.probesLost || 0,
-        driftersDestroyed: stats.driftersDestroyed || 0
+        driftersDestroyed: stats.driftersDestroyed || 0,
       },
-      consecutiveWins: this.gameState.get('combat.consecutiveWins') || 0
+      consecutiveWins: this.gameState.get("combat.consecutiveWins") || 0,
     };
   }
 
@@ -351,7 +366,7 @@ export class CombatSystem {
       drifterShips: battle.drifterShips,
       territory: battle.territory,
       duration: battle.duration,
-      victor: battle.victor
+      victor: battle.victor,
     }));
   }
 
@@ -359,8 +374,8 @@ export class CombatSystem {
    * Calculate optimal probe stat allocation based on current situation
    */
   getOptimalAllocation() {
-    const drifterCount = this.gameState.get('combat.drifterCount') || 0;
-    const probeCount = this.gameState.get('space.probes.count');
+    const drifterCount = this.gameState.get("combat.drifterCount") || 0;
+    const probeCount = this.gameState.get("space.probes.count");
 
     if (drifterCount === 0) {
       // No enemies: focus on replication
@@ -387,15 +402,17 @@ export class CombatSystem {
   initializeBattleVisualization(canvasId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) {
-      errorHandler.warn(`Canvas ${canvasId} not found for battle visualization`);
+      errorHandler.warn(
+        `Canvas ${canvasId} not found for battle visualization`,
+      );
       return false;
     }
 
     this.battleCanvas = canvas;
-    this.battleContext = canvas.getContext('2d');
+    this.battleContext = canvas.getContext("2d");
     this.visualizationEnabled = true;
 
-    errorHandler.info('Battle visualization initialized');
+    errorHandler.info("Battle visualization initialized");
     return true;
   }
 
@@ -408,27 +425,32 @@ export class CombatSystem {
     }
 
     // Clear canvas
-    this.battleContext.clearRect(0, 0, this.battleCanvas.width, this.battleCanvas.height);
+    this.battleContext.clearRect(
+      0,
+      0,
+      this.battleCanvas.width,
+      this.battleCanvas.height,
+    );
 
     // Draw active battles (simplified representation)
     this.battles.forEach((battle, index) => {
       const y = index * 100 + 50;
 
       // Draw probe forces (blue)
-      this.battleContext.fillStyle = '#0066cc';
+      this.battleContext.fillStyle = "#0066cc";
       this.battleContext.fillRect(50, y, battle.probeShips * 2, 20);
 
       // Draw drifter forces (red)
-      this.battleContext.fillStyle = '#cc0000';
+      this.battleContext.fillStyle = "#cc0000";
       this.battleContext.fillRect(300, y, battle.drifterShips * 2, 20);
 
       // Draw battle info
-      this.battleContext.fillStyle = '#000000';
-      this.battleContext.font = '12px Arial';
+      this.battleContext.fillStyle = "#000000";
+      this.battleContext.font = "12px Arial";
       this.battleContext.fillText(
         `Battle ${battle.id}: ${battle.probeShips} vs ${battle.drifterShips}`,
         50,
-        y - 5
+        y - 5,
       );
     });
   }
@@ -448,7 +470,7 @@ export class CombatSystem {
       if (this.visualizationEnabled) {
         this.updateBattleVisualization();
       }
-    }, 'combat.update');
+    }, "combat.update");
   }
 
   /**
@@ -459,7 +481,7 @@ export class CombatSystem {
     this.battleIdCounter = 0;
     this.visualizationEnabled = false;
 
-    errorHandler.info('Combat system reset');
+    errorHandler.info("Combat system reset");
   }
 
   /**
@@ -467,11 +489,12 @@ export class CombatSystem {
    */
   predictBattleOutcome(probeForces, drifterForces) {
     const combatEffectiveness = this.getCombatEffectiveness();
-    const probeCombat = this.gameState.get('combat.probeCombat') || 1;
-    const probeSpeed = this.gameState.get('combat.probeSpeed') || 1;
+    const probeCombat = this.gameState.get("combat.probeCombat") || 1;
+    const probeSpeed = this.gameState.get("combat.probeSpeed") || 1;
 
     // Simplified battle prediction
-    const probeStrength = probeForces * probeCombat * combatEffectiveness * (1 + probeSpeed * 0.2);
+    const probeStrength =
+      probeForces * probeCombat * combatEffectiveness * (1 + probeSpeed * 0.2);
     const drifterStrength = drifterForces * this.DRIFTER_COMBAT;
 
     const probeWinChance = probeStrength / (probeStrength + drifterStrength);
@@ -479,7 +502,12 @@ export class CombatSystem {
     return {
       probeWinChance: Math.round(probeWinChance * 100),
       drifterWinChance: Math.round((1 - probeWinChance) * 100),
-      recommendation: probeWinChance > 0.6 ? 'engage' : probeWinChance > 0.4 ? 'caution' : 'avoid'
+      recommendation:
+        probeWinChance > 0.6
+          ? "engage"
+          : probeWinChance > 0.4
+            ? "caution"
+            : "avoid",
     };
   }
 }

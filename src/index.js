@@ -5,22 +5,22 @@
  * This replaces the legacy global variable architecture with a clean modular system.
  */
 
-import { gameState } from './game/core/gameState.js';
-import { gameLoop } from './game/core/gameLoop.js';
-import { errorHandler } from './game/core/errorHandler.js';
-import { performanceMonitor } from './game/core/performanceMonitor.js';
+import { gameState } from "./game/core/gameState.js";
+import { gameLoop } from "./game/core/gameLoop.js";
+import { errorHandler } from "./game/core/errorHandler.js";
+import { performanceMonitor } from "./game/core/performanceMonitor.js";
 
-import ProductionSystem from './game/systems/production.js';
-import MarketSystem from './game/systems/market.js';
-import ComputingSystem from './game/systems/computing.js';
-import CombatSystem from './game/systems/combat.js';
-import ProjectsSystem from './game/systems/projects.js';
-import { achievementSystem } from './game/systems/achievements.js';
+import ProductionSystem from "./game/systems/production.js";
+import MarketSystem from "./game/systems/market.js";
+import ComputingSystem from "./game/systems/computing.js";
+import CombatSystem from "./game/systems/combat.js";
+import ProjectsSystem from "./game/systems/projects.js";
+import { achievementSystem } from "./game/systems/achievements.js";
 
-import Renderer from './game/ui/renderer.js';
-import EventsSystem from './game/ui/events.js';
-import { achievementUI } from './game/ui/achievementUI.js';
-import { accessibilityManager } from './game/ui/accessibility.js';
+import Renderer from "./game/ui/renderer.js";
+import EventsSystem from "./game/ui/events.js";
+import { achievementUI } from "./game/ui/achievementUI.js";
+import { accessibilityManager } from "./game/ui/accessibility.js";
 
 /**
  * Main Game class that orchestrates all systems
@@ -37,7 +37,7 @@ class UniversalPaperclips {
     this.setupGameLoop();
     this.setupDebugInterface();
 
-    errorHandler.info('Universal Paperclips initialized');
+    errorHandler.info("Universal Paperclips initialized");
   }
 
   /**
@@ -56,9 +56,9 @@ class UniversalPaperclips {
       // Initialize achievement system
       achievementSystem.initialize();
 
-      errorHandler.info('Game systems initialized');
+      errorHandler.info("Game systems initialized");
     } catch (error) {
-      errorHandler.handleError(error, 'game.initializeSystems', {}, true);
+      errorHandler.handleError(error, "game.initializeSystems", {}, true);
     }
   }
 
@@ -78,9 +78,9 @@ class UniversalPaperclips {
       // Connect accessibility to game events
       this.setupAccessibilityEvents();
 
-      errorHandler.info('UI systems initialized');
+      errorHandler.info("UI systems initialized");
     } catch (error) {
-      errorHandler.handleError(error, 'game.initializeUI', {}, true);
+      errorHandler.handleError(error, "game.initializeUI", {}, true);
     }
   }
 
@@ -89,28 +89,28 @@ class UniversalPaperclips {
    */
   setupAccessibilityEvents() {
     // Wire up game events to accessibility announcements
-    gameState.on('milestone', (data) => {
-      accessibilityManager.announceGameEvent('milestone', data);
+    gameState.on("milestone", (data) => {
+      accessibilityManager.announceGameEvent("milestone", data);
     });
 
-    gameState.on('unlock', (data) => {
-      accessibilityManager.announceGameEvent('unlock', data);
+    gameState.on("unlock", (data) => {
+      accessibilityManager.announceGameEvent("unlock", data);
     });
 
-    gameState.on('achievement', (data) => {
-      accessibilityManager.announceGameEvent('achievement', data);
+    gameState.on("achievement", (data) => {
+      accessibilityManager.announceGameEvent("achievement", data);
     });
 
-    gameState.on('warning', (data) => {
-      accessibilityManager.announceGameEvent('warning', data);
+    gameState.on("warning", (data) => {
+      accessibilityManager.announceGameEvent("warning", data);
     });
 
-    gameState.on('purchase', (data) => {
-      accessibilityManager.announceGameEvent('purchase', data);
+    gameState.on("purchase", (data) => {
+      accessibilityManager.announceGameEvent("purchase", data);
     });
 
-    gameState.on('insufficient', (data) => {
-      accessibilityManager.announceGameEvent('insufficient', data);
+    gameState.on("insufficient", (data) => {
+      accessibilityManager.announceGameEvent("insufficient", data);
     });
   }
 
@@ -122,29 +122,31 @@ class UniversalPaperclips {
       // Register system updates with appropriate frequencies
 
       // Fast updates (100 FPS equivalent) - critical game logic
-      gameLoop.addSystem('fast', this.systems.production.update, 'production');
-      gameLoop.addSystem('fast', this.systems.market.update, 'market');
-      gameLoop.addSystem('fast', this.systems.computing.update, 'computing');
-      gameLoop.addSystem('fast', this.systems.combat.update, 'combat');
+      gameLoop.addSystem("fast", this.systems.production.update, "production");
+      gameLoop.addSystem("fast", this.systems.market.update, "market");
+      gameLoop.addSystem("fast", this.systems.computing.update, "computing");
+      gameLoop.addSystem("fast", this.systems.combat.update, "combat");
 
       // Medium updates (10 FPS equivalent) - UI and secondary logic
-      gameLoop.addSystem('medium', this.systems.projects.update, 'projects');
-      gameLoop.addSystem('medium', this.handleAutoSave.bind(this), 'autoSave');
+      gameLoop.addSystem("medium", this.systems.projects.update, "projects");
+      gameLoop.addSystem("medium", this.handleAutoSave.bind(this), "autoSave");
       gameLoop.addSystem(
-        'medium',
-        this.systems.achievements.checkAchievements.bind(this.systems.achievements),
-        'achievements'
+        "medium",
+        this.systems.achievements.checkAchievements.bind(
+          this.systems.achievements,
+        ),
+        "achievements",
       );
 
       // Slow updates (1 FPS equivalent) - background tasks
-      gameLoop.addSystem('slow', this.updateGamePhase.bind(this), 'gamePhase');
+      gameLoop.addSystem("slow", this.updateGamePhase.bind(this), "gamePhase");
 
       // Register renderer
-      gameLoop.addRenderer(this.ui.renderer.render, 'main');
+      gameLoop.addRenderer(this.ui.renderer.render, "main");
 
-      errorHandler.info('Game loop configured');
+      errorHandler.info("Game loop configured");
     } catch (error) {
-      errorHandler.handleError(error, 'game.setupGameLoop', {}, true);
+      errorHandler.handleError(error, "game.setupGameLoop", {}, true);
     }
   }
 
@@ -162,35 +164,35 @@ class UniversalPaperclips {
 
         // Resource cheats for testing
         addClips: (amount = 1000) => {
-          gameState.increment('resources.clips', amount);
-          gameState.increment('resources.totalClips', amount);
-          gameState.increment('resources.unsoldClips', amount);
+          gameState.increment("resources.clips", amount);
+          gameState.increment("resources.totalClips", amount);
+          gameState.increment("resources.unsoldClips", amount);
           errorHandler.debug(`Added ${amount} clips`);
         },
 
         addFunds: (amount = 1000) => {
-          gameState.increment('resources.funds', amount);
+          gameState.increment("resources.funds", amount);
           errorHandler.debug(`Added $${amount}`);
         },
 
         addWire: (amount = 1000) => {
-          gameState.increment('resources.wire', amount);
+          gameState.increment("resources.wire", amount);
           errorHandler.debug(`Added ${amount} wire`);
         },
 
         addOperations: (amount = 10000) => {
-          gameState.increment('computing.operations', amount);
+          gameState.increment("computing.operations", amount);
           errorHandler.debug(`Added ${amount} operations`);
         },
 
         addCreativity: (amount = 1000) => {
-          gameState.increment('computing.creativity.amount', amount);
+          gameState.increment("computing.creativity.amount", amount);
           errorHandler.debug(`Added ${amount} creativity`);
         },
 
         // System controls
         resetGame: () => {
-          if (confirm('Really reset? This cannot be undone.')) {
+          if (confirm("Really reset? This cannot be undone.")) {
             this.reset();
           }
         },
@@ -200,21 +202,24 @@ class UniversalPaperclips {
 
         // Performance controls
         setLogLevel: (level) => errorHandler.setLogLevel(level),
-        enablePerformanceMonitoring: (enabled) => performanceMonitor.setEnabled(enabled),
+        enablePerformanceMonitoring: (enabled) =>
+          performanceMonitor.setEnabled(enabled),
 
         // System access
         systems: this.systems,
         gameState: gameState,
         gameLoop: gameLoop,
         errorHandler: errorHandler,
-        performanceMonitor: performanceMonitor
-      }
+        performanceMonitor: performanceMonitor,
+      },
     };
 
     // Expose achievement system globally for UI access
     window.achievementSystem = achievementSystem;
 
-    errorHandler.info('Debug interface available at window.UniversalPaperclips.debug');
+    errorHandler.info(
+      "Debug interface available at window.UniversalPaperclips.debug",
+    );
   }
 
   /**
@@ -222,10 +227,10 @@ class UniversalPaperclips {
    */
   handleAutoSave(timestamp, deltaTime) {
     // Auto-save every 30 seconds
-    const lastSave = gameState.get('gameState.lastAutoSave') || 0;
+    const lastSave = gameState.get("gameState.lastAutoSave") || 0;
     if (timestamp - lastSave > 30000) {
       gameState.save();
-      gameState.set('gameState.lastAutoSave', timestamp);
+      gameState.set("gameState.lastAutoSave", timestamp);
     }
   }
 
@@ -233,42 +238,42 @@ class UniversalPaperclips {
    * Update game phase based on progress
    */
   updateGamePhase(timestamp, deltaTime) {
-    const flags = gameState.get('gameState.flags');
-    const clips = gameState.get('resources.clips');
-    const funds = gameState.get('resources.funds');
-    const autoClippers = gameState.get('manufacturing.clipmakers.level');
-    const megaClippers = gameState.get('manufacturing.megaClippers.level');
-    const processors = gameState.get('computing.processors');
-    const unusedClips = gameState.get('resources.unusedClips');
+    const flags = gameState.get("gameState.flags");
+    const clips = gameState.get("resources.clips");
+    const funds = gameState.get("resources.funds");
+    const autoClippers = gameState.get("manufacturing.clipmakers.level");
+    const megaClippers = gameState.get("manufacturing.megaClippers.level");
+    const processors = gameState.get("computing.processors");
+    const unusedClips = gameState.get("resources.unusedClips");
 
     // Enable business section after first AutoClipper
     if (autoClippers >= 1 && flags.autoClipper === 0) {
-      gameState.set('gameState.flags.autoClipper', 1);
-      errorHandler.info('Business section unlocked');
+      gameState.set("gameState.flags.autoClipper", 1);
+      errorHandler.info("Business section unlocked");
     }
 
     // Enable MegaClipper section
     if (megaClippers >= 1 && flags.megaClipper === 0) {
-      gameState.set('gameState.flags.megaClipper', 1);
-      errorHandler.info('Manufacturing section unlocked');
+      gameState.set("gameState.flags.megaClipper", 1);
+      errorHandler.info("Manufacturing section unlocked");
     }
 
     // Enable computing section
     if (processors >= 1 && flags.comp === 0) {
-      gameState.set('gameState.flags.comp', 1);
-      errorHandler.info('Computing section unlocked');
+      gameState.set("gameState.flags.comp", 1);
+      errorHandler.info("Computing section unlocked");
     }
 
     // Enable projects section
     if (processors >= 5 && flags.projects === 0) {
-      gameState.set('gameState.flags.projects', 1);
-      errorHandler.info('Projects section unlocked');
+      gameState.set("gameState.flags.projects", 1);
+      errorHandler.info("Projects section unlocked");
     }
 
     // Enable space exploration
     if (unusedClips >= 5000000000 && flags.space === 0) {
-      gameState.set('gameState.flags.space', 1);
-      errorHandler.info('Space exploration unlocked');
+      gameState.set("gameState.flags.space", 1);
+      errorHandler.info("Space exploration unlocked");
     }
   }
 
@@ -277,7 +282,7 @@ class UniversalPaperclips {
    */
   start() {
     if (this.initialized) {
-      errorHandler.warn('Game already initialized');
+      errorHandler.warn("Game already initialized");
       return;
     }
 
@@ -285,18 +290,18 @@ class UniversalPaperclips {
       // Try to load saved game
       const loaded = gameState.load();
       if (loaded) {
-        errorHandler.info('Saved game loaded');
+        errorHandler.info("Saved game loaded");
       } else {
-        errorHandler.info('Starting new game');
+        errorHandler.info("Starting new game");
       }
 
       // Start the game loop
       gameLoop.start();
 
       this.initialized = true;
-      errorHandler.info('Game started successfully');
+      errorHandler.info("Game started successfully");
     } catch (error) {
-      errorHandler.handleError(error, 'game.start', {}, true);
+      errorHandler.handleError(error, "game.start", {}, true);
     }
   }
 
@@ -319,9 +324,9 @@ class UniversalPaperclips {
       this.ui.events?.cleanup();
 
       this.initialized = false;
-      errorHandler.info('Game stopped');
+      errorHandler.info("Game stopped");
     } catch (error) {
-      errorHandler.handleError(error, 'game.stop');
+      errorHandler.handleError(error, "game.stop");
     }
   }
 
@@ -349,9 +354,9 @@ class UniversalPaperclips {
       // Restart game loop
       gameLoop.start();
 
-      errorHandler.info('Game reset completed');
+      errorHandler.info("Game reset completed");
     } catch (error) {
-      errorHandler.handleError(error, 'game.reset', {}, true);
+      errorHandler.handleError(error, "game.reset", {}, true);
     }
   }
 
@@ -361,26 +366,26 @@ class UniversalPaperclips {
   getGameStats() {
     return {
       gameState: {
-        clips: gameState.get('resources.clips'),
-        funds: gameState.get('resources.funds'),
-        wire: gameState.get('resources.wire'),
-        elapsedTime: gameState.get('gameState.elapsedTime'),
-        ticks: gameState.get('gameState.ticks')
+        clips: gameState.get("resources.clips"),
+        funds: gameState.get("resources.funds"),
+        wire: gameState.get("resources.wire"),
+        elapsedTime: gameState.get("gameState.elapsedTime"),
+        ticks: gameState.get("gameState.ticks"),
       },
       systems: {
         production: this.systems.production?.getStats(),
         market: this.systems.market?.getStats(),
         computing: this.systems.computing?.getStats(),
         combat: this.systems.combat?.getStats(),
-        projects: this.systems.projects?.getStats()
+        projects: this.systems.projects?.getStats(),
       },
       performance: performanceMonitor.getReport(),
       errors: errorHandler.getStats(),
       ui: {
         renderer: this.ui.renderer?.getStats(),
-        events: this.ui.events?.getStats()
+        events: this.ui.events?.getStats(),
       },
-      gameLoop: gameLoop.getStats()
+      gameLoop: gameLoop.getStats(),
     };
   }
 
@@ -395,10 +400,10 @@ class UniversalPaperclips {
         market: this.systems.market?.getSaveData?.(),
         computing: this.systems.computing?.getSaveData?.(),
         combat: this.systems.combat?.getSaveData?.(),
-        projects: this.systems.projects?.getSaveData?.()
+        projects: this.systems.projects?.getSaveData?.(),
       },
       timestamp: Date.now(),
-      version: '2.0.0'
+      version: "2.0.0",
     };
   }
 
@@ -420,31 +425,31 @@ class UniversalPaperclips {
         });
       }
 
-      errorHandler.info('Game data imported successfully');
+      errorHandler.info("Game data imported successfully");
       return true;
     } catch (error) {
-      errorHandler.handleError(error, 'game.importGame');
+      errorHandler.handleError(error, "game.importGame");
       return false;
     }
   }
 }
 
 // Initialize and start the game when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   try {
     const game = new UniversalPaperclips();
     game.start();
   } catch (error) {
-    console.error('Failed to initialize Universal Paperclips:', error);
+    console.error("Failed to initialize Universal Paperclips:", error);
   }
 });
 
 // Handle page unload
-window.addEventListener('beforeunload', () => {
+window.addEventListener("beforeunload", () => {
   try {
     gameState.save();
   } catch (error) {
-    console.warn('Failed to save on page unload:', error);
+    console.warn("Failed to save on page unload:", error);
   }
 });
 

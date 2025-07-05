@@ -8,8 +8,8 @@
  * - Focus management
  */
 
-import { gameState } from '../core/gameState.js';
-import { errorHandler } from '../core/errorHandler.js';
+import { gameState } from "../core/gameState.js";
+import { errorHandler } from "../core/errorHandler.js";
 
 /**
  * Manages accessibility features for the game
@@ -17,7 +17,7 @@ import { errorHandler } from '../core/errorHandler.js';
 class AccessibilityManager {
   constructor() {
     this.announcer = null;
-    this.lastAnnouncement = '';
+    this.lastAnnouncement = "";
     this.highContrastEnabled = false;
     this.reducedMotionEnabled = false;
     this.keyboardModeActive = false;
@@ -35,7 +35,7 @@ class AccessibilityManager {
     this.addSkipLinks();
     this.enhanceElements();
 
-    errorHandler.info('Accessibility features initialized');
+    errorHandler.info("Accessibility features initialized");
   }
 
   /**
@@ -43,22 +43,22 @@ class AccessibilityManager {
    */
   checkUserPreferences() {
     // Check for prefers-reduced-motion
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     this.reducedMotionEnabled = mediaQuery.matches;
 
     // Check for high contrast preference
-    const highContrastQuery = window.matchMedia('(prefers-contrast: high)');
+    const highContrastQuery = window.matchMedia("(prefers-contrast: high)");
     if (highContrastQuery.matches) {
       this.enableHighContrast();
     }
 
     // Listen for changes
-    mediaQuery.addEventListener('change', (e) => {
+    mediaQuery.addEventListener("change", (e) => {
       this.reducedMotionEnabled = e.matches;
       this.updateAnimations();
     });
 
-    highContrastQuery.addEventListener('change', (e) => {
+    highContrastQuery.addEventListener("change", (e) => {
       if (e.matches) {
         this.enableHighContrast();
       } else {
@@ -72,25 +72,25 @@ class AccessibilityManager {
    */
   initializeAnnouncer() {
     // Create main announcer for important events
-    this.announcer = document.createElement('div');
-    this.announcer.setAttribute('role', 'status');
-    this.announcer.setAttribute('aria-live', 'polite');
-    this.announcer.setAttribute('aria-atomic', 'true');
-    this.announcer.className = 'sr-only';
-    this.announcer.id = 'game-announcer';
+    this.announcer = document.createElement("div");
+    this.announcer.setAttribute("role", "status");
+    this.announcer.setAttribute("aria-live", "polite");
+    this.announcer.setAttribute("aria-atomic", "true");
+    this.announcer.className = "sr-only";
+    this.announcer.id = "game-announcer";
     document.body.appendChild(this.announcer);
 
     // Create urgent announcer for critical events
-    this.urgentAnnouncer = document.createElement('div');
-    this.urgentAnnouncer.setAttribute('role', 'alert');
-    this.urgentAnnouncer.setAttribute('aria-live', 'assertive');
-    this.urgentAnnouncer.setAttribute('aria-atomic', 'true');
-    this.urgentAnnouncer.className = 'sr-only';
-    this.urgentAnnouncer.id = 'urgent-announcer';
+    this.urgentAnnouncer = document.createElement("div");
+    this.urgentAnnouncer.setAttribute("role", "alert");
+    this.urgentAnnouncer.setAttribute("aria-live", "assertive");
+    this.urgentAnnouncer.setAttribute("aria-atomic", "true");
+    this.urgentAnnouncer.className = "sr-only";
+    this.urgentAnnouncer.id = "urgent-announcer";
     document.body.appendChild(this.urgentAnnouncer);
 
     // Add CSS for screen reader only content
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       .sr-only {
         position: absolute;
@@ -189,9 +189,9 @@ class AccessibilityManager {
    * Add skip navigation links
    */
   addSkipLinks() {
-    const skipLinks = document.createElement('nav');
-    skipLinks.className = 'skip-links';
-    skipLinks.setAttribute('aria-label', 'Skip navigation');
+    const skipLinks = document.createElement("nav");
+    skipLinks.className = "skip-links";
+    skipLinks.setAttribute("aria-label", "Skip navigation");
 
     skipLinks.innerHTML = `
       <a href="#main-content">Skip to main content</a>
@@ -204,9 +204,9 @@ class AccessibilityManager {
     document.body.insertBefore(skipLinks, document.body.firstChild);
 
     // Add main content landmark
-    const mainContent = document.querySelector('.game-container');
-    mainContent.setAttribute('role', 'main');
-    mainContent.id = 'main-content';
+    const mainContent = document.querySelector(".game-container");
+    mainContent.setAttribute("role", "main");
+    mainContent.id = "main-content";
   }
 
   /**
@@ -214,35 +214,35 @@ class AccessibilityManager {
    */
   initializeKeyboardNavigation() {
     // Track keyboard vs mouse usage
-    document.addEventListener('mousedown', () => {
+    document.addEventListener("mousedown", () => {
       this.keyboardModeActive = false;
-      document.body.classList.remove('keyboard-mode');
+      document.body.classList.remove("keyboard-mode");
     });
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
         this.keyboardModeActive = true;
-        document.body.classList.add('keyboard-mode');
+        document.body.classList.add("keyboard-mode");
       }
 
       // Handle arrow key navigation
       if (this.keyboardModeActive) {
         switch (e.key) {
-          case 'ArrowLeft':
-          case 'ArrowUp':
+          case "ArrowLeft":
+          case "ArrowUp":
             e.preventDefault();
             this.focusPrevious();
             break;
-          case 'ArrowRight':
-          case 'ArrowDown':
+          case "ArrowRight":
+          case "ArrowDown":
             e.preventDefault();
             this.focusNext();
             break;
-          case 'Home':
+          case "Home":
             e.preventDefault();
             this.focusFirst();
             break;
-          case 'End':
+          case "End":
             e.preventDefault();
             this.focusLast();
             break;
@@ -252,17 +252,17 @@ class AccessibilityManager {
       // Global keyboard shortcuts with announcements
       if (!e.ctrlKey && !e.metaKey && !e.altKey) {
         switch (e.key) {
-          case ' ':
-            if (e.target.tagName !== 'BUTTON') {
+          case " ":
+            if (e.target.tagName !== "BUTTON") {
               e.preventDefault();
-              const makeClipButton = document.getElementById('makeClipButton');
+              const makeClipButton = document.getElementById("makeClipButton");
               if (makeClipButton && !makeClipButton.disabled) {
                 makeClipButton.click();
-                this.announce('Making paperclip');
+                this.announce("Making paperclip");
               }
             }
             break;
-          case '?':
+          case "?":
             e.preventDefault();
             this.showKeyboardHelp();
             break;
@@ -276,19 +276,19 @@ class AccessibilityManager {
    */
   initializeHighContrast() {
     // Add toggle button
-    const toggleButton = document.createElement('button');
-    toggleButton.id = 'highContrastToggle';
-    toggleButton.className = 'button';
-    toggleButton.textContent = 'Toggle High Contrast';
-    toggleButton.setAttribute('aria-label', 'Toggle high contrast mode');
-    toggleButton.setAttribute('aria-pressed', 'false');
+    const toggleButton = document.createElement("button");
+    toggleButton.id = "highContrastToggle";
+    toggleButton.className = "button";
+    toggleButton.textContent = "Toggle High Contrast";
+    toggleButton.setAttribute("aria-label", "Toggle high contrast mode");
+    toggleButton.setAttribute("aria-pressed", "false");
 
-    toggleButton.addEventListener('click', () => {
+    toggleButton.addEventListener("click", () => {
       this.toggleHighContrast();
     });
 
     // Add to game management section
-    const gameManagement = document.querySelector('#gameManagement .controls');
+    const gameManagement = document.querySelector("#gameManagement .controls");
     if (gameManagement) {
       gameManagement.appendChild(toggleButton);
     }
@@ -299,15 +299,23 @@ class AccessibilityManager {
    */
   toggleHighContrast() {
     this.highContrastEnabled = !this.highContrastEnabled;
-    document.body.classList.toggle('high-contrast', this.highContrastEnabled);
+    document.body.classList.toggle("high-contrast", this.highContrastEnabled);
 
-    const toggleButton = document.getElementById('highContrastToggle');
-    toggleButton.setAttribute('aria-pressed', this.highContrastEnabled.toString());
+    const toggleButton = document.getElementById("highContrastToggle");
+    toggleButton.setAttribute(
+      "aria-pressed",
+      this.highContrastEnabled.toString(),
+    );
 
-    this.announce(`High contrast mode ${this.highContrastEnabled ? 'enabled' : 'disabled'}`);
+    this.announce(
+      `High contrast mode ${this.highContrastEnabled ? "enabled" : "disabled"}`,
+    );
 
     // Save preference
-    localStorage.setItem('highContrastEnabled', this.highContrastEnabled.toString());
+    localStorage.setItem(
+      "highContrastEnabled",
+      this.highContrastEnabled.toString(),
+    );
   }
 
   /**
@@ -315,10 +323,10 @@ class AccessibilityManager {
    */
   enableHighContrast() {
     this.highContrastEnabled = true;
-    document.body.classList.add('high-contrast');
-    const toggleButton = document.getElementById('highContrastToggle');
+    document.body.classList.add("high-contrast");
+    const toggleButton = document.getElementById("highContrastToggle");
     if (toggleButton) {
-      toggleButton.setAttribute('aria-pressed', 'true');
+      toggleButton.setAttribute("aria-pressed", "true");
     }
   }
 
@@ -327,10 +335,10 @@ class AccessibilityManager {
    */
   disableHighContrast() {
     this.highContrastEnabled = false;
-    document.body.classList.remove('high-contrast');
-    const toggleButton = document.getElementById('highContrastToggle');
+    document.body.classList.remove("high-contrast");
+    const toggleButton = document.getElementById("highContrastToggle");
     if (toggleButton) {
-      toggleButton.setAttribute('aria-pressed', 'false');
+      toggleButton.setAttribute("aria-pressed", "false");
     }
   }
 
@@ -339,9 +347,9 @@ class AccessibilityManager {
    */
   updateAnimations() {
     if (this.reducedMotionEnabled) {
-      document.body.classList.add('reduced-motion');
+      document.body.classList.add("reduced-motion");
     } else {
-      document.body.classList.remove('reduced-motion');
+      document.body.classList.remove("reduced-motion");
     }
   }
 
@@ -361,7 +369,7 @@ class AccessibilityManager {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['disabled', 'hidden', 'style']
+      attributeFilter: ["disabled", "hidden", "style"],
     });
   }
 
@@ -371,9 +379,9 @@ class AccessibilityManager {
   updateFocusableElements() {
     const selector =
       'button:not(:disabled):not(.hidden), input:not(:disabled):not(.hidden), [tabindex="0"]:not(.hidden)';
-    this.focusableElements = Array.from(document.querySelectorAll(selector)).filter(
-      (el) => el.offsetParent !== null
-    ); // Filter out invisible elements
+    this.focusableElements = Array.from(
+      document.querySelectorAll(selector),
+    ).filter((el) => el.offsetParent !== null); // Filter out invisible elements
   }
 
   /**
@@ -382,7 +390,8 @@ class AccessibilityManager {
   focusNext() {
     if (this.focusableElements.length === 0) return;
 
-    this.currentFocusIndex = (this.currentFocusIndex + 1) % this.focusableElements.length;
+    this.currentFocusIndex =
+      (this.currentFocusIndex + 1) % this.focusableElements.length;
     this.focusableElements[this.currentFocusIndex].focus();
   }
 
@@ -393,7 +402,8 @@ class AccessibilityManager {
     if (this.focusableElements.length === 0) return;
 
     this.currentFocusIndex =
-      (this.currentFocusIndex - 1 + this.focusableElements.length) % this.focusableElements.length;
+      (this.currentFocusIndex - 1 + this.focusableElements.length) %
+      this.focusableElements.length;
     this.focusableElements[this.currentFocusIndex].focus();
   }
 
@@ -443,49 +453,49 @@ class AccessibilityManager {
   enhanceButtons() {
     const buttonEnhancements = {
       makeClipButton: {
-        label: 'Make a paperclip. Costs 1 wire.',
-        description: 'Primary game action. Press spacebar as shortcut.'
+        label: "Make a paperclip. Costs 1 wire.",
+        description: "Primary game action. Press spacebar as shortcut.",
       },
       buyAutoClipper: {
-        label: 'Buy AutoClipper. Automatically makes paperclips.',
-        description: 'Each AutoClipper produces clips automatically.'
+        label: "Buy AutoClipper. Automatically makes paperclips.",
+        description: "Each AutoClipper produces clips automatically.",
       },
       buyMegaClipper: {
-        label: 'Buy MegaClipper. Produces clips faster than AutoClippers.',
-        description: 'Advanced automation for clip production.'
+        label: "Buy MegaClipper. Produces clips faster than AutoClippers.",
+        description: "Advanced automation for clip production.",
       },
       buyWire: {
-        label: 'Buy wire spool. Adds 1000 wire to inventory.',
-        description: 'Wire is required to make paperclips.'
+        label: "Buy wire spool. Adds 1000 wire to inventory.",
+        description: "Wire is required to make paperclips.",
       },
       buyAds: {
-        label: 'Buy marketing. Increases demand for paperclips.',
-        description: 'Higher marketing levels increase sales rate.'
+        label: "Buy marketing. Increases demand for paperclips.",
+        description: "Higher marketing levels increase sales rate.",
       },
       toggleWireBuyer: {
-        label: 'Toggle automatic wire purchasing',
-        description: 'When enabled, automatically buys wire when running low.'
+        label: "Toggle automatic wire purchasing",
+        description: "When enabled, automatically buys wire when running low.",
       },
       toggleCreativity: {
-        label: 'Toggle creativity generation',
-        description: 'When enabled, generates creativity points for projects.'
+        label: "Toggle creativity generation",
+        description: "When enabled, generates creativity points for projects.",
       },
       toggleCombat: {
-        label: 'Toggle probe combat mode',
-        description: 'Enable combat between probes in space.'
-      }
+        label: "Toggle probe combat mode",
+        description: "Enable combat between probes in space.",
+      },
     };
 
     Object.entries(buttonEnhancements).forEach(([id, config]) => {
       const button = document.getElementById(id);
       if (button) {
-        button.setAttribute('aria-label', config.label);
-        button.setAttribute('aria-describedby', `${id}-description`);
+        button.setAttribute("aria-label", config.label);
+        button.setAttribute("aria-describedby", `${id}-description`);
 
         // Add description element
-        const description = document.createElement('span');
+        const description = document.createElement("span");
         description.id = `${id}-description`;
-        description.className = 'sr-only';
+        description.className = "sr-only";
         description.textContent = config.description;
         button.parentNode.insertBefore(description, button.nextSibling);
       }
@@ -493,12 +503,14 @@ class AccessibilityManager {
 
     // Enhance price control buttons
     document
-      .querySelectorAll('[data-action="lowerPrice"], [data-action="raisePrice"]')
+      .querySelectorAll(
+        '[data-action="lowerPrice"], [data-action="raisePrice"]',
+      )
       .forEach((button) => {
-        const isLower = button.getAttribute('data-action') === 'lowerPrice';
+        const isLower = button.getAttribute("data-action") === "lowerPrice";
         button.setAttribute(
-          'aria-label',
-          `${isLower ? 'Lower' : 'Raise'} paperclip price by $0.01`
+          "aria-label",
+          `${isLower ? "Lower" : "Raise"} paperclip price by $0.01`,
         );
       });
   }
@@ -509,55 +521,56 @@ class AccessibilityManager {
   enhanceSliders() {
     const sliderEnhancements = {
       creativitySlider: {
-        label: 'Creativity allocation percentage',
+        label: "Creativity allocation percentage",
         min: 0,
         max: 100,
         step: 1,
-        description: 'Allocate processing power between operations and creativity'
+        description:
+          "Allocate processing power between operations and creativity",
       },
       probeCombat: {
-        label: 'Probe combat allocation',
+        label: "Probe combat allocation",
         min: 0,
         max: 100,
         step: 1,
-        description: 'Percentage of probe resources allocated to combat'
+        description: "Percentage of probe resources allocated to combat",
       },
       probeSpeed: {
-        label: 'Probe speed allocation',
+        label: "Probe speed allocation",
         min: 0,
         max: 100,
         step: 1,
-        description: 'Percentage of probe resources allocated to speed'
+        description: "Percentage of probe resources allocated to speed",
       },
       probeReplication: {
-        label: 'Probe replication allocation',
+        label: "Probe replication allocation",
         min: 0,
         max: 100,
         step: 1,
-        description: 'Percentage of probe resources allocated to replication'
-      }
+        description: "Percentage of probe resources allocated to replication",
+      },
     };
 
     Object.entries(sliderEnhancements).forEach(([id, config]) => {
       const slider = document.getElementById(id);
       if (slider) {
-        slider.setAttribute('role', 'slider');
-        slider.setAttribute('aria-label', config.label);
-        slider.setAttribute('aria-valuemin', config.min);
-        slider.setAttribute('aria-valuemax', config.max);
-        slider.setAttribute('aria-valuenow', slider.value);
-        slider.setAttribute('aria-describedby', `${id}-description`);
+        slider.setAttribute("role", "slider");
+        slider.setAttribute("aria-label", config.label);
+        slider.setAttribute("aria-valuemin", config.min);
+        slider.setAttribute("aria-valuemax", config.max);
+        slider.setAttribute("aria-valuenow", slider.value);
+        slider.setAttribute("aria-describedby", `${id}-description`);
 
         // Add description
-        const description = document.createElement('span');
+        const description = document.createElement("span");
         description.id = `${id}-description`;
-        description.className = 'sr-only';
+        description.className = "sr-only";
         description.textContent = config.description;
         slider.parentNode.insertBefore(description, slider);
 
         // Update aria-valuenow on change
-        slider.addEventListener('input', (e) => {
-          e.target.setAttribute('aria-valuenow', e.target.value);
+        slider.addEventListener("input", (e) => {
+          e.target.setAttribute("aria-valuenow", e.target.value);
           this.announce(`${config.label}: ${e.target.value}%`);
         });
       }
@@ -568,30 +581,31 @@ class AccessibilityManager {
    * Enhance sections with proper landmarks
    */
   enhanceSections() {
-    const sections = document.querySelectorAll('.game-section');
+    const sections = document.querySelectorAll(".game-section");
     sections.forEach((section) => {
       // Add region role
-      section.setAttribute('role', 'region');
+      section.setAttribute("role", "region");
 
       // Label by heading
-      const heading = section.querySelector('h2');
+      const heading = section.querySelector("h2");
       if (heading) {
-        const headingId = heading.id || `heading-${Math.random().toString(36).substr(2, 9)}`;
+        const headingId =
+          heading.id || `heading-${Math.random().toString(36).substr(2, 9)}`;
         heading.id = headingId;
-        section.setAttribute('aria-labelledby', headingId);
+        section.setAttribute("aria-labelledby", headingId);
       }
 
       // Make section headers keyboard accessible
-      const header = section.querySelector('.section-header');
+      const header = section.querySelector(".section-header");
       if (header) {
-        header.setAttribute('tabindex', '0');
-        header.setAttribute('role', 'button');
-        header.setAttribute('aria-expanded', 'true');
-        header.setAttribute('aria-controls', section.id);
+        header.setAttribute("tabindex", "0");
+        header.setAttribute("role", "button");
+        header.setAttribute("aria-expanded", "true");
+        header.setAttribute("aria-controls", section.id);
 
         // Add keyboard support
-        header.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+        header.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             header.click();
           }
@@ -601,8 +615,9 @@ class AccessibilityManager {
         const originalClick = header.onclick;
         header.onclick = function (e) {
           if (originalClick) originalClick.call(this, e);
-          const isExpanded = !header.nextElementSibling.classList.contains('collapsed');
-          header.setAttribute('aria-expanded', isExpanded.toString());
+          const isExpanded =
+            !header.nextElementSibling.classList.contains("collapsed");
+          header.setAttribute("aria-expanded", isExpanded.toString());
         };
       }
     });
@@ -613,20 +628,27 @@ class AccessibilityManager {
    */
   enhanceStats() {
     // Make important stats live regions
-    const liveStats = ['clips', 'funds', 'wire', 'operations', 'creativity', 'trust'];
+    const liveStats = [
+      "clips",
+      "funds",
+      "wire",
+      "operations",
+      "creativity",
+      "trust",
+    ];
 
     liveStats.forEach((statId) => {
       const element = document.getElementById(statId);
       if (element) {
-        element.setAttribute('aria-live', 'polite');
-        element.setAttribute('aria-atomic', 'true');
+        element.setAttribute("aria-live", "polite");
+        element.setAttribute("aria-atomic", "true");
 
         // Add label
-        const label = element.parentNode.querySelector('.stat-label');
+        const label = element.parentNode.querySelector(".stat-label");
         if (label) {
           const labelId = `${statId}-label`;
           label.id = labelId;
-          element.setAttribute('aria-labelledby', labelId);
+          element.setAttribute("aria-labelledby", labelId);
         }
       }
     });
@@ -637,40 +659,40 @@ class AccessibilityManager {
    */
   addDescriptions() {
     // Add game description
-    const header = document.querySelector('.game-header');
+    const header = document.querySelector(".game-header");
     if (header) {
-      header.setAttribute('role', 'banner');
-      const h1 = header.querySelector('h1');
+      header.setAttribute("role", "banner");
+      const h1 = header.querySelector("h1");
       if (h1) {
         h1.setAttribute(
-          'aria-label',
-          'Universal Paperclips: An incremental game about artificial intelligence and paperclip maximization'
+          "aria-label",
+          "Universal Paperclips: An incremental game about artificial intelligence and paperclip maximization",
         );
       }
     }
 
     // Add descriptions for game phases
-    const productionSection = document.getElementById('production');
+    const productionSection = document.getElementById("production");
     if (productionSection) {
       productionSection.setAttribute(
-        'aria-description',
-        'Main production area. Create paperclips and manage resources.'
+        "aria-description",
+        "Main production area. Create paperclips and manage resources.",
       );
     }
 
-    const businessSection = document.getElementById('businessDiv');
+    const businessSection = document.getElementById("businessDiv");
     if (businessSection) {
       businessSection.setAttribute(
-        'aria-description',
-        'Business management. Control pricing, marketing, and automation.'
+        "aria-description",
+        "Business management. Control pricing, marketing, and automation.",
       );
     }
 
-    const computeSection = document.getElementById('computeDiv');
+    const computeSection = document.getElementById("computeDiv");
     if (computeSection) {
       computeSection.setAttribute(
-        'aria-description',
-        'Computational resources. Manage processors, memory, and research.'
+        "aria-description",
+        "Computational resources. Manage processors, memory, and research.",
       );
     }
   }
@@ -686,7 +708,7 @@ class AccessibilityManager {
     const announcer = urgent ? this.urgentAnnouncer : this.announcer;
 
     // Clear and set new message
-    announcer.textContent = '';
+    announcer.textContent = "";
     setTimeout(() => {
       announcer.textContent = message;
       this.lastAnnouncement = message;
@@ -694,7 +716,7 @@ class AccessibilityManager {
 
     // Clear after announcement
     setTimeout(() => {
-      announcer.textContent = '';
+      announcer.textContent = "";
     }, 1000);
   }
 
@@ -705,22 +727,22 @@ class AccessibilityManager {
    */
   announceGameEvent(event, data) {
     switch (event) {
-      case 'milestone':
+      case "milestone":
         this.announce(`Milestone reached: ${data.message}`, true);
         break;
-      case 'unlock':
+      case "unlock":
         this.announce(`New feature unlocked: ${data.feature}`);
         break;
-      case 'achievement':
+      case "achievement":
         this.announce(`Achievement earned: ${data.name}`, true);
         break;
-      case 'warning':
+      case "warning":
         this.announce(`Warning: ${data.message}`, true);
         break;
-      case 'purchase':
+      case "purchase":
         this.announce(`Purchased: ${data.item}`);
         break;
-      case 'insufficient':
+      case "insufficient":
         this.announce(`Insufficient ${data.resource} for ${data.action}`);
         break;
     }
@@ -730,11 +752,11 @@ class AccessibilityManager {
    * Show keyboard shortcuts help
    */
   showKeyboardHelp() {
-    const helpSection = document.getElementById('keyboardShortcuts');
+    const helpSection = document.getElementById("keyboardShortcuts");
     if (helpSection) {
-      helpSection.scrollIntoView({ behavior: 'smooth' });
+      helpSection.scrollIntoView({ behavior: "smooth" });
       helpSection.focus();
-      this.announce('Keyboard shortcuts help displayed');
+      this.announce("Keyboard shortcuts help displayed");
     }
   }
 
@@ -742,8 +764,8 @@ class AccessibilityManager {
    * Restore saved accessibility preferences
    */
   restorePreferences() {
-    const saved = localStorage.getItem('highContrastEnabled');
-    if (saved === 'true') {
+    const saved = localStorage.getItem("highContrastEnabled");
+    if (saved === "true") {
       this.enableHighContrast();
     }
   }

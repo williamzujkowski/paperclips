@@ -5,9 +5,9 @@
  * AutoClippers, MegaClippers, and Factories.
  */
 
-import { BALANCE } from '../core/constants.js';
-import { errorHandler } from '../core/errorHandler.js';
-import { performanceMonitor } from '../core/performanceMonitor.js';
+import { BALANCE } from "../core/constants.js";
+import { errorHandler } from "../core/errorHandler.js";
+import { performanceMonitor } from "../core/performanceMonitor.js";
 
 export class ProductionSystem {
   constructor(gameState) {
@@ -17,7 +17,10 @@ export class ProductionSystem {
     this.maxTrackerSize = 100;
 
     // Bind methods for error boundaries
-    this.update = errorHandler.createErrorBoundary(this.update.bind(this), 'production.update');
+    this.update = errorHandler.createErrorBoundary(
+      this.update.bind(this),
+      "production.update",
+    );
   }
 
   /**
@@ -28,27 +31,28 @@ export class ProductionSystem {
   produceClips(amount) {
     if (amount <= 0) return 0;
 
-    const wire = this.gameState.get('resources.wire');
+    const wire = this.gameState.get("resources.wire");
     const actualAmount = Math.min(amount, wire);
 
     if (actualAmount > 0) {
       // Check for endgame condition
-      const dismantle = this.gameState.get('endGame.dismantle');
+      const dismantle = this.gameState.get("endGame.dismantle");
       if (dismantle >= 4) {
         return 0; // Stop production during endgame
       }
 
       // Produce clips
-      this.gameState.increment('resources.clips', actualAmount);
-      this.gameState.increment('resources.totalClips', actualAmount);
-      this.gameState.increment('resources.unsoldClips', actualAmount);
-      this.gameState.increment('resources.unusedClips', actualAmount);
-      this.gameState.decrement('resources.wire', actualAmount);
+      this.gameState.increment("resources.clips", actualAmount);
+      this.gameState.increment("resources.totalClips", actualAmount);
+      this.gameState.increment("resources.unsoldClips", actualAmount);
+      this.gameState.increment("resources.unusedClips", actualAmount);
+      this.gameState.decrement("resources.wire", actualAmount);
 
       // Track clips per spool for achievements
       const currentSpoolClips =
-        (this.gameState.get('achievements.currentSpoolClips') || 0) + actualAmount;
-      this.gameState.set('achievements.currentSpoolClips', currentSpoolClips);
+        (this.gameState.get("achievements.currentSpoolClips") || 0) +
+        actualAmount;
+      this.gameState.set("achievements.currentSpoolClips", currentSpoolClips);
 
       // Update production tracking
       this.trackProduction(actualAmount);
@@ -65,7 +69,7 @@ export class ProductionSystem {
   manualClip(amount = 1) {
     return performanceMonitor.measure(() => {
       return this.produceClips(amount);
-    }, 'production.manualClip');
+    }, "production.manualClip");
   }
 
   /**
@@ -73,10 +77,10 @@ export class ProductionSystem {
    * @returns {number} Clips produced this update
    */
   updateAutoClippers() {
-    const level = this.gameState.get('manufacturing.clipmakers.level');
+    const level = this.gameState.get("manufacturing.clipmakers.level");
     if (level <= 0) return 0;
 
-    const boost = this.gameState.get('production.boosts.clipper');
+    const boost = this.gameState.get("production.boosts.clipper");
     const rate = boost * (level / 100); // Each clipmaker produces level/100 clips per tick
 
     return this.produceClips(rate);
@@ -87,10 +91,10 @@ export class ProductionSystem {
    * @returns {number} Clips produced this update
    */
   updateMegaClippers() {
-    const level = this.gameState.get('manufacturing.megaClippers.level');
+    const level = this.gameState.get("manufacturing.megaClippers.level");
     if (level <= 0) return 0;
 
-    const boost = this.gameState.get('production.boosts.megaClipper');
+    const boost = this.gameState.get("production.boosts.megaClipper");
     const rate = boost * (level * 5); // Each MegaClipper produces 5 clips per tick
 
     return this.produceClips(rate);
@@ -101,11 +105,11 @@ export class ProductionSystem {
    * @returns {number} Clips produced this update
    */
   updateFactories() {
-    const level = this.gameState.get('manufacturing.factories.level');
+    const level = this.gameState.get("manufacturing.factories.level");
     if (level <= 0) return 0;
 
-    const boost = this.gameState.get('production.boosts.factory');
-    const powMod = this.gameState.get('power.modifier') || 1;
+    const boost = this.gameState.get("production.boosts.factory");
+    const powMod = this.gameState.get("power.modifier") || 1;
     const factoryRate = BALANCE.FACTORY_RATE;
 
     const rate = powMod * boost * (level * factoryRate);
@@ -118,14 +122,17 @@ export class ProductionSystem {
    * @returns {boolean} Whether purchase was successful
    */
   buyAutoClipper() {
-    const level = this.gameState.get('manufacturing.clipmakers.level');
+    const level = this.gameState.get("manufacturing.clipmakers.level");
     const cost = this.calculateAutoClipperCost(level);
-    const funds = this.gameState.get('resources.funds');
+    const funds = this.gameState.get("resources.funds");
 
     if (funds >= cost) {
-      this.gameState.decrement('resources.funds', cost);
-      this.gameState.increment('manufacturing.clipmakers.level');
-      this.gameState.set('manufacturing.clipmakers.cost', this.calculateAutoClipperCost(level + 1));
+      this.gameState.decrement("resources.funds", cost);
+      this.gameState.increment("manufacturing.clipmakers.level");
+      this.gameState.set(
+        "manufacturing.clipmakers.cost",
+        this.calculateAutoClipperCost(level + 1),
+      );
 
       errorHandler.debug(`Purchased AutoClipper #${level + 1} for $${cost}`);
       return true;
@@ -140,7 +147,10 @@ export class ProductionSystem {
    * @returns {number} Cost for next AutoClipper
    */
   calculateAutoClipperCost(level) {
-    return Math.round((Math.pow(1.1, level) + BALANCE.CLIPMAKER_BASE_COST) * 100) / 100;
+    return (
+      Math.round((Math.pow(1.1, level) + BALANCE.CLIPMAKER_BASE_COST) * 100) /
+      100
+    );
   }
 
   /**
@@ -148,16 +158,16 @@ export class ProductionSystem {
    * @returns {boolean} Whether purchase was successful
    */
   buyMegaClipper() {
-    const level = this.gameState.get('manufacturing.megaClippers.level');
+    const level = this.gameState.get("manufacturing.megaClippers.level");
     const cost = this.calculateMegaClipperCost(level);
-    const funds = this.gameState.get('resources.funds');
+    const funds = this.gameState.get("resources.funds");
 
     if (funds >= cost) {
-      this.gameState.decrement('resources.funds', cost);
-      this.gameState.increment('manufacturing.megaClippers.level');
+      this.gameState.decrement("resources.funds", cost);
+      this.gameState.increment("manufacturing.megaClippers.level");
       this.gameState.set(
-        'manufacturing.megaClippers.cost',
-        this.calculateMegaClipperCost(level + 1)
+        "manufacturing.megaClippers.cost",
+        this.calculateMegaClipperCost(level + 1),
       );
 
       errorHandler.debug(`Purchased MegaClipper #${level + 1} for $${cost}`);
@@ -182,14 +192,17 @@ export class ProductionSystem {
    * @returns {boolean} Whether purchase was successful
    */
   buyFactory() {
-    const level = this.gameState.get('manufacturing.factories.level');
+    const level = this.gameState.get("manufacturing.factories.level");
     const cost = this.calculateFactoryCost(level);
-    const unusedClips = this.gameState.get('resources.unusedClips');
+    const unusedClips = this.gameState.get("resources.unusedClips");
 
     if (unusedClips >= cost) {
-      this.gameState.decrement('resources.unusedClips', cost);
-      this.gameState.increment('manufacturing.factories.level');
-      this.gameState.set('manufacturing.factories.cost', this.calculateFactoryCost(level + 1));
+      this.gameState.decrement("resources.unusedClips", cost);
+      this.gameState.increment("manufacturing.factories.level");
+      this.gameState.set(
+        "manufacturing.factories.cost",
+        this.calculateFactoryCost(level + 1),
+      );
 
       errorHandler.debug(`Purchased Factory #${level + 1} for ${cost} clips`);
       return true;
@@ -244,10 +257,13 @@ export class ProductionSystem {
     }
 
     // Calculate and update clip rate
-    const totalProduced = this.clipRateTracker.reduce((sum, clips) => sum + clips, 0);
+    const totalProduced = this.clipRateTracker.reduce(
+      (sum, clips) => sum + clips,
+      0,
+    );
     const rate = totalProduced / this.clipRateTracker.length;
 
-    this.gameState.set('production.clipRate', rate);
+    this.gameState.set("production.clipRate", rate);
   }
 
   /**
@@ -255,20 +271,26 @@ export class ProductionSystem {
    * @returns {Object} Production rates for all systems
    */
   getProductionRates() {
-    const autoClipperLevel = this.gameState.get('manufacturing.clipmakers.level');
-    const megaClipperLevel = this.gameState.get('manufacturing.megaClippers.level');
-    const factoryLevel = this.gameState.get('manufacturing.factories.level');
+    const autoClipperLevel = this.gameState.get(
+      "manufacturing.clipmakers.level",
+    );
+    const megaClipperLevel = this.gameState.get(
+      "manufacturing.megaClippers.level",
+    );
+    const factoryLevel = this.gameState.get("manufacturing.factories.level");
 
-    const clipperBoost = this.gameState.get('production.boosts.clipper');
-    const megaClipperBoost = this.gameState.get('production.boosts.megaClipper');
-    const factoryBoost = this.gameState.get('production.boosts.factory');
-    const powMod = this.gameState.get('power.modifier') || 1;
+    const clipperBoost = this.gameState.get("production.boosts.clipper");
+    const megaClipperBoost = this.gameState.get(
+      "production.boosts.megaClipper",
+    );
+    const factoryBoost = this.gameState.get("production.boosts.factory");
+    const powMod = this.gameState.get("power.modifier") || 1;
 
     return {
       autoClippers: clipperBoost * (autoClipperLevel / 100),
       megaClippers: megaClipperBoost * (megaClipperLevel * 5),
       factories: powMod * factoryBoost * (factoryLevel * BALANCE.FACTORY_RATE),
-      total: 0 // Will be calculated by summing the above
+      total: 0, // Will be calculated by summing the above
     };
   }
 
@@ -281,13 +303,13 @@ export class ProductionSystem {
     rates.total = rates.autoClippers + rates.megaClippers + rates.factories;
 
     return {
-      currentRate: this.gameState.get('production.clipRate'),
+      currentRate: this.gameState.get("production.clipRate"),
       theoreticalRates: rates,
       wireEfficiency: this.calculateWireEfficiency(),
-      totalClipsProduced: this.gameState.get('resources.clips'),
-      autoClipperCount: this.gameState.get('manufacturing.clipmakers.level'),
-      megaClipperCount: this.gameState.get('manufacturing.megaClippers.level'),
-      factoryCount: this.gameState.get('manufacturing.factories.level')
+      totalClipsProduced: this.gameState.get("resources.clips"),
+      autoClipperCount: this.gameState.get("manufacturing.clipmakers.level"),
+      megaClipperCount: this.gameState.get("manufacturing.megaClippers.level"),
+      factoryCount: this.gameState.get("manufacturing.factories.level"),
     };
   }
 
@@ -296,9 +318,9 @@ export class ProductionSystem {
    * @returns {number} Wire efficiency ratio
    */
   calculateWireEfficiency() {
-    const totalClips = this.gameState.get('resources.clips');
+    const totalClips = this.gameState.get("resources.clips");
     const startingWire = BALANCE.STARTING_WIRE;
-    const currentWire = this.gameState.get('resources.wire');
+    const currentWire = this.gameState.get("resources.wire");
     const wireUsed = startingWire - currentWire;
 
     return wireUsed > 0 ? totalClips / wireUsed : 1;
@@ -316,15 +338,16 @@ export class ProductionSystem {
       const factoryProduction = this.updateFactories();
 
       // Track total production this tick
-      const totalProduction = autoClipperProduction + megaClipperProduction + factoryProduction;
+      const totalProduction =
+        autoClipperProduction + megaClipperProduction + factoryProduction;
 
       if (totalProduction > 0) {
         this.trackProduction(totalProduction);
       }
 
       // Update temporary tracking values
-      this.gameState.set('production.clipRateTemp', totalProduction);
-    }, 'production.update');
+      this.gameState.set("production.clipRateTemp", totalProduction);
+    }, "production.update");
   }
 
   /**
@@ -333,7 +356,7 @@ export class ProductionSystem {
   reset() {
     this.clipRateTracker = [];
     this.lastClipCount = 0;
-    errorHandler.info('Production system reset');
+    errorHandler.info("Production system reset");
   }
 
   /**
@@ -341,8 +364,8 @@ export class ProductionSystem {
    * @returns {boolean} Whether production can occur
    */
   canProduce() {
-    const wire = this.gameState.get('resources.wire');
-    const dismantle = this.gameState.get('endGame.dismantle');
+    const wire = this.gameState.get("resources.wire");
+    const dismantle = this.gameState.get("endGame.dismantle");
 
     return wire > 0 && dismantle < 4;
   }
@@ -353,7 +376,7 @@ export class ProductionSystem {
    * @returns {number} Estimated time in seconds
    */
   estimateProductionTime(targetClips) {
-    const currentRate = this.gameState.get('production.clipRate');
+    const currentRate = this.gameState.get("production.clipRate");
 
     if (currentRate <= 0) {
       return Infinity;
