@@ -5,7 +5,7 @@
  * and quantum computing mechanics.
  */
 
-import { BALANCE } from "../core/constants.js";
+// BALANCE import removed - not used in this file
 import { errorHandler } from "../core/errorHandler.js";
 import { performanceMonitor } from "../core/performanceMonitor.js";
 
@@ -88,7 +88,10 @@ export class ComputingSystem {
 
       // Log milestone for first processor
       if (currentProcessors === 0 && window.renderer) {
-        window.renderer.logMilestone("First processor acquired! Computing power online.", "💻");
+        window.renderer.logMilestone(
+          "First processor acquired! Computing power online.",
+          "💻",
+        );
       }
 
       return true;
@@ -156,7 +159,7 @@ export class ComputingSystem {
       if (window.renderer) {
         window.renderer.logMilestone(
           `Trust increased to ${currentTrust + 1}! New computing capacity unlocked.`,
-          "🔓"
+          "🔓",
         );
       }
 
@@ -281,6 +284,65 @@ export class ComputingSystem {
   }
 
   /**
+   * Enable strategic modeling
+   */
+  enableStrategicModeling() {
+    this.gameState.set("computing.strategicModeling.enabled", true);
+    this.gameState.set("computing.strategicModeling.level", 1);
+
+    errorHandler.info("Strategic modeling enabled");
+  }
+
+  /**
+   * Update strategic modeling
+   * @param {number} deltaTime - Time since last update
+   */
+  updateStrategicModeling(deltaTime) {
+    const modelingEnabled = this.gameState.get(
+      "computing.strategicModeling.enabled",
+    );
+
+    if (!modelingEnabled) return;
+
+    // Strategic modeling provides trust generation over time
+    const level = this.gameState.get("computing.strategicModeling.level") || 1;
+    const memory = this.gameState.get("computing.memory");
+
+    // Trust accumulation based on memory and modeling level
+    const trustAccumulation =
+      this.gameState.get("computing.strategicModeling.accumulation") || 0;
+    const trustPerSecond = memory * level * 0.001; // Slow trust generation
+    const newAccumulation =
+      trustAccumulation + (trustPerSecond * deltaTime) / 1000;
+
+    this.gameState.set(
+      "computing.strategicModeling.accumulation",
+      newAccumulation,
+    );
+
+    // Grant trust when accumulation reaches 1
+    if (newAccumulation >= 1) {
+      const currentTrust = this.gameState.get("computing.trust.current");
+      const maxTrust = this.gameState.get("computing.trust.max");
+
+      if (currentTrust < maxTrust) {
+        this.gameState.increment("computing.trust.current");
+        this.gameState.set(
+          "computing.strategicModeling.accumulation",
+          newAccumulation - 1,
+        );
+
+        if (window.renderer) {
+          window.renderer.logMilestone(
+            `Strategic modeling granted +1 Trust! (Total: ${currentTrust + 1})`,
+            "🧠",
+          );
+        }
+      }
+    }
+  }
+
+  /**
    * Purchase quantum chip
    * @returns {boolean} Whether chip was purchased
    */
@@ -330,8 +392,7 @@ export class ComputingSystem {
     const processors = this.gameState.get("computing.processors");
     const memory = this.gameState.get("computing.memory");
     const trust = this.gameState.get("computing.trust.current");
-    const operations = this.gameState.get("computing.operations");
-    const creativity = this.gameState.get("computing.creativity.amount");
+    // Removed unused variables: operations, creativity
 
     return {
       processorUtilization: processors / Math.max(trust, 1),
@@ -372,6 +433,11 @@ export class ComputingSystem {
       quantumEnabled: this.gameState.get("computing.quantum.enabled"),
       creativityEnabled: this.gameState.get("computing.creativity.enabled"),
       creativitySpeed: this.gameState.get("computing.creativity.speed"),
+      strategicModelingEnabled: this.gameState.get(
+        "computing.strategicModeling.enabled",
+      ),
+      strategicModelingLevel:
+        this.gameState.get("computing.strategicModeling.level") || 0,
       efficiency: this.getEfficiencyStats(),
     };
   }
@@ -424,6 +490,9 @@ export class ComputingSystem {
 
       // Update quantum computing if enabled
       this.updateQuantumComputing(deltaTime);
+
+      // Update strategic modeling if enabled
+      this.updateStrategicModeling(deltaTime);
 
       // Update visual effects
       this.updateOperationsFade(deltaTime);

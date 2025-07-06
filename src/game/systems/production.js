@@ -89,6 +89,11 @@ export class ProductionSystem {
     const level = this.gameState.get("manufacturing.clipmakers.level");
     if (level <= 0) return 0;
 
+    // Check if AutoClippers are enabled
+    const enabled =
+      this.gameState.get("production.autoClippersEnabled") !== false;
+    if (!enabled) return 0;
+
     const boost = this.gameState.get("production.boosts.clipper");
     const rate = boost * (level / 100); // Each clipmaker produces level/100 clips per tick
 
@@ -102,6 +107,11 @@ export class ProductionSystem {
   updateMegaClippers() {
     const level = this.gameState.get("manufacturing.megaClippers.level");
     if (level <= 0) return 0;
+
+    // Check if MegaClippers are enabled
+    const enabled =
+      this.gameState.get("production.megaClippersEnabled") !== false;
+    if (!enabled) return 0;
 
     const boost = this.gameState.get("production.boosts.megaClipper");
     const rate = boost * (level * 5); // Each MegaClipper produces 5 clips per tick
@@ -147,7 +157,10 @@ export class ProductionSystem {
 
       // Log milestone for first AutoClipper
       if (level === 0 && window.renderer) {
-        window.renderer.logMilestone("First AutoClipper purchased! Automation begins.", "🤖");
+        window.renderer.logMilestone(
+          "First AutoClipper purchased! Automation begins.",
+          "🤖",
+        );
       }
 
       return true;
@@ -189,7 +202,10 @@ export class ProductionSystem {
 
       // Log milestone for first MegaClipper
       if (level === 0 && window.renderer) {
-        window.renderer.logMilestone("First MegaClipper operational! Mass production achieved.", "🏭");
+        window.renderer.logMilestone(
+          "First MegaClipper operational! Mass production achieved.",
+          "🏭",
+        );
       }
 
       return true;
@@ -238,7 +254,7 @@ export class ProductionSystem {
    * @returns {number} Cost for next Factory
    */
   calculateFactoryCost(level) {
-    let baseCost = BALANCE.FACTORY_BASE_COST;
+    const baseCost = BALANCE.FACTORY_BASE_COST;
 
     // Apply the complex factory cost modifier from legacy code
     let fcmod = 1;

@@ -9,7 +9,6 @@ import {
   formatNumber,
   formatCurrency,
   formatRate,
-  formatDuration,
 } from "../../utils/formatting.js";
 import { errorHandler } from "../core/errorHandler.js";
 import { performanceMonitor } from "../core/performanceMonitor.js";
@@ -82,7 +81,7 @@ export class Renderer {
         element.textContent = formatCurrency(value, true);
       },
       demand: (element, value) => {
-        element.textContent = value.toFixed(2) + "%";
+        element.textContent = `${value.toFixed(2)}%`;
       },
       marketing: (element, value) => {
         element.textContent = formatNumber(value);
@@ -130,10 +129,10 @@ export class Renderer {
         element.textContent = formatCurrency(value);
       },
       processorCost: (element, value) => {
-        element.textContent = formatNumber(value) + " ops";
+        element.textContent = `${formatNumber(value)} ops`;
       },
       memoryCost: (element, value) => {
-        element.textContent = formatNumber(value) + " ops";
+        element.textContent = `${formatNumber(value)} ops`;
       },
       achievementCount: (element, value) => {
         element.textContent = `(${value.unlocked}/${value.total})`;
@@ -298,6 +297,12 @@ export class Renderer {
     this.updateButtonState("buyAds", this.canAffordAds());
     this.updateButtonState("buyProcessor", this.canAffordProcessor());
     this.updateButtonState("buyMemory", this.canAffordMemory());
+
+    // Update dynamic button visibility
+    this.updateDynamicButtons();
+
+    // Update toggle button states
+    this.updateToggleButtons();
   }
 
   /**
@@ -369,6 +374,127 @@ export class Renderer {
     const cost = Math.pow(2, memory) * 1000;
 
     return operations >= cost && memory < trust;
+  }
+
+  /**
+   * Update dynamic buttons visibility based on game state
+   */
+  updateDynamicButtons() {
+    const clips = this.gameState.get("resources.clips");
+    const flags = this.gameState.get("gameState.flags");
+    const projects = this.gameState.get("projects.completed") || [];
+
+    // Quick buttons
+    this.toggleButton("quickButton10", clips > 50);
+    this.toggleButton("quickButton100", clips > 500);
+    this.toggleButton("quickButton1K", clips > 5000);
+
+    // Advanced buttons - Space stage
+    const spaceEnabled = flags.space >= 1;
+    this.toggleButton(
+      "launchProbeButton",
+      spaceEnabled && this.canLaunchProbe(),
+    );
+
+    // Swarm computing buttons
+    const swarmEnabled =
+      projects.includes("swarmComputing") || flags.swarmComputing >= 1;
+    this.toggleButton("feedSwarmButton", swarmEnabled);
+    this.toggleButton("teachSwarmButton", swarmEnabled);
+
+    // End game buttons
+    const endGameEnabled =
+      projects.includes("harvestMatter") || flags.endGame >= 1;
+    this.toggleButton("harvestMatterButton", endGameEnabled);
+    this.toggleButton("convertMatterButton", endGameEnabled);
+
+    // Toggle button visibility
+    this.toggleButton("toggleAutoClippers", flags.autoClipper >= 1);
+    this.toggleButton("toggleMegaClippers", flags.megaClipper >= 1);
+    this.toggleButton(
+      "toggleQuantumComputing",
+      projects.includes("quantumComputing") || flags.quantum >= 1,
+    );
+    this.toggleButton(
+      "toggleStrategicModeling",
+      projects.includes("strategicModeling") || flags.strategicModeling >= 1,
+    );
+  }
+
+  /**
+   * Update toggle button states (on/off)
+   */
+  updateToggleButtons() {
+    // Wire buyer toggle
+    const wireBuyerEnabled = this.gameState.get("market.wireBuyer.enabled");
+    this.setToggleButtonState("toggleWireBuyer", wireBuyerEnabled);
+
+    // Creativity toggle
+    const creativityEnabled = this.gameState.get(
+      "computing.creativity.enabled",
+    );
+    this.setToggleButtonState("toggleCreativity", creativityEnabled);
+
+    // Combat toggle
+    const combatEnabled = this.gameState.get("combat.battleEnabled");
+    this.setToggleButtonState("toggleCombat", combatEnabled);
+
+    // AutoClippers toggle
+    const autoClippersEnabled =
+      this.gameState.get("production.autoClippersEnabled") !== false;
+    this.setToggleButtonState("toggleAutoClippers", autoClippersEnabled);
+
+    // MegaClippers toggle
+    const megaClippersEnabled =
+      this.gameState.get("production.megaClippersEnabled") !== false;
+    this.setToggleButtonState("toggleMegaClippers", megaClippersEnabled);
+
+    // Quantum Computing toggle
+    const quantumEnabled = this.gameState.get("computing.quantum.enabled");
+    this.setToggleButtonState("toggleQuantumComputing", quantumEnabled);
+
+    // Strategic Modeling toggle
+    const strategicEnabled = this.gameState.get(
+      "computing.strategicModeling.enabled",
+    );
+    this.setToggleButtonState("toggleStrategicModeling", strategicEnabled);
+  }
+
+  /**
+   * Set toggle button state (on/off)
+   */
+  setToggleButtonState(buttonId, isOn) {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      if (isOn) {
+        button.classList.add("on");
+      } else {
+        button.classList.remove("on");
+      }
+    }
+  }
+
+  /**
+   * Toggle button visibility
+   */
+  toggleButton(buttonId, visible) {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      if (visible) {
+        button.classList.remove("hidden");
+      } else {
+        button.classList.add("hidden");
+      }
+    }
+  }
+
+  /**
+   * Check if player can launch probe
+   */
+  canLaunchProbe() {
+    // This would check resources and conditions for launching a probe
+    // For now, return true if in space stage
+    return true;
   }
 
   /**
@@ -451,7 +577,7 @@ export class Renderer {
   /**
    * Main render method
    */
-  render(timestamp, deltaTime) {
+  render(timestamp, _deltaTime) {
     performanceMonitor.measure(() => {
       // Update all display sections
       this.updateResources();
@@ -461,6 +587,8 @@ export class Renderer {
       this.updateCombat();
       this.updateCosts();
       this.updateButtonStates();
+      this.updateDynamicButtons();
+      this.updateToggleButtons();
       this.updateSectionVisibility();
       this.updateProjects();
       this.updateAchievements();
@@ -497,6 +625,8 @@ export class Renderer {
     this.updateCombat();
     this.updateCosts();
     this.updateButtonStates();
+    this.updateDynamicButtons();
+    this.updateToggleButtons();
     this.updateSectionVisibility();
 
     // Process all updates without batching
@@ -574,7 +704,9 @@ export class Renderer {
 
     // Trim old messages
     if (this.consoleMessages.length > this.maxConsoleMessages) {
-      this.consoleMessages = this.consoleMessages.slice(-this.maxConsoleMessages);
+      this.consoleMessages = this.consoleMessages.slice(
+        -this.maxConsoleMessages,
+      );
     }
 
     // Render immediately if console is available
@@ -612,7 +744,9 @@ export class Renderer {
     messageDiv.dataset.messageId = messageData.id;
 
     // Build message HTML
-    const iconSpan = messageData.icon ? `<span class="message-icon">${messageData.icon}</span> ` : "";
+    const iconSpan = messageData.icon
+      ? `<span class="message-icon">${messageData.icon}</span> `
+      : "";
     const timestampSpan = `<span class="message-timestamp">[${messageData.timestamp}]</span> `;
     const messageSpan = `<span class="message-text">${messageData.message}</span>`;
 
@@ -641,7 +775,9 @@ export class Renderer {
     this.consoleMessages = [];
     if (this.consoleElement) {
       // Keep only the welcome message if it exists
-      const welcomeMessage = this.consoleElement.querySelector(".status-message:first-child");
+      const welcomeMessage = this.consoleElement.querySelector(
+        ".status-message:first-child",
+      );
       this.consoleElement.innerHTML = "";
       if (welcomeMessage && welcomeMessage.textContent.includes("Welcome")) {
         this.consoleElement.appendChild(welcomeMessage);
@@ -656,7 +792,7 @@ export class Renderer {
     this.addConsoleMessage(
       `Achievement Unlocked: ${achievement.name} - ${achievement.description}`,
       "achievement",
-      { icon: achievement.icon }
+      { icon: achievement.icon },
     );
   }
 
@@ -664,11 +800,9 @@ export class Renderer {
    * Log project completion
    */
   logProjectComplete(project) {
-    this.addConsoleMessage(
-      `Project Completed: ${project.name}`,
-      "project",
-      { icon: "🔬" }
-    );
+    this.addConsoleMessage(`Project Completed: ${project.name}`, "project", {
+      icon: "🔬",
+    });
   }
 
   /**
@@ -682,11 +816,7 @@ export class Renderer {
    * Log combat event
    */
   logCombatEvent(message, victory = true) {
-    this.addConsoleMessage(
-      message,
-      "combat",
-      { icon: victory ? "⚔️" : "💀" }
-    );
+    this.addConsoleMessage(message, "combat", { icon: victory ? "⚔️" : "💀" });
   }
 
   /**
@@ -710,14 +840,16 @@ export class Renderer {
     if (!this.consoleElement) return;
 
     // Keep the welcome message if it exists
-    const welcomeMessage = this.consoleElement.querySelector(".status-message:first-child");
+    const welcomeMessage = this.consoleElement.querySelector(
+      ".status-message:first-child",
+    );
     this.consoleElement.innerHTML = "";
-    
+
     if (welcomeMessage && welcomeMessage.textContent.includes("Welcome")) {
       this.consoleElement.appendChild(welcomeMessage);
     }
-    
-    this.consoleMessages.forEach(msg => this.renderConsoleMessage(msg));
+
+    this.consoleMessages.forEach((msg) => this.renderConsoleMessage(msg));
   }
 }
 

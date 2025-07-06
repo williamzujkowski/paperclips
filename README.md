@@ -13,6 +13,11 @@ This repository contains a fully modernized version of Universal Paperclips that
 - CI/CD pipeline with GitHub Actions
 - Error handling and performance monitoring
 - Save/load system with import/export
+- Enhanced UI with status console
+- Dynamic button system with context-aware controls
+- Mobile-responsive design with touch support
+- Achievement system with 31 achievements
+- Modern toggle switches and UI elements
 
 ## Quick Start
 

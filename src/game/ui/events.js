@@ -41,8 +41,11 @@ export class EventsSystem {
   initializeHandlers() {
     // Production handlers
     this.handlers.set("makeClip", this.makeClip.bind(this));
+    this.handlers.set("makeClipBatch", this.makeClipBatch.bind(this));
     this.handlers.set("buyAutoClipper", this.buyAutoClipper.bind(this));
     this.handlers.set("buyMegaClipper", this.buyMegaClipper.bind(this));
+    this.handlers.set("toggleAutoClippers", this.toggleAutoClippers.bind(this));
+    this.handlers.set("toggleMegaClippers", this.toggleMegaClippers.bind(this));
 
     // Market handlers
     this.handlers.set("raisePrice", this.raisePrice.bind(this));
@@ -56,6 +59,14 @@ export class EventsSystem {
     this.handlers.set("buyMemory", this.buyMemory.bind(this));
     this.handlers.set("toggleCreativity", this.toggleCreativity.bind(this));
     this.handlers.set("adjustCreativity", this.adjustCreativity.bind(this));
+    this.handlers.set(
+      "toggleQuantumComputing",
+      this.toggleQuantumComputing.bind(this),
+    );
+    this.handlers.set(
+      "toggleStrategicModeling",
+      this.toggleStrategicModeling.bind(this),
+    );
 
     // Combat handlers
     this.handlers.set("allocateProbeStats", this.allocateProbeStats.bind(this));
@@ -71,6 +82,13 @@ export class EventsSystem {
     this.handlers.set("exportSave", this.exportSave.bind(this));
     this.handlers.set("importSave", this.importSave.bind(this));
     this.handlers.set("showAchievements", this.showAchievements.bind(this));
+
+    // Advanced/End game handlers
+    this.handlers.set("launchProbe", this.launchProbe.bind(this));
+    this.handlers.set("feedSwarm", this.feedSwarm.bind(this));
+    this.handlers.set("teachSwarm", this.teachSwarm.bind(this));
+    this.handlers.set("harvestMatter", this.harvestMatter.bind(this));
+    this.handlers.set("convertMatter", this.convertMatter.bind(this));
   }
 
   /**
@@ -206,7 +224,7 @@ export class EventsSystem {
   /**
    * Make paperclip(s)
    */
-  makeClip(event, element) {
+  makeClip(event, _element) {
     const amount = event?.shiftKey ? 10 : 1;
     if (this.systems.production) {
       this.systems.production.manualClip(amount);
@@ -214,9 +232,20 @@ export class EventsSystem {
   }
 
   /**
+   * Make batch of paperclips (quick buttons)
+   */
+  makeClipBatch(_event, element) {
+    const amount = parseInt(element.dataset.amount, 10) || 10;
+    if (this.systems.production) {
+      this.systems.production.manualClip(amount);
+      this.showFeedback(`Made ${amount} paperclips!`, "success");
+    }
+  }
+
+  /**
    * Buy AutoClipper
    */
-  buyAutoClipper(event, element) {
+  buyAutoClipper(_event, _element) {
     if (this.systems.production) {
       const success = this.systems.production.buyAutoClipper();
       if (success) {
@@ -235,7 +264,7 @@ export class EventsSystem {
   /**
    * Buy MegaClipper
    */
-  buyMegaClipper(event, element) {
+  buyMegaClipper(_event, _element) {
     if (this.systems.production) {
       const success = this.systems.production.buyMegaClipper();
       if (success) {
@@ -249,7 +278,7 @@ export class EventsSystem {
   /**
    * Raise clip price
    */
-  raisePrice(event, element) {
+  raisePrice(_event, _element) {
     if (this.systems.market) {
       this.systems.market.raisePrice();
     }
@@ -258,7 +287,7 @@ export class EventsSystem {
   /**
    * Lower clip price
    */
-  lowerPrice(event, element) {
+  lowerPrice(_event, _element) {
     if (this.systems.market) {
       const success = this.systems.market.lowerPrice();
       if (!success) {
@@ -270,7 +299,7 @@ export class EventsSystem {
   /**
    * Buy advertising
    */
-  buyAds(event, element) {
+  buyAds(_event, _element) {
     if (this.systems.market) {
       const success = this.systems.market.buyMarketing();
       if (success) {
@@ -284,7 +313,7 @@ export class EventsSystem {
   /**
    * Buy wire
    */
-  buyWire(event, element) {
+  buyWire(_event, _element) {
     if (this.systems.market) {
       const success = this.systems.market.buyWire();
       if (success) {
@@ -298,7 +327,7 @@ export class EventsSystem {
   /**
    * Toggle wire buyer
    */
-  toggleWireBuyer(event, element) {
+  toggleWireBuyer(_event, _element) {
     if (this.systems.market) {
       const enabled = this.systems.market.toggleWireBuyer();
       this.showFeedback(
@@ -311,7 +340,7 @@ export class EventsSystem {
   /**
    * Buy processor
    */
-  buyProcessor(event, element) {
+  buyProcessor(_event, _element) {
     if (this.systems.computing) {
       const success = this.systems.computing.buyProcessor();
       if (success) {
@@ -328,7 +357,7 @@ export class EventsSystem {
   /**
    * Buy memory
    */
-  buyMemory(event, element) {
+  buyMemory(_event, _element) {
     if (this.systems.computing) {
       const success = this.systems.computing.buyMemory();
       if (success) {
@@ -345,7 +374,7 @@ export class EventsSystem {
   /**
    * Toggle creativity allocation
    */
-  toggleCreativity(event, element) {
+  toggleCreativity(_event, _element) {
     if (this.systems.computing) {
       const enabled = !this.gameState.get("computing.creativity.enabled");
       this.systems.computing.setCreativity(enabled, 50);
@@ -357,9 +386,59 @@ export class EventsSystem {
   }
 
   /**
+   * Toggle AutoClippers on/off
+   */
+  toggleAutoClippers(_event, _element) {
+    const enabled =
+      this.gameState.get("production.autoClippersEnabled") !== false;
+    this.gameState.set("production.autoClippersEnabled", !enabled);
+    this.showFeedback(
+      `AutoClippers ${!enabled ? "enabled" : "disabled"}`,
+      "info",
+    );
+  }
+
+  /**
+   * Toggle MegaClippers on/off
+   */
+  toggleMegaClippers(_event, _element) {
+    const enabled =
+      this.gameState.get("production.megaClippersEnabled") !== false;
+    this.gameState.set("production.megaClippersEnabled", !enabled);
+    this.showFeedback(
+      `MegaClippers ${!enabled ? "enabled" : "disabled"}`,
+      "info",
+    );
+  }
+
+  /**
+   * Toggle Quantum Computing on/off
+   */
+  toggleQuantumComputing(_event, _element) {
+    const enabled = this.gameState.get("computing.quantum.enabled");
+    this.gameState.set("computing.quantum.enabled", !enabled);
+    this.showFeedback(
+      `Quantum Computing ${!enabled ? "enabled" : "disabled"}`,
+      "info",
+    );
+  }
+
+  /**
+   * Toggle Strategic Modeling on/off
+   */
+  toggleStrategicModeling(_event, _element) {
+    const enabled = this.gameState.get("computing.strategicModeling.enabled");
+    this.gameState.set("computing.strategicModeling.enabled", !enabled);
+    this.showFeedback(
+      `Strategic Modeling ${!enabled ? "enabled" : "disabled"}`,
+      "info",
+    );
+  }
+
+  /**
    * Adjust creativity allocation
    */
-  adjustCreativity(event, element) {
+  adjustCreativity(_event, element) {
     if (this.systems.computing) {
       const value = parseInt(element.value, 10);
       this.systems.computing.setCreativity(true, value);
@@ -369,7 +448,7 @@ export class EventsSystem {
   /**
    * Allocate probe statistics
    */
-  allocateProbeStats(event, element) {
+  allocateProbeStats(_event, _element) {
     if (this.systems.combat) {
       const combatEl = document.getElementById("probeCombat");
       const speedEl = document.getElementById("probeSpeed");
@@ -395,7 +474,7 @@ export class EventsSystem {
   /**
    * Toggle combat mode
    */
-  toggleCombat(event, element) {
+  toggleCombat(_event, _element) {
     if (this.systems.combat) {
       const enabled = !this.gameState.get("combat.battleEnabled");
       if (enabled) {
@@ -410,7 +489,7 @@ export class EventsSystem {
   /**
    * Complete project
    */
-  completeProject(event, element) {
+  completeProject(_event, element) {
     if (this.systems.projects) {
       const projectId = element.dataset.projectId;
       const success = this.systems.projects.completeProject(projectId);
@@ -425,7 +504,7 @@ export class EventsSystem {
   /**
    * Save game
    */
-  saveGame(event, element) {
+  saveGame(_event, _element) {
     const success = this.gameState.save();
     if (success) {
       this.showFeedback("Game saved!", "success");
@@ -437,7 +516,7 @@ export class EventsSystem {
   /**
    * Load game
    */
-  loadGame(event, element) {
+  loadGame(_event, _element) {
     const success = this.gameState.load();
     if (success) {
       this.showFeedback("Game loaded!", "success");
@@ -449,7 +528,7 @@ export class EventsSystem {
   /**
    * Reset game with confirmation
    */
-  resetGame(event, element) {
+  resetGame(_event, _element) {
     if (
       confirm("Are you sure you want to reset the game? This cannot be undone.")
     ) {
@@ -472,7 +551,7 @@ export class EventsSystem {
   /**
    * Export save data
    */
-  exportSave(event, element) {
+  exportSave(_event, _element) {
     try {
       const saveData = this.gameState.export();
 
@@ -495,7 +574,7 @@ export class EventsSystem {
   /**
    * Import save data
    */
-  importSave(event, element) {
+  importSave(_event, _element) {
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = ".json";
@@ -527,7 +606,7 @@ export class EventsSystem {
   /**
    * Show achievements panel
    */
-  showAchievements(event, element) {
+  showAchievements(_event, _element) {
     try {
       // Import at runtime to avoid circular dependencies
       import("./achievementUI.js").then(({ achievementUI }) => {
@@ -536,6 +615,106 @@ export class EventsSystem {
     } catch (error) {
       errorHandler.handleError(error, "events.showAchievements");
       this.showFeedback("Error opening achievements!", "error");
+    }
+  }
+
+  /**
+   * Launch a space probe
+   */
+  launchProbe(_event, _element) {
+    if (this.systems.space) {
+      const success = this.systems.space.launchProbe();
+      if (success) {
+        this.showFeedback("Probe launched!", "success");
+      } else {
+        this.showFeedback(
+          "Cannot launch probe - insufficient resources",
+          "error",
+        );
+      }
+    } else {
+      // Fallback if space system not yet implemented
+      this.showFeedback("Space exploration not yet available", "warning");
+    }
+  }
+
+  /**
+   * Feed the swarm
+   */
+  feedSwarm(_event, _element) {
+    if (this.systems.swarm) {
+      const success = this.systems.swarm.feedSwarm();
+      if (success) {
+        this.showFeedback("Swarm fed successfully!", "success");
+      } else {
+        this.showFeedback(
+          "Cannot feed swarm - insufficient resources",
+          "error",
+        );
+      }
+    } else {
+      // Fallback if swarm system not yet implemented
+      this.showFeedback("Swarm computing not yet available", "warning");
+    }
+  }
+
+  /**
+   * Teach the swarm
+   */
+  teachSwarm(_event, _element) {
+    if (this.systems.swarm) {
+      const success = this.systems.swarm.teachSwarm();
+      if (success) {
+        this.showFeedback("Swarm taught new patterns!", "success");
+      } else {
+        this.showFeedback(
+          "Cannot teach swarm - insufficient resources",
+          "error",
+        );
+      }
+    } else {
+      // Fallback if swarm system not yet implemented
+      this.showFeedback("Swarm computing not yet available", "warning");
+    }
+  }
+
+  /**
+   * Harvest matter
+   */
+  harvestMatter(_event, _element) {
+    if (this.systems.endGame) {
+      const success = this.systems.endGame.harvestMatter();
+      if (success) {
+        this.showFeedback("Matter harvested!", "success");
+      } else {
+        this.showFeedback(
+          "Cannot harvest matter - no available sources",
+          "error",
+        );
+      }
+    } else {
+      // Fallback if end game system not yet implemented
+      this.showFeedback("Matter harvesting not yet available", "warning");
+    }
+  }
+
+  /**
+   * Convert matter to paperclips
+   */
+  convertMatter(_event, _element) {
+    if (this.systems.endGame) {
+      const success = this.systems.endGame.convertMatter();
+      if (success) {
+        this.showFeedback("Matter converted to paperclips!", "success");
+      } else {
+        this.showFeedback(
+          "Cannot convert matter - insufficient matter",
+          "error",
+        );
+      }
+    } else {
+      // Fallback if end game system not yet implemented
+      this.showFeedback("Matter conversion not yet available", "warning");
     }
   }
 

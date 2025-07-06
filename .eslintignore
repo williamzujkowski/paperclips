@@ -1,0 +1,25 @@
+# Build output
+docs/js/bundle.js
+docs/js/bundle.js.map
+
+# Build directories
+dist/
+build/
+
+# Node modules
+node_modules/
+
+# Coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
