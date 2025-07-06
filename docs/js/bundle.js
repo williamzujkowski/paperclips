@@ -1379,7 +1379,7 @@ var UniversalPaperclips = (function () {
         marketingCost: this.gameState.get("market.pricing.adCost"),
       };
     }
-    update(e, t) {
+    update(e) {
       A.measure(() => {
         (this.updateDemandDisplay(),
           this.processSales(),
@@ -1599,26 +1599,18 @@ var UniversalPaperclips = (function () {
       const e = this.gameState.get("computing.processors"),
         t = this.gameState.get("computing.memory"),
         s = this.gameState.get("computing.trust.current");
-      return (
-        this.gameState.get("computing.operations"),
-        this.gameState.get("computing.creativity.amount"),
-        {
-          processorUtilization: e / Math.max(s, 1),
-          memoryUtilization: t / Math.max(s, 1),
-          operationsPerSecond: e * this.operationGenerationRate,
-          creativityPerSecond: this.gameState.get(
-            "computing.creativity.enabled",
-          )
-            ? e *
-              this.operationGenerationRate *
-              (this.gameState.get("computing.creativity.speed") / 100)
-            : 0,
-          trustUtilization: Math.max(e, t) / Math.max(s, 1),
-          quantumBonus: this.gameState.get("computing.quantum.enabled")
-            ? 1.5
-            : 1,
-        }
-      );
+      return {
+        processorUtilization: e / Math.max(s, 1),
+        memoryUtilization: t / Math.max(s, 1),
+        operationsPerSecond: e * this.operationGenerationRate,
+        creativityPerSecond: this.gameState.get("computing.creativity.enabled")
+          ? e *
+            this.operationGenerationRate *
+            (this.gameState.get("computing.creativity.speed") / 100)
+          : 0,
+        trustUtilization: Math.max(e, t) / Math.max(s, 1),
+        quantumBonus: this.gameState.get("computing.quantum.enabled") ? 1.5 : 1,
+      };
     }
     getStats() {
       const e = this.gameState.get("computing.processors"),
@@ -1793,7 +1785,6 @@ var UniversalPaperclips = (function () {
     }
     getCombatEffectiveness() {
       let e = 1;
-      this.gameState.get("combat.probeCombat");
       this.gameState.get("projects.nameBattles.completed") && (e *= 2);
       return (this.gameState.get("combat.attackSpeedFlag") && (e *= 1.1), e);
     }
@@ -1946,7 +1937,7 @@ var UniversalPaperclips = (function () {
             ));
         }));
     }
-    update(e, t) {
+    update() {
       A.measure(() => {
         (this.checkForBattles(),
           this.updateBattles(),
@@ -2287,7 +2278,7 @@ var UniversalPaperclips = (function () {
             x.warn(`Unknown effect type: ${t.type}`);
         }
     }
-    applyCustomEffect(e, t) {
+    applyCustomEffect(e) {
       switch (e) {
         case "spaceExploration":
           (this.gameState.set("gameState.flags.space", 1),
@@ -3017,7 +3008,7 @@ var UniversalPaperclips = (function () {
           e.textContent = U(t, !0);
         },
         demand: (e, t) => {
-          e.textContent = t.toFixed(2) + "%";
+          e.textContent = `${t.toFixed(2)}%`;
         },
         marketing: (e, t) => {
           e.textContent = $(t);
@@ -3059,10 +3050,10 @@ var UniversalPaperclips = (function () {
           e.textContent = U(t);
         },
         processorCost: (e, t) => {
-          e.textContent = $(t) + " ops";
+          e.textContent = `${$(t)} ops`;
         },
         memoryCost: (e, t) => {
-          e.textContent = $(t) + " ops";
+          e.textContent = `${$(t)} ops`;
         },
         achievementCount: (e, t) => {
           e.textContent = `(${t.unlocked}/${t.total})`;
@@ -4730,35 +4721,34 @@ var UniversalPaperclips = (function () {
           "Debug interface available at window.UniversalPaperclips.debug",
         ));
     }
-    handleAutoSave(e, s) {
+    handleAutoSave(e) {
       e - (t.get("gameState.lastAutoSave") || 0) > 3e4 &&
         (t.save(), t.set("gameState.lastAutoSave", e));
     }
-    updateGamePhase(e, s) {
-      const i = t.get("gameState.flags");
-      (t.get("resources.clips"), t.get("resources.funds"));
-      const a = t.get("manufacturing.clipmakers.level"),
-        n = t.get("manufacturing.megaClippers.level"),
-        r = t.get("computing.processors"),
-        o = t.get("resources.unusedClips");
-      (a >= 1 &&
-        0 === i.autoClipper &&
+    updateGamePhase() {
+      const e = t.get("gameState.flags"),
+        s = t.get("manufacturing.clipmakers.level"),
+        i = t.get("manufacturing.megaClippers.level"),
+        a = t.get("computing.processors"),
+        n = t.get("resources.unusedClips");
+      (s >= 1 &&
+        0 === e.autoClipper &&
         (t.set("gameState.flags.autoClipper", 1),
         x.info("Business section unlocked")),
-        n >= 1 &&
-          0 === i.megaClipper &&
+        i >= 1 &&
+          0 === e.megaClipper &&
           (t.set("gameState.flags.megaClipper", 1),
           x.info("Manufacturing section unlocked")),
-        r >= 1 &&
-          0 === i.comp &&
+        a >= 1 &&
+          0 === e.comp &&
           (t.set("gameState.flags.comp", 1),
           x.info("Computing section unlocked")),
-        r >= 5 &&
-          0 === i.projects &&
+        a >= 5 &&
+          0 === e.projects &&
           (t.set("gameState.flags.projects", 1),
           x.info("Projects section unlocked")),
-        o >= 5e9 &&
-          0 === i.space &&
+        n >= 5e9 &&
+          0 === e.space &&
           (t.set("gameState.flags.space", 1),
           x.info("Space exploration unlocked")));
     }

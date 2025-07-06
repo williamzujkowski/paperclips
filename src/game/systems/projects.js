@@ -473,10 +473,11 @@ export class ProjectsSystem {
         this.gameState.set(effect.target, effect.value);
         break;
 
-      case "multiplier":
+      case "multiplier": {
         const currentValue = this.gameState.get(effect.target) || 1;
         this.gameState.set(effect.target, currentValue * effect.value);
         break;
+      }
 
       case "increment":
         this.gameState.increment(effect.target, effect.value || 1);
@@ -495,35 +496,42 @@ export class ProjectsSystem {
   /**
    * Apply custom project effects that require special handling
    */
-  applyCustomEffect(projectId, effect) {
+  applyCustomEffect(projectId) {
     switch (projectId) {
-      case "spaceExploration":
+      case "spaceExploration": {
         // Initialize space exploration
         this.gameState.set("gameState.flags.space", 1);
         this.gameState.set("space.matter.available", 6000000000000000000000000);
-        
+
         // Log space exploration milestone
         if (window.renderer) {
-          window.renderer.logSpaceEvent("Space exploration unlocked! The universe awaits.");
+          window.renderer.logSpaceEvent(
+            "Space exploration unlocked! The universe awaits.",
+          );
         }
         break;
+      }
 
-      case "quantumComputing":
+      case "quantumComputing": {
         // Enable quantum computing
         this.gameState.set("computing.quantum.enabled", true);
         this.gameState.set("computing.quantum.clock", 0);
-        
+
         // Log quantum computing milestone
         if (window.renderer) {
-          window.renderer.logQuantumEvent("Quantum computing activated! Reality bends to your will.");
+          window.renderer.logQuantumEvent(
+            "Quantum computing activated! Reality bends to your will.",
+          );
         }
         break;
+      }
 
-      case "algorithmicTrading":
+      case "algorithmicTrading": {
         // Enable investment engine
         this.gameState.set("gameState.flags.investment", 1);
         this.gameState.set("investment.engine.enabled", true);
         break;
+      }
 
       default:
         errorHandler.warn(`No custom effect handler for project: ${projectId}`);
@@ -668,7 +676,7 @@ export class ProjectsSystem {
   /**
    * Update time-based project effects
    */
-  updateTimeBasedEffects(deltaTime) {
+  updateTimeBasedEffects(_deltaTime) {
     // Implementation for projects that have ongoing effects
     // This is where continuous project benefits would be applied
   }

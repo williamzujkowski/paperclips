@@ -88,7 +88,10 @@ class UniversalPaperclips {
       this.setupAccessibilityEvents();
 
       // Log initial welcome message
-      this.ui.renderer.logMilestone("Welcome to Universal Paperclips! Click to create your first paperclip.", "📎");
+      this.ui.renderer.logMilestone(
+        "Welcome to Universal Paperclips! Click to create your first paperclip.",
+        "📎",
+      );
 
       errorHandler.info("UI systems initialized");
     } catch (error) {
@@ -237,7 +240,7 @@ class UniversalPaperclips {
   /**
    * Handle automatic saving
    */
-  handleAutoSave(timestamp, deltaTime) {
+  handleAutoSave(timestamp) {
     // Auto-save every 30 seconds
     const lastSave = gameState.get("gameState.lastAutoSave") || 0;
     if (timestamp - lastSave > 30000) {
@@ -249,10 +252,8 @@ class UniversalPaperclips {
   /**
    * Update game phase based on progress
    */
-  updateGamePhase(timestamp, deltaTime) {
+  updateGamePhase() {
     const flags = gameState.get("gameState.flags");
-    const clips = gameState.get("resources.clips");
-    const funds = gameState.get("resources.funds");
     const autoClippers = gameState.get("manufacturing.clipmakers.level");
     const megaClippers = gameState.get("manufacturing.megaClippers.level");
     const processors = gameState.get("computing.processors");

@@ -152,7 +152,7 @@ class ErrorHandler {
   error(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.ERROR) {
       this._log("ERROR", message, ...args);
-      
+
       // Send to game console
       if (this.renderer && this.renderer.addConsoleMessage) {
         this.renderer.addConsoleMessage(message, "error");
@@ -168,9 +168,13 @@ class ErrorHandler {
   warn(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.WARN) {
       this._log("WARN", message, ...args);
-      
+
       // Send to game console for important warnings
-      if (this.renderer && this.renderer.addConsoleMessage && message.includes("critical")) {
+      if (
+        this.renderer &&
+        this.renderer.addConsoleMessage &&
+        message.includes("critical")
+      ) {
         this.renderer.addConsoleMessage(message, "warning");
       }
     }
@@ -415,7 +419,7 @@ class ErrorHandler {
    * Notify error listeners
    * @private
    */
-  _notifyErrorListeners(errorObj) {
+  _notifyErrorListeners(_errorObj) {
     // Implementation for notifying error listeners
     // This would be used by other systems to react to errors
   }

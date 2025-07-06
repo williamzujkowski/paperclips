@@ -5,7 +5,7 @@
  * honor system, and tactical combat visualization.
  */
 
-import { BALANCE } from "../core/constants.js";
+// BALANCE import removed - not used in this file
 import { errorHandler } from "../core/errorHandler.js";
 import { performanceMonitor } from "../core/performanceMonitor.js";
 
@@ -187,9 +187,6 @@ export class CombatSystem {
   getCombatEffectiveness() {
     let effectiveness = 1.0;
 
-    // Base combat effectiveness
-    const probeCombat = this.gameState.get("combat.probeCombat") || 1;
-
     // Check for combat projects
     const nameBattlesProject = this.gameState.get(
       "projects.nameBattles.completed",
@@ -242,7 +239,7 @@ export class CombatSystem {
       if (window.renderer) {
         window.renderer.logCombatEvent(
           `Victory! Gained ${honorGain} honor and ${battle.territory.toLocaleString()} territory.`,
-          true
+          true,
         );
       }
     } else if (battle.victor === "drifters") {
@@ -262,7 +259,7 @@ export class CombatSystem {
       if (window.renderer) {
         window.renderer.logCombatEvent(
           `Defeat! Lost ${honorLoss} honor and ${battle.territory.toLocaleString()} territory.`,
-          false
+          false,
         );
       }
     }
@@ -474,7 +471,7 @@ export class CombatSystem {
   /**
    * Main combat system update
    */
-  update(timestamp, deltaTime) {
+  update() {
     performanceMonitor.measure(() => {
       // Check for new battles
       this.checkForBattles();

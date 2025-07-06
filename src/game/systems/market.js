@@ -5,7 +5,7 @@
  * and wire purchasing mechanics.
  */
 
-import { BALANCE, TIMING } from "../core/constants.js";
+// Constants imports removed - not used in this file
 import { errorHandler } from "../core/errorHandler.js";
 import { performanceMonitor } from "../core/performanceMonitor.js";
 
@@ -125,7 +125,10 @@ export class MarketSystem {
 
     // Log milestone for first sale
     if (wasFirstSale && revenue > 0 && window.renderer) {
-      window.renderer.logMilestone("First sale! Your paperclip empire has begun.", "💰");
+      window.renderer.logMilestone(
+        "First sale! Your paperclip empire has begun.",
+        "💰",
+      );
     }
 
     return { clipsSold: clipsToSell, revenue };
@@ -390,7 +393,7 @@ export class MarketSystem {
    * @param {number} timestamp - Current timestamp
    * @param {number} deltaTime - Time since last update
    */
-  update(timestamp, deltaTime) {
+  update(timestamp) {
     performanceMonitor.measure(() => {
       // Update demand calculation
       this.updateDemandDisplay();
@@ -444,7 +447,7 @@ export class MarketSystem {
    * @returns {number} Suggested optimal price
    */
   getOptimalPrice() {
-    const currentDemand = this.calculateDemand();
+    const _currentDemand = this.calculateDemand();
     const marketingLevel = this.gameState.get("market.marketing.level");
     const marketing = Math.pow(1.1, marketingLevel - 1);
 
