@@ -9,7 +9,7 @@ A modernized version of the classic incremental game Universal Paperclips by Fra
 This repository contains a fully modernized version of Universal Paperclips that maintains the original gameplay while upgrading the codebase with:
 
 - ES6 modules and modern JavaScript
-- Comprehensive test suite (89+ tests)
+- Comprehensive test suite (525+ tests)
 - CI/CD pipeline with GitHub Actions
 - Error handling and performance monitoring
 - Save/load system with import/export

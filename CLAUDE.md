@@ -51,8 +51,11 @@ paperclips/
 ├── scripts/              # Build and dev scripts
 ├── .github/              # CI/CD workflows
 │   ├── workflows/
-│   │   ├── test.yml     # Run tests on PR/push
-│   │   └── deploy.yml   # Deploy to GitHub Pages
+│   │   ├── test.yml              # Run tests on PR/push (Node 16.x, 18.x, 20.x)
+│   │   ├── deploy.yml            # Deploy to GitHub Pages
+│   │   ├── claude-code-review.yml # AI-powered PR reviews
+│   │   ├── claude.yml            # Interactive @claude assistant
+│   │   └── release.yml           # Automated release management
 ├── .husky/              # Git hooks
 ├── package.json         # Dependencies and scripts
 ├── rollup.config.js     # Build configuration
@@ -86,6 +89,7 @@ npm run test:coverage  # Coverage report
 npm run lint          # Check for issues
 npm run lint:fix      # Auto-fix issues
 npm run format        # Format with Prettier
+npm run format:check  # Check formatting without changes
 
 # Deployment
 git add -A
@@ -98,6 +102,7 @@ git push                       # CI/CD deploys to GitHub Pages
 The game has been modernized from a global variable-based architecture to a modular ES6 system.
 
 ### Legacy Architecture (Original)
+
 - 200+ global variables
 - Direct DOM manipulation
 - Inline event handlers
@@ -106,20 +111,25 @@ The game has been modernized from a global variable-based architecture to a modu
 - No tests
 
 ### Modern Architecture (Current)
+
 - **ES6 Modules**: Clear separation of concerns
 - **State Management**: Centralized GameState class with dot notation access
 - **Game Systems**: Encapsulated systems for each game mechanic
 - **Error Handling**: Global error boundaries with automatic recovery
 - **Performance Monitoring**: FPS tracking and performance metrics
 - **Build Pipeline**: Rollup with tree-shaking and minification
-- **Test Suite**: Jest with 89+ unit tests
+- **Test Suite**: Jest with 525+ unit and integration tests
 - **Code Quality**: ESLint + Prettier with pre-commit hooks
 - **Type Safety**: JSDoc annotations throughout
 - **CI/CD**: Automated testing (Node 16.x, 18.x, 20.x matrix) and deployment
+- **AI Integration**: Claude-powered code reviews and interactive assistance
+- **Achievement System**: 31 achievements across 7 categories
+- **Event System**: Centralized event handling with delegation
 
 ## Important Patterns
 
 ### Adding New Features
+
 1. Create module in `src/game/systems/`
 2. Add state properties to GameState constructor
 3. Register update/render handlers in game loop
@@ -129,40 +139,43 @@ The game has been modernized from a global variable-based architecture to a modu
 7. Add JSDoc documentation
 
 ### State Management
+
 ```javascript
 // Get value
-const clips = gameState.get('resources.clips');
+const clips = gameState.get("resources.clips");
 
 // Set value
-gameState.set('resources.clips', 1000);
+gameState.set("resources.clips", 1000);
 
 // Increment/decrement
-gameState.increment('resources.clips', 10);
-gameState.decrement('resources.wire', 5);
+gameState.increment("resources.clips", 10);
+gameState.decrement("resources.wire", 5);
 
 // Access nested properties
-const combat = gameState.get('combat.probeCombat');
+const combat = gameState.get("combat.probeCombat");
 ```
 
 ### Error Handling
+
 ```javascript
 // Log errors with context
-errorHandler.handleError(error, 'source.location', { extraData });
+errorHandler.handleError(error, "source.location", { extraData });
 
 // Create error boundary
-const safeFn = errorHandler.createErrorBoundary(riskyFn, 'functionName');
+const safeFn = errorHandler.createErrorBoundary(riskyFn, "functionName");
 
 // Log levels: debug, info, warn, error
-errorHandler.info('Game started');
-errorHandler.warn('Low performance detected');
+errorHandler.info("Game started");
+errorHandler.warn("Low performance detected");
 ```
 
 ### Performance Monitoring
+
 ```javascript
 // Measure function performance
 performanceMonitor.measure(() => {
   // expensive operation
-}, 'operationName');
+}, "operationName");
 
 // Get performance report
 const report = performanceMonitor.getReport();
@@ -171,6 +184,7 @@ const report = performanceMonitor.getReport();
 ## Common Tasks
 
 ### Run the modern game locally
+
 ```bash
 npm run dev
 # Open http://localhost:8080
@@ -178,6 +192,7 @@ npm run dev
 ```
 
 ### Deploy to GitHub Pages
+
 ```bash
 # Automatic deployment:
 git add -A
@@ -192,6 +207,7 @@ git push
 ```
 
 ### Debug in Browser Console
+
 ```javascript
 // View game state
 UniversalPaperclips.debug.getState();
@@ -207,14 +223,14 @@ UniversalPaperclips.debug.getPerformance();
 UniversalPaperclips.debug.getErrors();
 
 // Change log level
-UniversalPaperclips.debug.setLogLevel('debug');
+UniversalPaperclips.debug.setLogLevel("debug");
 ```
 
 ## Recent Accomplishments
 
 1. ✅ Extracted 200+ global variables into centralized GameState
 2. ✅ Converted all major systems to ES6 modules
-3. ✅ Added comprehensive test suite (89+ tests)
+3. ✅ Added comprehensive test suite (525+ tests)
 4. ✅ Implemented error handling and recovery
 5. ✅ Added performance monitoring
 6. ✅ Set up CI/CD pipeline with enhanced GitHub Actions
@@ -224,6 +240,10 @@ UniversalPaperclips.debug.setLogLevel('debug');
 10. ✅ Migrated configuration files to CommonJS format (.cjs)
 11. ✅ Enhanced CI/CD with matrix testing (Node 16.x, 18.x, 20.x)
 12. ✅ Added Codecov integration for coverage reporting
+13. ✅ Integrated Claude-powered code reviews for PRs
+14. ✅ Added interactive Claude assistant for @claude mentions
+15. ✅ Implemented achievement system with 31 achievements
+16. ✅ Created comprehensive event handling system
 
 ## Next Steps
 
@@ -240,18 +260,21 @@ UniversalPaperclips.debug.setLogLevel('debug');
 The development environment now includes enhanced hot module reload capabilities:
 
 ### Features
+
 - **Automatic Browser Refresh**: Changes to source files trigger instant browser reload
 - **Livereload Integration**: Watches both `src/` and `docs/` directories
 - **Fast Rebuild**: Optimized Rollup configuration with file watching
 - **Development Scripts**: Multiple development modes available
 
 ### How It Works
+
 1. **File Watching**: Rollup watches all files in `src/` directory
 2. **Livereload Server**: Runs on port 35729 and communicates with browser
 3. **Automatic Injection**: Livereload script automatically injected in development
 4. **HTTP Server**: Serves files from `docs/` with disabled caching
 
 ### Development Workflow
+
 ```bash
 # Start development with hot reload
 npm run dev           # Opens browser automatically
@@ -262,6 +285,7 @@ npm run dev:quiet     # Silent mode
 ```
 
 ### Configuration
+
 - **Rollup Config**: Enhanced watch options with chokidar
 - **Livereload**: Watches multiple directories with reduced delay
 - **HTTP Server**: Configured for development with cache disabled
@@ -271,7 +295,7 @@ npm run dev:quiet     # Silent mode
 The project uses CommonJS format (.cjs) for configuration files to maintain compatibility while using ES modules for the main codebase:
 
 - **babel.config.cjs**: Babel transpilation configuration
-- **jest.config.cjs**: Jest testing framework configuration  
+- **jest.config.cjs**: Jest testing framework configuration
 - **.eslintrc.cjs**: ESLint linting rules and environment settings
 
 This approach allows the project to use `"type": "module"` in package.json while still supporting tools that require CommonJS configuration.
@@ -290,30 +314,36 @@ npm run test:coverage
 ```
 
 ### Test Coverage
+
 - **GameState**: State management, save/load, import/export
 - **ProductionSystem**: Clip manufacturing, automation, costs
 - **MarketSystem**: Pricing, demand, marketing
 - **ComputingSystem**: Processors, memory, operations, quantum
 - **CombatSystem**: Battles, honor, upgrades
+- **ProjectsSystem**: Research projects, prerequisites, effects
+- **AchievementSystem**: Achievement tracking and unlocking
+- **EventSystem**: Event handling and delegation
 - **Formatting**: Number formatting, currency, duration
 - **Error Handling**: Error boundaries, recovery
 - **Performance**: Metrics tracking, thresholds
+- **Integration**: Gameplay scenarios and system interactions
 
 ### Writing New Tests
+
 ```javascript
 // tests/unit/newSystem.test.js
-import { NewSystem } from '../../src/game/systems/newSystem.js';
-import { gameState } from '../../src/game/core/gameState.js';
+import { NewSystem } from "../../src/game/systems/newSystem.js";
+import { gameState } from "../../src/game/core/gameState.js";
 
-describe('NewSystem', () => {
+describe("NewSystem", () => {
   let system;
-  
+
   beforeEach(() => {
     system = new NewSystem();
     gameState.reset();
   });
-  
-  it('should do something', () => {
+
+  it("should do something", () => {
     // Test implementation
     expect(result).toBe(expected);
   });
@@ -353,6 +383,7 @@ describe('NewSystem', () => {
 ## Commit Message Format
 
 When committing changes, follow this format:
+
 ```
 <type>: <subject>
 
@@ -368,6 +399,7 @@ Types: feat, fix, docs, style, refactor, test, chore
 ## Working with Legacy Code
 
 The original game files are preserved in `docs/` directory:
+
 - `docs/main.js` - Original game logic (5,546 lines)
 - `docs/projects.js` - Original projects system (2,452 lines)
 - `docs/combat.js` - Original combat system (802 lines)
