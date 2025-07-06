@@ -55,7 +55,7 @@ var UniversalPaperclips = (function () {
             nextChip: 0,
             fade: 1,
           },
-          operations: {
+          operationsDisplay: {
             temp: 0,
             standard: 0,
             fade: 0,
@@ -3762,10 +3762,10 @@ var UniversalPaperclips = (function () {
       if (!e) return;
       const t = this.gameState.get("investment.stocks") || [];
       ((e.innerHTML = ""),
-        t.forEach((t, s) => {
-          const i = document.createElement("tr");
-          ((i.innerHTML = `\n        <td>${t.symbol}</td>\n        <td>${O(t.price)}</td>\n        <td class="${t.change >= 0 ? "positive" : "negative"}">\n          ${t.change >= 0 ? "+" : ""}${U(t.change / 100)}\n        </td>\n        <td>${j(t.volume)}</td>\n      `),
-            e.appendChild(i));
+        t.forEach((t) => {
+          const s = document.createElement("tr");
+          ((s.innerHTML = `\n        <td>${t.symbol}</td>\n        <td>${O(t.price)}</td>\n        <td class="${t.change >= 0 ? "positive" : "negative"}">\n          ${t.change >= 0 ? "+" : ""}${U(t.change / 100)}\n        </td>\n        <td>${j(t.volume)}</td>\n      `),
+            e.appendChild(s));
         }));
     }
     render(e, t) {
