@@ -499,7 +499,16 @@
 <a name='L434'></a><a href='#L434'>434</a>
 <a name='L435'></a><a href='#L435'>435</a>
 <a name='L436'></a><a href='#L436'>436</a>
-<a name='L437'></a><a href='#L437'>437</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a>
+<a name='L439'></a><a href='#L439'>439</a>
+<a name='L440'></a><a href='#L440'>440</a>
+<a name='L441'></a><a href='#L441'>441</a>
+<a name='L442'></a><a href='#L442'>442</a>
+<a name='L443'></a><a href='#L443'>443</a>
+<a name='L444'></a><a href='#L444'>444</a>
+<a name='L445'></a><a href='#L445'>445</a>
+<a name='L446'></a><a href='#L446'>446</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -614,6 +623,7 @@
 <span class="cline-any cline-yes">5475x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">161x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -629,6 +639,9 @@
 <span class="cline-any cline-yes">35x</span>
 <span class="cline-any cline-yes">35x</span>
 <span class="cline-any cline-yes">35x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">46x</span>
@@ -702,6 +715,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -926,6 +942,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -942,8 +960,8 @@
  * the game runs smoothly and identify bottlenecks.
  */
 &nbsp;
-import { PERFORMANCE } from './constants.js';
-import { errorHandler } from './errorHandler.js';
+import { PERFORMANCE } from "./constants.js";
+import { errorHandler } from "./errorHandler.js";
 &nbsp;
 class PerformanceMonitor {
   constructor() {
@@ -955,36 +973,36 @@ class PerformanceMonitor {
         min: Infinity,
         max: 0,
         samples: [],
-        lastFrame: performance.now()
+        lastFrame: performance.now(),
       },
       memory: {
         used: 0,
         peak: 0,
-        samples: []
+        samples: [],
       },
       gameLoop: {
         updateTime: 0,
         renderTime: 0,
         totalTime: 0,
         slowFrames: 0,
-        samples: []
+        samples: [],
       },
-      functions: new Map() // Function performance tracking
+      functions: new Map(), // Function performance tracking
     };
 &nbsp;
     this.thresholds = {
       fps: {
         warning: PERFORMANCE.MIN_FPS,
-        critical: PERFORMANCE.MIN_FPS * 0.5
+        critical: PERFORMANCE.MIN_FPS * 0.5,
       },
       frameTime: {
         warning: PERFORMANCE.FRAME_TIME_TARGET * 2,
-        critical: PERFORMANCE.FRAME_TIME_TARGET * 4
+        critical: PERFORMANCE.FRAME_TIME_TARGET * 4,
       },
       memory: {
         warning: PERFORMANCE.MAX_MEMORY_USAGE * 0.8,
-        critical: PERFORMANCE.MAX_MEMORY_USAGE
-      }
+        critical: PERFORMANCE.MAX_MEMORY_USAGE,
+      },
     };
 &nbsp;
     this.sampleSize = PERFORMANCE.PERFORMANCE_SAMPLE_SIZE;
@@ -1047,7 +1065,8 @@ class PerformanceMonitor {
     this.metrics.fps.min = Math.min(this.metrics.fps.min, fps);
     this.metrics.fps.max = Math.max(this.metrics.fps.max, fps);
     this.metrics.fps.average =
-      this.metrics.fps.samples.reduce((a, b) =&gt; a + b, 0) / this.metrics.fps.samples.length;
+      this.metrics.fps.samples.reduce((a, b) =&gt; a + b, 0) /
+      this.metrics.fps.samples.length;
 &nbsp;
     // Check thresholds
     this._checkFPSThresholds(fps);
@@ -1061,10 +1080,13 @@ class PerformanceMonitor {
     const measureMemory = () =&gt; {
       <span class="missing-if-branch" title="if path not taken" >I</span>if (!this.enabled) <span class="cstat-no" title="statement not covered" >return;</span>
 &nbsp;
-      if ('memory' in performance) {
+      if ("memory" in performance) {
         const memory = performance.memory;
         this._recordMemory(memory.usedJSHeapSize);
-        this.metrics.memory.peak = Math.max(this.metrics.memory.peak, memory.usedJSHeapSize);
+        this.metrics.memory.peak = Math.max(
+          this.metrics.memory.peak,
+          memory.usedJSHeapSize,
+        );
       }
 &nbsp;
       setTimeout(measureMemory, 1000); // Check every second
@@ -1124,7 +1146,7 @@ class PerformanceMonitor {
       update: this.metrics.gameLoop.updateTime,
       render: renderTime,
       total: totalTime,
-      timestamp: now
+      timestamp: now,
     });
 &nbsp;
     // Keep only recent samples
@@ -1137,7 +1159,10 @@ class PerformanceMonitor {
       this.metrics.gameLoop.slowFrames++;
 &nbsp;
       <span class="missing-if-branch" title="if path not taken" >I</span>if (totalTime &gt; this.thresholds.frameTime.critical) {
-<span class="cstat-no" title="statement not covered" >        errorHandler.warn('Critical frame time detected:', `${totalTime.toFixed(2)}ms`);</span>
+<span class="cstat-no" title="statement not covered" >        errorHandler.warn(</span>
+          "Critical frame time detected:",
+          `${totalTime.toFixed(2)}ms`,
+        );
       }
     }
 &nbsp;
@@ -1200,7 +1225,7 @@ class PerformanceMonitor {
         minTime: Infinity,
         maxTime: 0,
         errors: 0,
-        samples: []
+        samples: [],
       });
     }
 &nbsp;
@@ -1218,7 +1243,7 @@ class PerformanceMonitor {
     stats.samples.push({
       duration,
       success,
-      timestamp: performance.now()
+      timestamp: performance.now(),
     });
 &nbsp;
     // Keep only recent samples
@@ -1233,9 +1258,9 @@ class PerformanceMonitor {
    */
   _checkFPSThresholds(fps) {
     if (fps &lt; this.thresholds.fps.critical) {
-      this._triggerWarning('fps', 'critical', fps);
+      this._triggerWarning("fps", "critical", fps);
     } else if (fps &lt; this.thresholds.fps.warning) {
-      this._triggerWarning('fps', 'warning', fps);
+      this._triggerWarning("fps", "warning", fps);
     }
   }
 &nbsp;
@@ -1245,9 +1270,9 @@ class PerformanceMonitor {
    */
   _checkMemoryThresholds(memory) {
     if (memory &gt; this.thresholds.memory.critical) {
-      this._triggerWarning('memory', 'critical', memory);
+      this._triggerWarning("memory", "critical", memory);
     } else if (memory &gt; this.thresholds.memory.warning) {
-      this._triggerWarning('memory', 'warning', memory);
+      this._triggerWarning("memory", "warning", memory);
     }
   }
 &nbsp;
@@ -1260,10 +1285,10 @@ class PerformanceMonitor {
       type,
       level,
       value,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 &nbsp;
-    if (level === 'critical') {
+    if (level === "critical") {
       errorHandler.error(`Performance ${level}:`, `${type} = ${value}`);
     } else {
       errorHandler.warn(`Performance ${level}:`, `${type} = ${value}`);
@@ -1273,7 +1298,7 @@ class PerformanceMonitor {
       try {
         callback(warning);
       } catch (error) {
-        errorHandler.error('Error in performance warning callback:', error);
+        errorHandler.error("Error in performance warning callback:", error);
       }
     });
   }
@@ -1312,22 +1337,22 @@ class PerformanceMonitor {
         current: Math.round(this.metrics.fps.current),
         average: Math.round(this.metrics.fps.average),
         min: Math.round(this.metrics.fps.min),
-        max: Math.round(this.metrics.fps.max)
+        max: Math.round(this.metrics.fps.max),
       },
       memory: {
         used: this.metrics.memory.used,
         peak: this.metrics.memory.peak,
         usedMB: Math.round(this.metrics.memory.used / 1024 / 1024),
-        peakMB: Math.round(this.metrics.memory.peak / 1024 / 1024)
+        peakMB: Math.round(this.metrics.memory.peak / 1024 / 1024),
       },
       gameLoop: {
         updateTime: Math.round(this.metrics.gameLoop.updateTime * 100) / 100,
         renderTime: Math.round(this.metrics.gameLoop.renderTime * 100) / 100,
         totalTime: Math.round(this.metrics.gameLoop.totalTime * 100) / 100,
-        slowFrames: this.metrics.gameLoop.slowFrames
+        slowFrames: this.metrics.gameLoop.slowFrames,
       },
       functions: functionStats,
-      enabled: this.enabled
+      enabled: this.enabled,
     };
   }
 &nbsp;
@@ -1344,7 +1369,7 @@ class PerformanceMonitor {
     this.metrics.gameLoop.slowFrames = 0;
     this.metrics.functions.clear();
 &nbsp;
-    errorHandler.info('Performance metrics reset');
+    errorHandler.info("Performance metrics reset");
   }
 &nbsp;
   /**
@@ -1353,7 +1378,9 @@ class PerformanceMonitor {
    */
   setEnabled(enabled) {
     this.enabled = enabled;
-    errorHandler.info(`Performance monitoring ${enabled ? 'enabled' : 'disabled'}`);
+    errorHandler.info(
+      `Performance monitoring ${enabled ? "enabled" : "disabled"}`,
+    );
   }
 &nbsp;
   /**
@@ -1378,7 +1405,7 @@ export { PerformanceMonitor };
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-07-05T16:17:25.534Z
+                at 2025-07-06T03:13:34.884Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
