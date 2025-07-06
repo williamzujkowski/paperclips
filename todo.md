@@ -64,8 +64,9 @@ paperclips/
 │   └── workflows/               # ✅ CI/CD configured
 ├── package.json                 # ✅ Modern tooling
 ├── rollup.config.js            # ✅ Build system
-├── jest.config.js              # ✅ Testing framework
-├── .eslintrc.js                # ✅ Code quality
+├── babel.config.cjs            # ✅ Babel configuration
+├── jest.config.cjs             # ✅ Testing framework
+├── .eslintrc.cjs               # ✅ Code quality
 └── .prettierrc                 # ✅ Code formatting
 ```
 

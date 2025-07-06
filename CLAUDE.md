@@ -56,8 +56,9 @@ paperclips/
 ├── .husky/              # Git hooks
 ├── package.json         # Dependencies and scripts
 ├── rollup.config.js     # Build configuration
-├── jest.config.js       # Test configuration
-├── .eslintrc.js        # Linting rules
+├── babel.config.cjs     # Babel configuration (CommonJS)
+├── jest.config.cjs      # Test configuration (CommonJS)
+├── .eslintrc.cjs        # Linting rules (CommonJS)
 └── .prettierrc         # Code formatting
 ```
 
@@ -114,7 +115,7 @@ The game has been modernized from a global variable-based architecture to a modu
 - **Test Suite**: Jest with 89+ unit tests
 - **Code Quality**: ESLint + Prettier with pre-commit hooks
 - **Type Safety**: JSDoc annotations throughout
-- **CI/CD**: Automated testing and deployment
+- **CI/CD**: Automated testing (Node 16.x, 18.x, 20.x matrix) and deployment
 
 ## Important Patterns
 
@@ -216,10 +217,13 @@ UniversalPaperclips.debug.setLogLevel('debug');
 3. ✅ Added comprehensive test suite (89+ tests)
 4. ✅ Implemented error handling and recovery
 5. ✅ Added performance monitoring
-6. ✅ Set up CI/CD pipeline
-7. ✅ Added pre-commit hooks
+6. ✅ Set up CI/CD pipeline with enhanced GitHub Actions
+7. ✅ Added pre-commit hooks with Husky
 8. ✅ Documented with JSDoc
 9. ✅ Created save/load system with import/export
+10. ✅ Migrated configuration files to CommonJS format (.cjs)
+11. ✅ Enhanced CI/CD with matrix testing (Node 16.x, 18.x, 20.x)
+12. ✅ Added Codecov integration for coverage reporting
 
 ## Next Steps
 
@@ -261,6 +265,16 @@ npm run dev:quiet     # Silent mode
 - **Rollup Config**: Enhanced watch options with chokidar
 - **Livereload**: Watches multiple directories with reduced delay
 - **HTTP Server**: Configured for development with cache disabled
+
+## Configuration Files
+
+The project uses CommonJS format (.cjs) for configuration files to maintain compatibility while using ES modules for the main codebase:
+
+- **babel.config.cjs**: Babel transpilation configuration
+- **jest.config.cjs**: Jest testing framework configuration  
+- **.eslintrc.cjs**: ESLint linting rules and environment settings
+
+This approach allows the project to use `"type": "module"` in package.json while still supporting tools that require CommonJS configuration.
 
 ## Testing
 
