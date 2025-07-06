@@ -32,6 +32,11 @@ export class Renderer {
     // Cache frequently accessed elements
     this.cacheElements();
 
+    // Console message queue
+    this.consoleMessages = [];
+    this.maxConsoleMessages = 100;
+    this.consoleElement = null;
+
     // Bind methods
     this.render = errorHandler.createErrorBoundary(
       this.render.bind(this),
@@ -531,8 +536,188 @@ export class Renderer {
   reset() {
     this.pendingUpdates.clear();
     this.refreshCache();
+    this.consoleMessages = [];
 
     errorHandler.info("Renderer reset");
+  }
+
+  /**
+   * Initialize console element
+   */
+  initializeConsole() {
+    this.consoleElement = document.getElementById("statusConsole");
+    if (!this.consoleElement) {
+      errorHandler.warn("Status console not found");
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Add a message to the console
+   * @param {string} message - The message to display
+   * @param {string} type - Message type (achievement, milestone, warning, error, info)
+   * @param {Object} options - Additional options (icon, timestamp, etc.)
+   */
+  addConsoleMessage(message, type = "info", options = {}) {
+    const timestamp = new Date().toLocaleTimeString();
+    const messageData = {
+      message,
+      type,
+      timestamp,
+      icon: options.icon || this.getIconForType(type),
+      id: Date.now() + Math.random(),
+    };
+
+    // Add to queue
+    this.consoleMessages.push(messageData);
+
+    // Trim old messages
+    if (this.consoleMessages.length > this.maxConsoleMessages) {
+      this.consoleMessages = this.consoleMessages.slice(-this.maxConsoleMessages);
+    }
+
+    // Render immediately if console is available
+    if (this.consoleElement) {
+      this.renderConsoleMessage(messageData);
+    }
+  }
+
+  /**
+   * Get appropriate icon for message type
+   */
+  getIconForType(type) {
+    const icons = {
+      achievement: "🏆",
+      milestone: "🎯",
+      warning: "⚠️",
+      error: "❌",
+      info: "ℹ️",
+      project: "🔬",
+      combat: "⚔️",
+      space: "🚀",
+      quantum: "🔮",
+    };
+    return icons[type] || "";
+  }
+
+  /**
+   * Render a single console message
+   */
+  renderConsoleMessage(messageData) {
+    if (!this.consoleElement) return;
+
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `status-message ${messageData.type}-message`;
+    messageDiv.dataset.messageId = messageData.id;
+
+    // Build message HTML
+    const iconSpan = messageData.icon ? `<span class="message-icon">${messageData.icon}</span> ` : "";
+    const timestampSpan = `<span class="message-timestamp">[${messageData.timestamp}]</span> `;
+    const messageSpan = `<span class="message-text">${messageData.message}</span>`;
+
+    messageDiv.innerHTML = `${timestampSpan}${iconSpan}${messageSpan}`;
+
+    // Add to console
+    this.consoleElement.appendChild(messageDiv);
+
+    // Auto-scroll to bottom
+    this.consoleElement.scrollTop = this.consoleElement.scrollHeight;
+
+    // Remove old messages if over limit
+    const messages = this.consoleElement.querySelectorAll(".status-message");
+    if (messages.length > this.maxConsoleMessages) {
+      const toRemove = messages.length - this.maxConsoleMessages;
+      for (let i = 0; i < toRemove; i++) {
+        messages[i].remove();
+      }
+    }
+  }
+
+  /**
+   * Clear all console messages
+   */
+  clearConsole() {
+    this.consoleMessages = [];
+    if (this.consoleElement) {
+      // Keep only the welcome message if it exists
+      const welcomeMessage = this.consoleElement.querySelector(".status-message:first-child");
+      this.consoleElement.innerHTML = "";
+      if (welcomeMessage && welcomeMessage.textContent.includes("Welcome")) {
+        this.consoleElement.appendChild(welcomeMessage);
+      }
+    }
+  }
+
+  /**
+   * Log achievement unlock
+   */
+  logAchievement(achievement) {
+    this.addConsoleMessage(
+      `Achievement Unlocked: ${achievement.name} - ${achievement.description}`,
+      "achievement",
+      { icon: achievement.icon }
+    );
+  }
+
+  /**
+   * Log project completion
+   */
+  logProjectComplete(project) {
+    this.addConsoleMessage(
+      `Project Completed: ${project.name}`,
+      "project",
+      { icon: "🔬" }
+    );
+  }
+
+  /**
+   * Log milestone event
+   */
+  logMilestone(message, icon = "🎯") {
+    this.addConsoleMessage(message, "milestone", { icon });
+  }
+
+  /**
+   * Log combat event
+   */
+  logCombatEvent(message, victory = true) {
+    this.addConsoleMessage(
+      message,
+      "combat",
+      { icon: victory ? "⚔️" : "💀" }
+    );
+  }
+
+  /**
+   * Log space event
+   */
+  logSpaceEvent(message) {
+    this.addConsoleMessage(message, "space", { icon: "🚀" });
+  }
+
+  /**
+   * Log quantum event
+   */
+  logQuantumEvent(message) {
+    this.addConsoleMessage(message, "quantum", { icon: "🔮" });
+  }
+
+  /**
+   * Re-render all console messages (e.g., after page reload)
+   */
+  refreshConsole() {
+    if (!this.consoleElement) return;
+
+    // Keep the welcome message if it exists
+    const welcomeMessage = this.consoleElement.querySelector(".status-message:first-child");
+    this.consoleElement.innerHTML = "";
+    
+    if (welcomeMessage && welcomeMessage.textContent.includes("Welcome")) {
+      this.consoleElement.appendChild(welcomeMessage);
+    }
+    
+    this.consoleMessages.forEach(msg => this.renderConsoleMessage(msg));
   }
 }
 

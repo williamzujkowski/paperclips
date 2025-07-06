@@ -72,11 +72,23 @@ class UniversalPaperclips {
       this.ui.achievements = achievementUI;
       this.ui.accessibility = accessibilityManager;
 
+      // Initialize renderer console
+      this.ui.renderer.initializeConsole();
+
+      // Connect renderer to error handler
+      errorHandler.setRenderer(this.ui.renderer);
+
+      // Make renderer globally accessible for systems
+      window.renderer = this.ui.renderer;
+
       // Initialize achievement UI
       achievementUI.initialize();
 
       // Connect accessibility to game events
       this.setupAccessibilityEvents();
+
+      // Log initial welcome message
+      this.ui.renderer.logMilestone("Welcome to Universal Paperclips! Click to create your first paperclip.", "📎");
 
       errorHandler.info("UI systems initialized");
     } catch (error) {

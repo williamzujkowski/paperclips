@@ -31,6 +31,9 @@ class ErrorHandler {
       log: console.log.bind(console),
     };
 
+    // Reference to renderer for console output
+    this.renderer = null;
+
     // Set up global error handling
     this._setupGlobalHandlers();
   }
@@ -134,6 +137,14 @@ class ErrorHandler {
   }
 
   /**
+   * Set the renderer for console output
+   * @param {Renderer} renderer - The renderer instance
+   */
+  setRenderer(renderer) {
+    this.renderer = renderer;
+  }
+
+  /**
    * Log an error message
    * @param {string} message - Error message
    * @param {...*} args - Additional arguments
@@ -141,6 +152,11 @@ class ErrorHandler {
   error(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.ERROR) {
       this._log("ERROR", message, ...args);
+      
+      // Send to game console
+      if (this.renderer && this.renderer.addConsoleMessage) {
+        this.renderer.addConsoleMessage(message, "error");
+      }
     }
   }
 
@@ -152,6 +168,11 @@ class ErrorHandler {
   warn(message, ...args) {
     if (this.logLevel >= DEBUG.LOG_LEVELS.WARN) {
       this._log("WARN", message, ...args);
+      
+      // Send to game console for important warnings
+      if (this.renderer && this.renderer.addConsoleMessage && message.includes("critical")) {
+        this.renderer.addConsoleMessage(message, "warning");
+      }
     }
   }
 

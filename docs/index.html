@@ -149,6 +149,20 @@
             display: none !important;
         }
         
+        /* Console message styles */
+        .status-message { margin: 2px 0; font-size: 12px; }
+        .achievement-message { color: #ffd700; font-weight: bold; }
+        .milestone-message { color: #00ff7f; }
+        .warning-message { color: #ff8c00; }
+        .error-message { color: #ff0000; font-weight: bold; }
+        .info-message { color: #87ceeb; }
+        .project-message { color: #ff69b4; }
+        .combat-message { color: #ff4500; }
+        .space-message { color: #00ced1; }
+        .quantum-message { color: #9370db; }
+        .message-timestamp { color: #666; font-size: 10px; }
+        .message-icon { margin-right: 5px; }
+        
         .performance-stats {
             position: fixed;
             bottom: 10px;
@@ -186,6 +200,11 @@
             <h1>Universal Paperclips</h1>
             <p>A thought-provoking incremental game about AI, resources, and the universe</p>
         </header>
+
+        <!-- Status Console -->
+        <section class="game-section" id="statusConsole" style="max-height: 150px; overflow-y: auto; background: #000; color: #0f0; font-family: monospace; font-size: 12px; padding: 10px; margin-bottom: 20px;">
+            <div class="status-message">Welcome to Universal Paperclips. Your goal: make paperclips.</div>
+        </section>
 
         <!-- Main Production Section -->
         <section class="game-section">

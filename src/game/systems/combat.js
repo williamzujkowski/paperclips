@@ -237,6 +237,14 @@ export class CombatSystem {
       this.gameState.increment("space.matter.available", battle.territory);
 
       errorHandler.debug(`Battle won! Gained ${honorGain} honor`);
+
+      // Log to console
+      if (window.renderer) {
+        window.renderer.logCombatEvent(
+          `Victory! Gained ${honorGain} honor and ${battle.territory.toLocaleString()} territory.`,
+          true
+        );
+      }
     } else if (battle.victor === "drifters") {
       // Defeat: Lose honor and territory
       const honorLoss = battle.originalProbeShips;
@@ -249,6 +257,14 @@ export class CombatSystem {
       this.gameState.set("combat.consecutiveWins", 0);
 
       errorHandler.debug(`Battle lost! Lost ${honorLoss} honor`);
+
+      // Log to console
+      if (window.renderer) {
+        window.renderer.logCombatEvent(
+          `Defeat! Lost ${honorLoss} honor and ${battle.territory.toLocaleString()} territory.`,
+          false
+        );
+      }
     }
 
     // Update battle statistics

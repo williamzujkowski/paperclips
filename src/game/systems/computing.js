@@ -85,6 +85,12 @@ export class ComputingSystem {
       errorHandler.debug(
         `Purchased processor #${currentProcessors + 1} for ${cost} operations`,
       );
+
+      // Log milestone for first processor
+      if (currentProcessors === 0 && window.renderer) {
+        window.renderer.logMilestone("First processor acquired! Computing power online.", "💻");
+      }
+
       return true;
     }
 
@@ -145,6 +151,15 @@ export class ComputingSystem {
       errorHandler.debug(
         `Trust increased to ${currentTrust + 1}, next threshold: ${newThreshold}`,
       );
+
+      // Log milestone for trust increase
+      if (window.renderer) {
+        window.renderer.logMilestone(
+          `Trust increased to ${currentTrust + 1}! New computing capacity unlocked.`,
+          "🔓"
+        );
+      }
+
       return true;
     }
 

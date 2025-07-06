@@ -585,6 +585,11 @@ export class AchievementSystem {
       detail: achievement,
     });
     window.dispatchEvent(event);
+
+    // Log to console if renderer is available
+    if (window.renderer && window.renderer.logAchievement) {
+      window.renderer.logAchievement(achievement);
+    }
   }
 
   /**

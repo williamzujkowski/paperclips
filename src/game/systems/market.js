@@ -110,6 +110,9 @@ export class MarketSystem {
     // Calculate revenue
     const revenue = Math.floor(clipsToSell * margin * 1000) / 1000;
 
+    // Check if this is the first sale
+    const wasFirstSale = this.gameState.get("market.totalRevenue") === 0;
+
     // Update game state
     this.gameState.decrement("resources.unsoldClips", clipsToSell);
     this.gameState.increment("resources.funds", revenue);
@@ -119,6 +122,11 @@ export class MarketSystem {
     this.gameState.set("market.transaction", revenue);
 
     errorHandler.debug(`Sold ${clipsToSell} clips for $${revenue.toFixed(2)}`);
+
+    // Log milestone for first sale
+    if (wasFirstSale && revenue > 0 && window.renderer) {
+      window.renderer.logMilestone("First sale! Your paperclip empire has begun.", "💰");
+    }
 
     return { clipsSold: clipsToSell, revenue };
   }

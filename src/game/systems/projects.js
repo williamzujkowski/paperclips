@@ -452,6 +452,12 @@ export class ProjectsSystem {
     this.gameState.set("achievements.projectsCompleted", projectsCompleted);
 
     errorHandler.info(`Completed project: ${project.name}`);
+
+    // Log to console if renderer is available
+    if (window.renderer && window.renderer.logProjectComplete) {
+      window.renderer.logProjectComplete(project);
+    }
+
     return true;
   }
 
@@ -495,12 +501,22 @@ export class ProjectsSystem {
         // Initialize space exploration
         this.gameState.set("gameState.flags.space", 1);
         this.gameState.set("space.matter.available", 6000000000000000000000000);
+        
+        // Log space exploration milestone
+        if (window.renderer) {
+          window.renderer.logSpaceEvent("Space exploration unlocked! The universe awaits.");
+        }
         break;
 
       case "quantumComputing":
         // Enable quantum computing
         this.gameState.set("computing.quantum.enabled", true);
         this.gameState.set("computing.quantum.clock", 0);
+        
+        // Log quantum computing milestone
+        if (window.renderer) {
+          window.renderer.logQuantumEvent("Quantum computing activated! Reality bends to your will.");
+        }
         break;
 
       case "algorithmicTrading":

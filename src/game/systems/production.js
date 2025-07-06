@@ -68,7 +68,16 @@ export class ProductionSystem {
    */
   manualClip(amount = 1) {
     return performanceMonitor.measure(() => {
-      return this.produceClips(amount);
+      const beforeClips = this.gameState.get("resources.totalClips");
+      const produced = this.produceClips(amount);
+      const afterClips = this.gameState.get("resources.totalClips");
+
+      // Check for first clip milestone
+      if (beforeClips === 0 && afterClips > 0 && window.renderer) {
+        window.renderer.logMilestone("First paperclip created!", "📎");
+      }
+
+      return produced;
     }, "production.manualClip");
   }
 
@@ -135,6 +144,12 @@ export class ProductionSystem {
       );
 
       errorHandler.debug(`Purchased AutoClipper #${level + 1} for $${cost}`);
+
+      // Log milestone for first AutoClipper
+      if (level === 0 && window.renderer) {
+        window.renderer.logMilestone("First AutoClipper purchased! Automation begins.", "🤖");
+      }
+
       return true;
     }
 
@@ -171,6 +186,12 @@ export class ProductionSystem {
       );
 
       errorHandler.debug(`Purchased MegaClipper #${level + 1} for $${cost}`);
+
+      // Log milestone for first MegaClipper
+      if (level === 0 && window.renderer) {
+        window.renderer.logMilestone("First MegaClipper operational! Mass production achieved.", "🏭");
+      }
+
       return true;
     }
 
