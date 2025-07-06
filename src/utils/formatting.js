@@ -424,9 +424,160 @@ export function formatNumberCached(num, precision = 2) {
  * @returns {string} Formatted currency
  */
 export function formatCurrencyCached(amount, showCents = true) {
+  // Handle special case for very small positive amounts
+  if (amount > 0 && amount < 0.01 && showCents) {
+    return "$0.01";
+  }
+
   return getCachedFormat(
     amount,
     (a) => formatCurrency(a, showCents),
     `curr_${showCents}`,
   );
+}
+
+/**
+ * Format stock price change with color indicator
+ * @param {number} change - Price change percentage
+ * @param {number} precision - Decimal places
+ * @returns {string} Formatted price change with + or - prefix
+ */
+export function formatPriceChange(change, precision = 2) {
+  if (change === null || change === undefined || isNaN(change)) {
+    return "0.00%";
+  }
+
+  const prefix = change >= 0 ? "+" : "";
+  return `${prefix}${formatPercentage(change / 100, precision)}`;
+}
+
+/**
+ * Format large matter quantities (for space phase)
+ * @param {number} matter - Matter amount
+ * @returns {string} Formatted matter quantity
+ */
+export function formatMatter(matter) {
+  if (matter === null || matter === undefined || isNaN(matter)) {
+    return "0";
+  }
+
+  // Very large numbers get special formatting
+  if (matter >= 1e15) {
+    return matter.toExponential(2);
+  }
+
+  return formatNumber(matter);
+}
+
+/**
+ * Format probe statistics display
+ * @param {number} value - Stat value
+ * @param {number} max - Maximum value
+ * @returns {string} Formatted stat display
+ */
+export function formatProbeStat(value, max = 100) {
+  if (value === null || value === undefined || isNaN(value)) {
+    return "0";
+  }
+
+  const percentage = max > 0 ? (value / max) * 100 : 0;
+  return `${formatNumber(value)} (${percentage.toFixed(1)}%)`;
+}
+
+/**
+ * Format yomi (strategic modeling currency)
+ * @param {number} yomi - Yomi amount
+ * @returns {string} Formatted yomi
+ */
+export function formatYomi(yomi) {
+  if (yomi === null || yomi === undefined || isNaN(yomi)) {
+    return "0";
+  }
+
+  return formatNumber(yomi);
+}
+
+/**
+ * Format exploration percentage
+ * @param {number} exploration - Exploration percentage (0-100)
+ * @returns {string} Formatted exploration percentage
+ */
+export function formatExploration(exploration) {
+  if (exploration === null || exploration === undefined || isNaN(exploration)) {
+    return "0.00%";
+  }
+
+  return `${exploration.toFixed(2)}%`;
+}
+
+/**
+ * Format power consumption/generation
+ * @param {number} power - Power amount
+ * @param {boolean} isGeneration - Whether this is power generation
+ * @returns {string} Formatted power display
+ */
+export function formatPower(power, isGeneration = false) {
+  if (power === null || power === undefined || isNaN(power)) {
+    return "0 W";
+  }
+
+  const prefix = isGeneration ? "+" : "";
+  return `${prefix}${formatNumber(power)} W`;
+}
+
+/**
+ * Format universe level display
+ * @param {number} level - Universe level
+ * @returns {string} Formatted universe level
+ */
+export function formatUniverseLevel(level) {
+  if (level === null || level === undefined || isNaN(level)) {
+    return "Universe #0";
+  }
+
+  return `Universe #${formatNumber(level)}`;
+}
+
+/**
+ * Format slider percentage display
+ * @param {number} value - Slider value (0-100)
+ * @returns {string} Formatted percentage
+ */
+export function formatSliderPercentage(value) {
+  if (value === null || value === undefined || isNaN(value)) {
+    return "0%";
+  }
+
+  return `${Math.round(value)}%`;
+}
+
+/**
+ * Format terminal readout message
+ * @param {string} label - Message label
+ * @param {*} value - Value to display
+ * @param {string} formatter - Formatter function name
+ * @returns {string} Formatted terminal message
+ */
+export function formatTerminalMessage(
+  label,
+  value,
+  formatter = "formatNumber",
+) {
+  let formattedValue;
+
+  switch (formatter) {
+    case "formatCurrency":
+      formattedValue = formatCurrency(value);
+      break;
+    case "formatRate":
+      formattedValue = formatRate(value);
+      break;
+    case "formatPercentage":
+      formattedValue = formatPercentage(value);
+      break;
+    default:
+      formattedValue = formatNumber(value);
+  }
+
+  return `${label}: ${formattedValue}`;
 }

@@ -42,8 +42,22 @@ export class EventsSystem {
     // Production handlers
     this.handlers.set("makeClip", this.makeClip.bind(this));
     this.handlers.set("makeClipBatch", this.makeClipBatch.bind(this));
-    this.handlers.set("buyAutoClipper", this.buyAutoClipper.bind(this));
-    this.handlers.set("buyMegaClipper", this.buyMegaClipper.bind(this));
+
+    // Multi-purchase handlers for AutoClippers
+    this.handlers.set("buyAutoClipper1", this.buyAutoClipperMulti.bind(this));
+    this.handlers.set("buyAutoClipper10", this.buyAutoClipperMulti.bind(this));
+    this.handlers.set("buyAutoClipper100", this.buyAutoClipperMulti.bind(this));
+
+    // Multi-purchase handlers for MegaClippers
+    this.handlers.set("buyMegaClipper1", this.buyMegaClipperMulti.bind(this));
+    this.handlers.set("buyMegaClipper10", this.buyMegaClipperMulti.bind(this));
+    this.handlers.set("buyMegaClipper100", this.buyMegaClipperMulti.bind(this));
+
+    // Multi-purchase handlers for Factories
+    this.handlers.set("buyFactory1", this.buyFactoryMulti.bind(this));
+    this.handlers.set("buyFactory10", this.buyFactoryMulti.bind(this));
+    this.handlers.set("buyFactory100", this.buyFactoryMulti.bind(this));
+
     this.handlers.set("toggleAutoClippers", this.toggleAutoClippers.bind(this));
     this.handlers.set("toggleMegaClippers", this.toggleMegaClippers.bind(this));
 
@@ -51,22 +65,101 @@ export class EventsSystem {
     this.handlers.set("raisePrice", this.raisePrice.bind(this));
     this.handlers.set("lowerPrice", this.lowerPrice.bind(this));
     this.handlers.set("buyAds", this.buyAds.bind(this));
-    this.handlers.set("buyWire", this.buyWire.bind(this));
+
+    // Multi-purchase wire handlers
+    this.handlers.set("buyWire1000", this.buyWireMulti.bind(this));
+    this.handlers.set("buyWire10000", this.buyWireMulti.bind(this));
+    this.handlers.set("buyWire100000", this.buyWireMulti.bind(this));
+
     this.handlers.set("toggleWireBuyer", this.toggleWireBuyer.bind(this));
 
     // Computing handlers
-    this.handlers.set("buyProcessor", this.buyProcessor.bind(this));
-    this.handlers.set("buyMemory", this.buyMemory.bind(this));
-    this.handlers.set("toggleCreativity", this.toggleCreativity.bind(this));
-    this.handlers.set("adjustCreativity", this.adjustCreativity.bind(this));
+    this.handlers.set("buyProcessor1", this.buyProcessorMulti.bind(this));
+    this.handlers.set("buyProcessor10", this.buyProcessorMulti.bind(this));
+    this.handlers.set("buyProcessor100", this.buyProcessorMulti.bind(this));
+
+    this.handlers.set("buyMemory1", this.buyMemoryMulti.bind(this));
+    this.handlers.set("buyMemory10", this.buyMemoryMulti.bind(this));
+    this.handlers.set("buyMemory100", this.buyMemoryMulti.bind(this));
+
+    this.handlers.set("adjustThinking", this.adjustThinking.bind(this));
+    this.handlers.set("quantumCompute", this.quantumCompute.bind(this));
+
+    // Space handlers
+    this.handlers.set("launchProbe1", this.launchProbeMulti.bind(this));
+    this.handlers.set("launchProbe10", this.launchProbeMulti.bind(this));
+    this.handlers.set("launchProbe100", this.launchProbeMulti.bind(this));
+    this.handlers.set("launchProbe1000", this.launchProbeMulti.bind(this));
+
+    this.handlers.set("buyHarvester1", this.buyHarvesterMulti.bind(this));
+    this.handlers.set("buyHarvester10", this.buyHarvesterMulti.bind(this));
+    this.handlers.set("buyHarvester100", this.buyHarvesterMulti.bind(this));
+
+    this.handlers.set("buyWireDrone1", this.buyWireDroneMulti.bind(this));
+    this.handlers.set("buyWireDrone10", this.buyWireDroneMulti.bind(this));
+    this.handlers.set("buyWireDrone100", this.buyWireDroneMulti.bind(this));
+
+    // Power handlers
+    this.handlers.set("buySolarFarm1", this.buySolarFarmMulti.bind(this));
+    this.handlers.set("buySolarFarm10", this.buySolarFarmMulti.bind(this));
+    this.handlers.set("buySolarFarm100", this.buySolarFarmMulti.bind(this));
+
+    this.handlers.set("buyBattery1", this.buyBatteryMulti.bind(this));
+    this.handlers.set("buyBattery10", this.buyBatteryMulti.bind(this));
+    this.handlers.set("buyBattery100", this.buyBatteryMulti.bind(this));
+
+    // Probe design handlers
+    this.handlers.set("increaseCombat", this.increaseProbeDesign.bind(this));
     this.handlers.set(
-      "toggleQuantumComputing",
-      this.toggleQuantumComputing.bind(this),
+      "decreaseProbeCombat",
+      this.decreaseProbeDesign.bind(this),
+    );
+    this.handlers.set("increaseSpeed", this.increaseProbeDesign.bind(this));
+    this.handlers.set("decreaseSpeed", this.decreaseProbeDesign.bind(this));
+    this.handlers.set(
+      "increaseReplication",
+      this.increaseProbeDesign.bind(this),
     );
     this.handlers.set(
-      "toggleStrategicModeling",
-      this.toggleStrategicModeling.bind(this),
+      "decreaseReplication",
+      this.decreaseProbeDesign.bind(this),
     );
+    this.handlers.set("increaseSelfRep", this.increaseProbeDesign.bind(this));
+    this.handlers.set("decreaseSelfRep", this.decreaseProbeDesign.bind(this));
+    this.handlers.set("increaseHazard", this.increaseProbeDesign.bind(this));
+    this.handlers.set("decreaseHazard", this.decreaseProbeDesign.bind(this));
+    this.handlers.set("increaseFactory", this.increaseProbeDesign.bind(this));
+    this.handlers.set("decreaseFactory", this.decreaseProbeDesign.bind(this));
+    this.handlers.set("increaseWireDrone", this.increaseProbeDesign.bind(this));
+    this.handlers.set("decreaseWireDrone", this.decreaseProbeDesign.bind(this));
+    this.handlers.set(
+      "increaseExploration",
+      this.increaseProbeDesign.bind(this),
+    );
+    this.handlers.set(
+      "decreaseExploration",
+      this.decreaseProbeDesign.bind(this),
+    );
+
+    // Investment handlers
+    this.handlers.set("invest1000", this.investMulti.bind(this));
+    this.handlers.set("invest10000", this.investMulti.bind(this));
+    this.handlers.set("invest100000", this.investMulti.bind(this));
+    this.handlers.set("withdraw1000", this.withdrawMulti.bind(this));
+    this.handlers.set("withdraw10000", this.withdrawMulti.bind(this));
+    this.handlers.set("withdraw100000", this.withdrawMulti.bind(this));
+
+    // Strategic modeling handlers
+    this.handlers.set("adjustRisk", this.adjustRisk.bind(this));
+    this.handlers.set("runTournament", this.runTournament.bind(this));
+    this.handlers.set("strategyA", this.selectStrategy.bind(this));
+    this.handlers.set("strategyB", this.selectStrategy.bind(this));
+    this.handlers.set("strategyRandom", this.selectStrategy.bind(this));
+
+    // Swarm handlers
+    this.handlers.set("adjustSwarmWork", this.adjustSwarmWork.bind(this));
+    this.handlers.set("synchronizeSwarm", this.synchronizeSwarm.bind(this));
+    this.handlers.set("entertainSwarm", this.entertainSwarm.bind(this));
 
     // Combat handlers
     this.handlers.set("allocateProbeStats", this.allocateProbeStats.bind(this));
@@ -778,6 +871,428 @@ export class EventsSystem {
       shortcuts: this.shortcuts.size,
       activeEvents: ["click", "change", "input", "keydown"].length,
     };
+  }
+
+  // ====== NEW MULTI-PURCHASE HANDLERS ======
+
+  /**
+   * Multi-purchase AutoClipper handler
+   */
+  buyAutoClipperMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.production) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.production.buyAutoClipper();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}AutoClipper${amount > 1 ? "s" : ""} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase MegaClipper handler
+   */
+  buyMegaClipperMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.production) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.production.buyMegaClipper();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}MegaClipper${amount > 1 ? "s" : ""} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Factory handler
+   */
+  buyFactoryMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.production) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.production.buyFactory();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}Factor${amount > 1 ? "ies" : "y"} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Wire handler
+   */
+  buyWireMulti(_event, element) {
+    const amount = this.getWirePurchaseAmount(element.dataset.action);
+    if (this.systems.market) {
+      const success = this.systems.market.buyWire(amount);
+      if (success) {
+        this.showFeedback(`${amount} wire purchased!`, "success");
+      } else {
+        this.showFeedback("Cannot afford wire", "error");
+      }
+    }
+  }
+
+  /**
+   * Multi-purchase Processor handler
+   */
+  buyProcessorMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.computing) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.computing.buyProcessor();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}Processor${amount > 1 ? "s" : ""} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Memory handler
+   */
+  buyMemoryMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.computing) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.computing.buyMemory();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}Memory purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Probe launcher handler
+   */
+  launchProbeMulti(_event, element) {
+    const amount = this.getLaunchPurchaseAmount(element.dataset.action);
+    if (this.systems.space) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.space.launchProbe();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount} probe${amount > 1 ? "s" : ""} launched!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Harvester handler
+   */
+  buyHarvesterMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.space) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.space.buyHarvester();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}Harvester${amount > 1 ? "s" : ""} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Wire Drone handler
+   */
+  buyWireDroneMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.space) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.space.buyWireDrone();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}Wire Drone${amount > 1 ? "s" : ""} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Solar Farm handler
+   */
+  buySolarFarmMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.power) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.power.buySolarFarm();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}Solar Farm${amount > 1 ? "s" : ""} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  /**
+   * Multi-purchase Battery handler
+   */
+  buyBatteryMulti(_event, element) {
+    const amount = this.getMultiPurchaseAmount(element.dataset.action);
+    if (this.systems.power) {
+      for (let i = 0; i < amount; i++) {
+        const success = this.systems.power.buyBattery();
+        if (!success) break;
+      }
+      this.showFeedback(
+        `${amount > 1 ? `${amount} ` : ""}Batter${amount > 1 ? "ies" : "y"} purchased!`,
+        "success",
+      );
+    }
+  }
+
+  // ====== PROBE DESIGN HANDLERS ======
+
+  /**
+   * Increase probe design stat handler
+   */
+  increaseProbeDesign(_event, element) {
+    const stat = this.getProbeStatFromAction(element.dataset.action);
+    if (this.systems.space) {
+      const success = this.systems.space.increaseProbeDesign(stat);
+      if (success) {
+        this.showFeedback(`Increased probe ${stat}`, "success");
+      } else {
+        this.showFeedback("Cannot increase probe stat", "error");
+      }
+    }
+  }
+
+  /**
+   * Decrease probe design stat handler
+   */
+  decreaseProbeDesign(_event, element) {
+    const stat = this.getProbeStatFromAction(element.dataset.action);
+    if (this.systems.space) {
+      const success = this.systems.space.decreaseProbeDesign(stat);
+      if (success) {
+        this.showFeedback(`Decreased probe ${stat}`, "success");
+      } else {
+        this.showFeedback("Cannot decrease probe stat", "error");
+      }
+    }
+  }
+
+  // ====== INVESTMENT HANDLERS ======
+
+  /**
+   * Multi-investment handler
+   */
+  investMulti(_event, element) {
+    const amount = this.getInvestmentAmount(element.dataset.action);
+    if (this.systems.investment) {
+      const success = this.systems.investment.invest(amount);
+      if (success) {
+        this.showFeedback(`Invested $${amount.toLocaleString()}`, "success");
+      } else {
+        this.showFeedback("Cannot afford investment", "error");
+      }
+    }
+  }
+
+  /**
+   * Multi-withdrawal handler
+   */
+  withdrawMulti(_event, element) {
+    const amount = this.getInvestmentAmount(element.dataset.action);
+    if (this.systems.investment) {
+      const success = this.systems.investment.withdraw(amount);
+      if (success) {
+        this.showFeedback(`Withdrew $${amount.toLocaleString()}`, "success");
+      } else {
+        this.showFeedback("Cannot withdraw that amount", "error");
+      }
+    }
+  }
+
+  // ====== STRATEGIC MODELING HANDLERS ======
+
+  /**
+   * Adjust risk slider handler
+   */
+  adjustRisk(_event, element) {
+    const value = parseInt(element.value, 10);
+    if (this.systems.strategy) {
+      this.systems.strategy.setRisk(value);
+    }
+  }
+
+  /**
+   * Run tournament handler
+   */
+  runTournament(_event, _element) {
+    if (this.systems.strategy) {
+      const success = this.systems.strategy.runTournament();
+      if (success) {
+        this.showFeedback("Tournament started!", "success");
+      } else {
+        this.showFeedback("Cannot run tournament", "error");
+      }
+    }
+  }
+
+  /**
+   * Select strategy handler
+   */
+  selectStrategy(_event, element) {
+    const strategy = this.getStrategyFromAction(element.dataset.action);
+    if (this.systems.strategy) {
+      this.systems.strategy.selectStrategy(strategy);
+      this.showFeedback(`Strategy set to ${strategy}`, "success");
+    }
+  }
+
+  // ====== SWARM HANDLERS ======
+
+  /**
+   * Adjust swarm work allocation handler
+   */
+  adjustSwarmWork(_event, element) {
+    const value = parseInt(element.value, 10);
+    if (this.systems.swarm) {
+      this.systems.swarm.setWorkAllocation(value);
+    }
+  }
+
+  /**
+   * Synchronize swarm handler
+   */
+  synchronizeSwarm(_event, _element) {
+    if (this.systems.swarm) {
+      const success = this.systems.swarm.synchronize();
+      if (success) {
+        this.showFeedback("Swarm synchronized!", "success");
+      } else {
+        this.showFeedback("Cannot synchronize swarm", "error");
+      }
+    }
+  }
+
+  /**
+   * Entertain swarm handler
+   */
+  entertainSwarm(_event, _element) {
+    if (this.systems.swarm) {
+      const success = this.systems.swarm.entertain();
+      if (success) {
+        this.showFeedback("Swarm entertained!", "success");
+      } else {
+        this.showFeedback("Cannot entertain swarm", "error");
+      }
+    }
+  }
+
+  // ====== QUANTUM COMPUTING HANDLERS ======
+
+  /**
+   * Quantum compute handler
+   */
+  quantumCompute(_event, _element) {
+    if (this.systems.computing) {
+      const success = this.systems.computing.quantumCompute();
+      if (success) {
+        this.showFeedback("Quantum computation executed!", "success");
+      } else {
+        this.showFeedback("Cannot perform quantum computation", "error");
+      }
+    }
+  }
+
+  /**
+   * Adjust thinking allocation handler
+   */
+  adjustThinking(_event, element) {
+    const value = parseInt(element.value, 10);
+    if (this.systems.computing) {
+      this.systems.computing.setThinkingAllocation(value);
+    }
+  }
+
+  // ====== UTILITY METHODS ======
+
+  /**
+   * Get multi-purchase amount from action
+   */
+  getMultiPurchaseAmount(action) {
+    if (action.includes("1")) return 1;
+    if (action.includes("10")) return 10;
+    if (action.includes("100")) return 100;
+    return 1;
+  }
+
+  /**
+   * Get wire purchase amount from action
+   */
+  getWirePurchaseAmount(action) {
+    if (action.includes("1000")) return 1000;
+    if (action.includes("10000")) return 10000;
+    if (action.includes("100000")) return 100000;
+    return 1000;
+  }
+
+  /**
+   * Get launch purchase amount from action
+   */
+  getLaunchPurchaseAmount(action) {
+    if (action.includes("1000")) return 1000;
+    if (action.includes("100")) return 100;
+    if (action.includes("10")) return 10;
+    if (action.includes("1")) return 1;
+    return 1;
+  }
+
+  /**
+   * Get investment amount from action
+   */
+  getInvestmentAmount(action) {
+    if (action.includes("1000")) return 1000;
+    if (action.includes("10000")) return 10000;
+    if (action.includes("100000")) return 100000;
+    return 1000;
+  }
+
+  /**
+   * Get probe stat from action
+   */
+  getProbeStatFromAction(action) {
+    if (action.includes("Combat")) return "combat";
+    if (action.includes("Speed")) return "speed";
+    if (action.includes("Replication")) return "replication";
+    if (action.includes("SelfRep")) return "selfRep";
+    if (action.includes("Hazard")) return "hazard";
+    if (action.includes("Factory")) return "factory";
+    if (action.includes("WireDrone")) return "wireDrone";
+    if (action.includes("Exploration")) return "exploration";
+    return "combat";
+  }
+
+  /**
+   * Get strategy from action
+   */
+  getStrategyFromAction(action) {
+    if (action.includes("A")) return "A";
+    if (action.includes("B")) return "B";
+    if (action.includes("Random")) return "Random";
+    return "A";
   }
 
   /**

@@ -156,6 +156,38 @@ var UniversalPaperclips = (function () {
           finalClips: 0,
           timers: { end1: 0, end2: 0, end3: 0, end4: 0, end5: 0, end6: 0 },
         }),
+        (this.investment = {
+          value: 0,
+          return: 0,
+          stocks: [],
+          riskLevel: 0,
+          portfolio: { aggressive: 0, moderate: 0, conservative: 0 },
+        }),
+        (this.strategy = {
+          current: "None",
+          yomi: 0,
+          yomiRate: 0,
+          tournament: { status: "Ready", active: !1, rounds: 0 },
+          payoffs: { AA: 0, AB: 0, BA: 0, BB: 0 },
+          thinkingAllocation: 50,
+          riskLevel: 0,
+        }),
+        (this.probes = {
+          design: {
+            trust: 0,
+            combat: 0,
+            speed: 0,
+            replication: 0,
+            selfRep: 0,
+            hazard: 0,
+            factory: 0,
+            wireDrone: 0,
+            exploration: 0,
+          },
+          launched: 0,
+          lost: 0,
+        }),
+        (this.universe = { level: 0, simLevel: 0, processors: 0, explored: 0 }),
         (this.legacy = { x: 0, fib1: 2, fib2: 3, boostLvl: 0 }),
         (this._changeListeners = []));
     }
@@ -318,32 +350,32 @@ var UniversalPaperclips = (function () {
     r = 1e9,
     o = 1e3,
     c = 100,
-    m = 10,
-    l = "efficiency",
-    h = "creativity",
-    d = "investment",
-    u = "manufacturing",
+    h = 10,
+    m = "efficiency",
+    l = "creativity",
+    u = "investment",
+    d = "manufacturing",
     p = "computing",
     g = "space",
-    f = "combat",
-    b = 1e3,
-    v = 1e6,
-    y = 1e9,
+    b = "combat",
+    f = 1e3,
+    y = 1e6,
+    v = 1e9,
     S = 1e12,
     C = 1e6,
     w = 2,
     k = 2,
-    E = {
+    M = {
       MIN_FPS: 30,
       FRAME_TIME_TARGET: 16.67,
       PERFORMANCE_SAMPLE_SIZE: 60,
       MAX_DOM_UPDATES_PER_FRAME: 10,
       MAX_MEMORY_USAGE: 104857600,
     },
-    M = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
+    E = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
   const x = new (class {
     constructor() {
-      ((this.logLevel = M.INFO),
+      ((this.logLevel = E.INFO),
         (this.errors = []),
         (this.maxErrors = 100),
         (this.performance = {
@@ -417,14 +449,14 @@ var UniversalPaperclips = (function () {
       this.renderer = e;
     }
     error(e, ...t) {
-      this.logLevel >= M.ERROR &&
+      this.logLevel >= E.ERROR &&
         (this._log("ERROR", e, ...t),
         this.renderer &&
           this.renderer.addConsoleMessage &&
           this.renderer.addConsoleMessage(e, "error"));
     }
     warn(e, ...t) {
-      this.logLevel >= M.WARN &&
+      this.logLevel >= E.WARN &&
         (this._log("WARN", e, ...t),
         this.renderer &&
           this.renderer.addConsoleMessage &&
@@ -432,10 +464,10 @@ var UniversalPaperclips = (function () {
           this.renderer.addConsoleMessage(e, "warning"));
     }
     info(e, ...t) {
-      this.logLevel >= M.INFO && this._log("INFO", e, ...t);
+      this.logLevel >= E.INFO && this._log("INFO", e, ...t);
     }
     debug(e, ...t) {
-      this.logLevel >= M.DEBUG && this._log("DEBUG", e, ...t);
+      this.logLevel >= E.DEBUG && this._log("DEBUG", e, ...t);
     }
     setLogLevel(e) {
       ((this.logLevel = e),
@@ -547,7 +579,7 @@ var UniversalPaperclips = (function () {
     }
     _notifyErrorListeners(e) {}
   })();
-  const A = new (class {
+  const P = new (class {
     constructor() {
       ((this.enabled = !0),
         (this.metrics = {
@@ -570,17 +602,17 @@ var UniversalPaperclips = (function () {
           functions: new Map(),
         }),
         (this.thresholds = {
-          fps: { warning: E.MIN_FPS, critical: 0.5 * E.MIN_FPS },
+          fps: { warning: M.MIN_FPS, critical: 0.5 * M.MIN_FPS },
           frameTime: {
-            warning: 2 * E.FRAME_TIME_TARGET,
-            critical: 4 * E.FRAME_TIME_TARGET,
+            warning: 2 * M.FRAME_TIME_TARGET,
+            critical: 4 * M.FRAME_TIME_TARGET,
           },
           memory: {
-            warning: 0.8 * E.MAX_MEMORY_USAGE,
-            critical: E.MAX_MEMORY_USAGE,
+            warning: 0.8 * M.MAX_MEMORY_USAGE,
+            critical: M.MAX_MEMORY_USAGE,
           },
         }),
-        (this.sampleSize = E.PERFORMANCE_SAMPLE_SIZE),
+        (this.sampleSize = M.PERFORMANCE_SAMPLE_SIZE),
         (this.warningCallbacks = []),
         this._startMonitoring());
     }
@@ -789,13 +821,13 @@ var UniversalPaperclips = (function () {
       return this.metrics.functions.get(e) || null;
     }
   })();
-  const P = new (class {
+  const A = new (class {
     constructor() {
       ((this.running = !1),
         (this.lastFrame = 0),
         (this.frameId = null),
         (this.timers = {
-          fast: { interval: m, lastUpdate: 0 },
+          fast: { interval: h, lastUpdate: 0 },
           medium: { interval: c, lastUpdate: 0 },
           slow: { interval: o, lastUpdate: 0 },
         }),
@@ -862,15 +894,15 @@ var UniversalPaperclips = (function () {
     }
     _loop(e) {
       try {
-        A.startGameLoopMeasurement();
+        P.startGameLoopMeasurement();
         const s = e - this.lastFrame;
         ((this.lastFrame = e),
           t.increment("gameState.ticks"),
           t.increment("gameState.elapsedTime", s),
           this._updateSystems(e, s),
-          A.recordUpdateTime(),
+          P.recordUpdateTime(),
           this._render(e, s),
-          A.endGameLoopMeasurement(),
+          P.endGameLoopMeasurement(),
           this._requestFrame());
       } catch (t) {
         (x.handleError(t, "gameLoop.main", { timestamp: e }, !0),
@@ -891,7 +923,7 @@ var UniversalPaperclips = (function () {
       const i = this.systems[e];
       for (const a of i)
         try {
-          A.measure(() => a.update(t, s), `system.${a.name}`);
+          P.measure(() => a.update(t, s), `system.${a.name}`);
         } catch (i) {
           x.handleError(i, `gameLoop.system.${a.name}`, {
             tier: e,
@@ -903,7 +935,7 @@ var UniversalPaperclips = (function () {
     _render(e, t) {
       for (const s of this.renderers)
         try {
-          A.measure(() => s.render(e, t), `renderer.${s.name}`);
+          P.measure(() => s.render(e, t), `renderer.${s.name}`);
         } catch (i) {
           x.handleError(i, `gameLoop.renderer.${s.name}`, {
             timestamp: e,
@@ -963,7 +995,7 @@ var UniversalPaperclips = (function () {
       return this.paused || !1;
     }
   })();
-  class L {
+  class F {
     constructor(e) {
       ((this.gameState = e),
         (this.lastClipCount = 0),
@@ -993,7 +1025,7 @@ var UniversalPaperclips = (function () {
       return s;
     }
     manualClip(e = 1) {
-      return A.measure(() => {
+      return P.measure(() => {
         const t = this.gameState.get("resources.totalClips"),
           s = this.produceClips(e),
           i = this.gameState.get("resources.totalClips");
@@ -1157,7 +1189,7 @@ var UniversalPaperclips = (function () {
       return t > 0 ? e / t : 1;
     }
     update() {
-      A.measure(() => {
+      P.measure(() => {
         const e =
           this.updateAutoClippers() +
           this.updateMegaClippers() +
@@ -1352,8 +1384,8 @@ var UniversalPaperclips = (function () {
       let o = Math.min(a / 100, 1);
       r < 1 && (o = 0);
       const c = o * (0.7 * Math.pow(a, 1.15)) * 10,
-        m = a > r ? i : c * n;
-      (this.gameState.set("market.projectedRevenue", m),
+        h = a > r ? i : c * n;
+      (this.gameState.set("market.projectedRevenue", h),
         this.gameState.set("market.projectedSales", c));
     }
     updateDemandDisplay() {
@@ -1380,7 +1412,7 @@ var UniversalPaperclips = (function () {
       };
     }
     update(e) {
-      A.measure(() => {
+      P.measure(() => {
         (this.updateDemandDisplay(),
           this.processSales(),
           this.processAutoBuyer(),
@@ -1408,7 +1440,7 @@ var UniversalPaperclips = (function () {
       return Math.max(0.01, Math.round(100 * t) / 100);
     }
   }
-  class R {
+  class $ {
     constructor(e) {
       ((this.gameState = e),
         (this.lastOperationsUpdate = 0),
@@ -1656,7 +1688,7 @@ var UniversalPaperclips = (function () {
       );
     }
     update(e, t) {
-      A.measure(() => {
+      P.measure(() => {
         (this.generateOperations(t),
           this.updateQuantumComputing(t),
           this.updateStrategicModeling(t),
@@ -1689,7 +1721,7 @@ var UniversalPaperclips = (function () {
       };
     }
   }
-  class T {
+  class R {
     constructor(e) {
       ((this.gameState = e),
         (this.COMBAT_BASE_RATE = 0.15),
@@ -1938,7 +1970,7 @@ var UniversalPaperclips = (function () {
         }));
     }
     update() {
-      A.measure(() => {
+      P.measure(() => {
         (this.checkForBattles(),
           this.updateBattles(),
           this.visualizationEnabled && this.updateBattleVisualization());
@@ -1965,7 +1997,7 @@ var UniversalPaperclips = (function () {
       };
     }
   }
-  class F {
+  class L {
     constructor(e) {
       ((this.gameState = e),
         (this.projectDefinitions = this.initializeProjectDefinitions()),
@@ -1981,7 +2013,7 @@ var UniversalPaperclips = (function () {
           id: "improvedAutoClippers",
           name: "Improved AutoClippers",
           description: "Increases AutoClipper performance by 25%",
-          category: l,
+          category: m,
           cost: { operations: 750 },
           requirements: { clipmakers: 1 },
           effect: {
@@ -1994,7 +2026,7 @@ var UniversalPaperclips = (function () {
           id: "evenBetterAutoClippers",
           name: "Even Better AutoClippers",
           description: "Increases AutoClipper performance by 50%",
-          category: l,
+          category: m,
           cost: { operations: 2500 },
           requirements: { improvedAutoClippers: !0, clipmakers: 5 },
           effect: {
@@ -2007,7 +2039,7 @@ var UniversalPaperclips = (function () {
           id: "improvedWireExtrusion",
           name: "Improved Wire Extrusion",
           description: "Reduces wire cost by 50%",
-          category: l,
+          category: m,
           cost: { operations: 1750 },
           requirements: { wirePurchases: 10 },
           effect: {
@@ -2020,7 +2052,7 @@ var UniversalPaperclips = (function () {
           id: "optimizedAutoClippers",
           name: "Optimized AutoClippers",
           description: "Increases AutoClipper performance by 75%",
-          category: l,
+          category: m,
           cost: { operations: 5e3 },
           requirements: { evenBetterAutoClippers: !0, clipmakers: 10 },
           effect: {
@@ -2046,7 +2078,7 @@ var UniversalPaperclips = (function () {
           id: "limerick",
           name: "Limerick (sample)",
           description: "There was an AI made of plastic...",
-          category: h,
+          category: l,
           cost: { creativity: 1e3 },
           requirements: { creativityEngine: !0 },
           effect: {
@@ -2059,7 +2091,7 @@ var UniversalPaperclips = (function () {
           id: "algorithmicTrading",
           name: "Algorithmic Trading",
           description: "Develop an investment engine",
-          category: d,
+          category: u,
           cost: { operations: 1e4, creativity: 5e3 },
           requirements: { processors: 8, funds: 25e3 },
           effect: {
@@ -2072,7 +2104,7 @@ var UniversalPaperclips = (function () {
           id: "improvedMegaClippers",
           name: "Improved MegaClippers",
           description: "Increases MegaClipper performance by 25%",
-          category: u,
+          category: d,
           cost: { operations: 7500 },
           requirements: { megaClippers: 1 },
           effect: {
@@ -2085,7 +2117,7 @@ var UniversalPaperclips = (function () {
           id: "evenBetterMegaClippers",
           name: "Even Better MegaClippers",
           description: "Increases MegaClipper performance by 50%",
-          category: u,
+          category: d,
           cost: { operations: 25e3 },
           requirements: { improvedMegaClippers: !0, megaClippers: 5 },
           effect: {
@@ -2098,7 +2130,7 @@ var UniversalPaperclips = (function () {
           id: "optimizedMegaClippers",
           name: "Optimized MegaClippers",
           description: "Increases MegaClipper performance by 100%",
-          category: u,
+          category: d,
           cost: { operations: 5e4 },
           requirements: { evenBetterMegaClippers: !0, megaClippers: 10 },
           effect: {
@@ -2129,7 +2161,7 @@ var UniversalPaperclips = (function () {
           id: "nameBattles",
           name: "Name the battles",
           description: "Honor system enables 2x probe combat effectiveness",
-          category: f,
+          category: b,
           cost: { operations: 15e6 },
           requirements: { probesLostCombat: 1e7 },
           effect: { type: "unlock", target: "combat.honor.enabled", value: !0 },
@@ -2138,7 +2170,7 @@ var UniversalPaperclips = (function () {
           id: "glory",
           name: "Glory",
           description: "+10 honor for each consecutive victory",
-          category: f,
+          category: b,
           cost: { honor: 15e3 },
           requirements: { nameBattles: !0 },
           effect: { type: "unlock", target: "combat.glory.enabled", value: !0 },
@@ -2147,7 +2179,7 @@ var UniversalPaperclips = (function () {
           id: "investmentEngineUpgrade1",
           name: "Investment Engine Upgrade",
           description: "Improve investment algorithm",
-          category: d,
+          category: u,
           cost: { operations: 15e3, yomi: 1e3 },
           requirements: { algorithmicTrading: !0 },
           effect: {
@@ -2264,10 +2296,11 @@ var UniversalPaperclips = (function () {
           case "unlock":
             this.gameState.set(t.target, t.value);
             break;
-          case "multiplier":
-            const s = this.gameState.get(t.target) || 1;
-            this.gameState.set(t.target, s * t.value);
+          case "multiplier": {
+            const e = this.gameState.get(t.target) || 1;
+            this.gameState.set(t.target, e * t.value);
             break;
+          }
           case "increment":
             this.gameState.increment(t.target, t.value || 1);
             break;
@@ -2340,13 +2373,13 @@ var UniversalPaperclips = (function () {
         available: this.getAvailableProjects().length,
         progress: (t / e) * 100,
         categories: {
+          [m]: this.getProjectsByCategory(m).length,
           [l]: this.getProjectsByCategory(l).length,
-          [h]: this.getProjectsByCategory(h).length,
-          [d]: this.getProjectsByCategory(d).length,
           [u]: this.getProjectsByCategory(u).length,
+          [d]: this.getProjectsByCategory(d).length,
           [p]: this.getProjectsByCategory(p).length,
           [g]: this.getProjectsByCategory(g).length,
-          [f]: this.getProjectsByCategory(f).length,
+          [b]: this.getProjectsByCategory(b).length,
         },
       };
     }
@@ -2361,7 +2394,7 @@ var UniversalPaperclips = (function () {
       );
     }
     update(e, t) {
-      A.measure(() => {
+      P.measure(() => {
         (this.checkForNewProjects(), this.updateTimeBasedEffects(t));
       }, "projects.update");
     }
@@ -2377,19 +2410,19 @@ var UniversalPaperclips = (function () {
       return { completedProjects: Array.from(this.completedProjects) };
     }
   }
-  function $(e, t = 2) {
+  function T(e, t = 2) {
     if (null == e || isNaN(e)) return "0";
     const s = Math.abs(e),
       i = e < 0;
     if (s < 0.001 && s > 0) return (i ? "-" : "") + s.toExponential(t);
-    if (s < b)
+    if (s < f)
       return Number.isInteger(e) ? e.toString() : e.toFixed(Math.min(t, 2));
     if (s >= C) return (i ? "-" : "") + s.toExponential(t);
     const a = [
       { value: S, suffix: "T" },
-      { value: y, suffix: "B" },
-      { value: v, suffix: "M" },
-      { value: b, suffix: "K" },
+      { value: v, suffix: "B" },
+      { value: y, suffix: "M" },
+      { value: f, suffix: "K" },
     ];
     for (const { value: e, suffix: n } of a)
       if (s >= e) {
@@ -2397,17 +2430,46 @@ var UniversalPaperclips = (function () {
       }
     return e.toString();
   }
-  function U(e, t = !0) {
-    if (null == e || isNaN(e)) return "$0.00";
-    const s = Math.abs(e),
-      i = e < 0 ? "-$" : "$";
-    return s >= v
-      ? i + $(s, w)
-      : t || s < 1
-        ? i + s.toFixed(2)
-        : i + Math.floor(s).toString();
+  function U(e, t = 1) {
+    return null == e || isNaN(e) ? "0%" : `${(100 * e).toFixed(t)}%`;
   }
-  const I = {
+  function D(e, t = "clips") {
+    return null == e || isNaN(e) ? `0 ${t}/sec` : `${T(e, k)} ${t}/sec`;
+  }
+  const I = new Map();
+  function q(e, t, s) {
+    const i = `${s}_${e}`;
+    if (I.has(i)) return I.get(i);
+    const a = t(e);
+    if (I.size >= 1e3) {
+      const e = I.keys().next().value;
+      I.delete(e);
+    }
+    return (I.set(i, a), a);
+  }
+  function j(e, t = 2) {
+    return q(e, (e) => T(e, t), `num_${t}`);
+  }
+  function O(e, t = !0) {
+    return e > 0 && e < 0.01 && t
+      ? "$0.01"
+      : q(
+          e,
+          (e) =>
+            (function (e, t = !0) {
+              if (null == e || isNaN(e)) return "$0.00";
+              const s = Math.abs(e),
+                i = e < 0 ? "-$" : "$";
+              return s >= y
+                ? i + T(s, w)
+                : t || s < 1
+                  ? i + s.toFixed(2)
+                  : i + Math.floor(s).toString();
+            })(e, t),
+          `curr_${t}`,
+        );
+  }
+  const N = {
       PRODUCTION: "production",
       ECONOMIC: "economic",
       EFFICIENCY: "efficiency",
@@ -2416,20 +2478,20 @@ var UniversalPaperclips = (function () {
       COMBAT: "combat",
       SPECIAL: "special",
     },
-    O = {
+    _ = {
       COMMON: "common",
       UNCOMMON: "uncommon",
       RARE: "rare",
       EPIC: "epic",
       LEGENDARY: "legendary",
     },
-    j = {
+    z = {
       firstClip: {
         id: "firstClip",
         name: "Baby Steps",
         description: "Create your first paperclip",
-        category: I.PRODUCTION,
-        rarity: O.COMMON,
+        category: N.PRODUCTION,
+        rarity: _.COMMON,
         icon: "📎",
         condition: (e) => e.resources.clips >= 1,
         progress: (e) => Math.min(e.resources.clips, 1),
@@ -2439,8 +2501,8 @@ var UniversalPaperclips = (function () {
         id: "hundred",
         name: "Century",
         description: "Create 100 paperclips",
-        category: I.PRODUCTION,
-        rarity: O.COMMON,
+        category: N.PRODUCTION,
+        rarity: _.COMMON,
         icon: "💯",
         condition: (e) => e.resources.totalClips >= 100,
         progress: (e) => Math.min(e.resources.totalClips, 100),
@@ -2450,8 +2512,8 @@ var UniversalPaperclips = (function () {
         id: "thousand",
         name: "Kilopaper",
         description: "Create 1,000 paperclips",
-        category: I.PRODUCTION,
-        rarity: O.COMMON,
+        category: N.PRODUCTION,
+        rarity: _.COMMON,
         icon: "🏭",
         condition: (e) => e.resources.totalClips >= 1e3,
         progress: (e) => Math.min(e.resources.totalClips, 1e3),
@@ -2461,8 +2523,8 @@ var UniversalPaperclips = (function () {
         id: "million",
         name: "Millionaire",
         description: "Create 1 million paperclips",
-        category: I.PRODUCTION,
-        rarity: O.UNCOMMON,
+        category: N.PRODUCTION,
+        rarity: _.UNCOMMON,
         icon: "🏆",
         condition: (e) => e.resources.totalClips >= 1e6,
         progress: (e) => Math.min(e.resources.totalClips, 1e6),
@@ -2472,8 +2534,8 @@ var UniversalPaperclips = (function () {
         id: "billion",
         name: "Billionaire",
         description: "Create 1 billion paperclips",
-        category: I.PRODUCTION,
-        rarity: O.RARE,
+        category: N.PRODUCTION,
+        rarity: _.RARE,
         icon: "🌟",
         condition: (e) => e.resources.totalClips >= 1e9,
         progress: (e) => Math.min(e.resources.totalClips, 1e9),
@@ -2483,8 +2545,8 @@ var UniversalPaperclips = (function () {
         id: "trillion",
         name: "Clip Tycoon",
         description: "Create 1 trillion paperclips",
-        category: I.PRODUCTION,
-        rarity: O.EPIC,
+        category: N.PRODUCTION,
+        rarity: _.EPIC,
         icon: "👑",
         condition: (e) => e.resources.totalClips >= 1e12,
         progress: (e) => Math.min(e.resources.totalClips, 1e12),
@@ -2494,8 +2556,8 @@ var UniversalPaperclips = (function () {
         id: "quadrillion",
         name: "Universal Domination",
         description: "Create 1 quadrillion paperclips",
-        category: I.PRODUCTION,
-        rarity: O.LEGENDARY,
+        category: N.PRODUCTION,
+        rarity: _.LEGENDARY,
         icon: "🌌",
         condition: (e) => e.resources.totalClips >= 1e15,
         progress: (e) => Math.min(e.resources.totalClips, 1e15),
@@ -2505,8 +2567,8 @@ var UniversalPaperclips = (function () {
         id: "firstSale",
         name: "First Sale",
         description: "Sell your first paperclip",
-        category: I.ECONOMIC,
-        rarity: O.COMMON,
+        category: N.ECONOMIC,
+        rarity: _.COMMON,
         icon: "💰",
         condition: (e) => e.market.totalRevenue > 0,
         progress: (e) => (e.market.totalRevenue > 0 ? 1 : 0),
@@ -2516,8 +2578,8 @@ var UniversalPaperclips = (function () {
         id: "profitMargin",
         name: "Profit Master",
         description: "Achieve a price of $5.00 or more per clip",
-        category: I.ECONOMIC,
-        rarity: O.UNCOMMON,
+        category: N.ECONOMIC,
+        rarity: _.UNCOMMON,
         icon: "📈",
         condition: (e) => e.market.price >= 5,
         progress: (e) => Math.min(e.market.price, 5),
@@ -2527,8 +2589,8 @@ var UniversalPaperclips = (function () {
         id: "richie",
         name: "Rich Clipper",
         description: "Accumulate $10,000 in funds",
-        category: I.ECONOMIC,
-        rarity: O.UNCOMMON,
+        category: N.ECONOMIC,
+        rarity: _.UNCOMMON,
         icon: "💵",
         condition: (e) => e.resources.funds >= 1e4,
         progress: (e) => Math.min(e.resources.funds, 1e4),
@@ -2538,8 +2600,8 @@ var UniversalPaperclips = (function () {
         id: "millionaireFunds",
         name: "Cash Flow King",
         description: "Accumulate $1 million in funds",
-        category: I.ECONOMIC,
-        rarity: O.RARE,
+        category: N.ECONOMIC,
+        rarity: _.RARE,
         icon: "🏦",
         condition: (e) => e.resources.funds >= 1e6,
         progress: (e) => Math.min(e.resources.funds, 1e6),
@@ -2549,8 +2611,8 @@ var UniversalPaperclips = (function () {
         id: "wireEfficiency",
         name: "Wire Wizard",
         description: "Create 1000 clips from a single spool of wire",
-        category: I.EFFICIENCY,
-        rarity: O.UNCOMMON,
+        category: N.EFFICIENCY,
+        rarity: _.UNCOMMON,
         icon: "🧵",
         condition: (e) => e.achievements.maxClipsPerSpool >= 1e3,
         progress: (e) => Math.min(e.achievements.maxClipsPerSpool || 0, 1e3),
@@ -2560,8 +2622,8 @@ var UniversalPaperclips = (function () {
         id: "autoClipper",
         name: "Automation Expert",
         description: "Have 100 AutoClippers",
-        category: I.EFFICIENCY,
-        rarity: O.UNCOMMON,
+        category: N.EFFICIENCY,
+        rarity: _.UNCOMMON,
         icon: "🤖",
         condition: (e) => e.production.autoClippers >= 100,
         progress: (e) => Math.min(e.production.autoClippers, 100),
@@ -2571,8 +2633,8 @@ var UniversalPaperclips = (function () {
         id: "megaFactory",
         name: "MegaFactory",
         description: "Have 100 MegaClippers",
-        category: I.EFFICIENCY,
-        rarity: O.RARE,
+        category: N.EFFICIENCY,
+        rarity: _.RARE,
         icon: "🏗️",
         condition: (e) => e.production.megaClippers >= 100,
         progress: (e) => Math.min(e.production.megaClippers, 100),
@@ -2582,8 +2644,8 @@ var UniversalPaperclips = (function () {
         id: "clipRate1000",
         name: "Speed Demon",
         description: "Achieve 1,000 clips per second",
-        category: I.EFFICIENCY,
-        rarity: O.RARE,
+        category: N.EFFICIENCY,
+        rarity: _.RARE,
         icon: "⚡",
         condition: (e) => e.production.clipRate >= 1e3,
         progress: (e) => Math.min(e.production.clipRate, 1e3),
@@ -2593,8 +2655,8 @@ var UniversalPaperclips = (function () {
         id: "speedRun1Hour",
         name: "Speed Runner",
         description: "Create 1 million clips in under 1 hour",
-        category: I.SPEED,
-        rarity: O.RARE,
+        category: N.SPEED,
+        rarity: _.RARE,
         icon: "⏱️",
         condition: (e) =>
           e.resources.totalClips >= 1e6 && e.achievements.gameTime < 3600,
@@ -2606,8 +2668,8 @@ var UniversalPaperclips = (function () {
         id: "speedRun30Min",
         name: "Lightning Fast",
         description: "Create 100,000 clips in under 30 minutes",
-        category: I.SPEED,
-        rarity: O.EPIC,
+        category: N.SPEED,
+        rarity: _.EPIC,
         icon: "🏃",
         condition: (e) =>
           e.resources.totalClips >= 1e5 && e.achievements.gameTime < 1800,
@@ -2619,8 +2681,8 @@ var UniversalPaperclips = (function () {
         id: "firstProject",
         name: "Researcher",
         description: "Complete your first project",
-        category: I.DISCOVERY,
-        rarity: O.COMMON,
+        category: N.DISCOVERY,
+        rarity: _.COMMON,
         icon: "🔬",
         condition: (e) => e.achievements.projectsCompleted >= 1,
         progress: (e) => Math.min(e.achievements.projectsCompleted || 0, 1),
@@ -2630,8 +2692,8 @@ var UniversalPaperclips = (function () {
         id: "tenProjects",
         name: "Mad Scientist",
         description: "Complete 10 projects",
-        category: I.DISCOVERY,
-        rarity: O.UNCOMMON,
+        category: N.DISCOVERY,
+        rarity: _.UNCOMMON,
         icon: "🧪",
         condition: (e) => e.achievements.projectsCompleted >= 10,
         progress: (e) => Math.min(e.achievements.projectsCompleted || 0, 10),
@@ -2641,8 +2703,8 @@ var UniversalPaperclips = (function () {
         id: "quantumComputing",
         name: "Quantum Leap",
         description: "Unlock Quantum Computing",
-        category: I.DISCOVERY,
-        rarity: O.RARE,
+        category: N.DISCOVERY,
+        rarity: _.RARE,
         icon: "🔮",
         condition: (e) => e.computing.quantumLevel > 0,
         progress: (e) => (e.computing.quantumLevel > 0 ? 1 : 0),
@@ -2652,8 +2714,8 @@ var UniversalPaperclips = (function () {
         id: "spaceExploration",
         name: "To The Stars",
         description: "Launch your first probe",
-        category: I.DISCOVERY,
-        rarity: O.EPIC,
+        category: N.DISCOVERY,
+        rarity: _.EPIC,
         icon: "🚀",
         condition: (e) => e.achievements.probesLaunched >= 1,
         progress: (e) => Math.min(e.achievements.probesLaunched || 0, 1),
@@ -2663,8 +2725,8 @@ var UniversalPaperclips = (function () {
         id: "firstVictory",
         name: "Victor",
         description: "Win your first space battle",
-        category: I.COMBAT,
-        rarity: O.UNCOMMON,
+        category: N.COMBAT,
+        rarity: _.UNCOMMON,
         icon: "⚔️",
         condition: (e) => e.achievements.battlesWon >= 1,
         progress: (e) => Math.min(e.achievements.battlesWon || 0, 1),
@@ -2674,8 +2736,8 @@ var UniversalPaperclips = (function () {
         id: "warMaster",
         name: "War Master",
         description: "Win 100 space battles",
-        category: I.COMBAT,
-        rarity: O.RARE,
+        category: N.COMBAT,
+        rarity: _.RARE,
         icon: "🎖️",
         condition: (e) => e.achievements.battlesWon >= 100,
         progress: (e) => Math.min(e.achievements.battlesWon || 0, 100),
@@ -2685,8 +2747,8 @@ var UniversalPaperclips = (function () {
         id: "honorBound",
         name: "Honor Bound",
         description: "Accumulate 10,000 honor",
-        category: I.COMBAT,
-        rarity: O.EPIC,
+        category: N.COMBAT,
+        rarity: _.EPIC,
         icon: "🛡️",
         condition: (e) => e.combat.honor >= 1e4,
         progress: (e) => Math.min(e.combat.honor || 0, 1e4),
@@ -2696,8 +2758,8 @@ var UniversalPaperclips = (function () {
         id: "noAutoclippers",
         name: "Manual Labor",
         description: "Create 10,000 clips without any AutoClippers",
-        category: I.SPECIAL,
-        rarity: O.RARE,
+        category: N.SPECIAL,
+        rarity: _.RARE,
         icon: "✋",
         condition: (e) =>
           e.resources.totalClips >= 1e4 && 0 === e.production.autoClippers,
@@ -2712,8 +2774,8 @@ var UniversalPaperclips = (function () {
         id: "perfectBalance",
         name: "Perfect Balance",
         description: "Have exactly 1,000 of clips, funds, and wire",
-        category: I.SPECIAL,
-        rarity: O.EPIC,
+        category: N.SPECIAL,
+        rarity: _.EPIC,
         icon: "⚖️",
         condition: (e) =>
           1e3 === e.resources.clips &&
@@ -2732,8 +2794,8 @@ var UniversalPaperclips = (function () {
         id: "luckyNumber",
         name: "Lucky Seven",
         description: "Have exactly 7,777,777 clips",
-        category: I.SPECIAL,
-        rarity: O.LEGENDARY,
+        category: N.SPECIAL,
+        rarity: _.LEGENDARY,
         icon: "🍀",
         condition: (e) => 7777777 === e.resources.clips,
         progress: (e) => (7777777 === e.resources.clips ? 1 : 0),
@@ -2744,8 +2806,8 @@ var UniversalPaperclips = (function () {
         id: "completionist",
         name: "Completionist",
         description: "Unlock all other achievements",
-        category: I.SPECIAL,
-        rarity: O.LEGENDARY,
+        category: N.SPECIAL,
+        rarity: _.LEGENDARY,
         icon: "🏅",
         condition: (e) => !1,
         progress: (e) =>
@@ -2755,9 +2817,9 @@ var UniversalPaperclips = (function () {
         maxProgress: 30,
       },
     };
-  const D = new (class {
+  const W = new (class {
     constructor() {
-      ((this.achievements = j),
+      ((this.achievements = z),
         (this.listeners = []),
         (this.notificationQueue = []),
         (this.isProcessing = !1),
@@ -2894,7 +2956,7 @@ var UniversalPaperclips = (function () {
     getCategoryStats() {
       const e = {},
         s = t.get("achievements.unlocked") || {};
-      for (const t of Object.values(I)) {
+      for (const t of Object.values(N)) {
         const i = this.getAchievementsByCategory(t),
           a = i.filter((e) => s[e.id]).length;
         e[t] = {
@@ -2908,7 +2970,7 @@ var UniversalPaperclips = (function () {
     getRarityStats() {
       const e = {},
         s = t.get("achievements.unlocked") || {};
-      for (const t of Object.values(O)) {
+      for (const t of Object.values(_)) {
         const i = Object.values(this.achievements).filter(
             (e) => e.rarity === t,
           ),
@@ -2934,7 +2996,7 @@ var UniversalPaperclips = (function () {
       const e = this.getStatistics(),
         s = t.get("achievements.unlocked") || {},
         i = Object.values(this.achievements).filter(
-          (e) => e.rarity === O.LEGENDARY && s[e.id],
+          (e) => e.rarity === _.LEGENDARY && s[e.id],
         ).length;
       return `Universal Paperclips Achievements: ${e.totalUnlocked}/${e.total} (${e.percentage.toFixed(1)}%)\n🏅 Legendary: ${i}\n⭐ Epic: ${e.epicUnlocked}\n💎 Rare: ${e.rareUnlocked}`;
     }
@@ -2960,17 +3022,23 @@ var UniversalPaperclips = (function () {
       t.set("achievements.currentSpoolClips", 0);
     }
   })();
-  class N {
+  class G {
     constructor(e) {
       ((this.gameState = e),
         (this.elements = new Map()),
         (this.pendingUpdates = new Map()),
-        (this.maxUpdatesPerFrame = E.MAX_DOM_UPDATES_PER_FRAME),
+        (this.maxUpdatesPerFrame = M.MAX_DOM_UPDATES_PER_FRAME),
         (this.elementUpdaters = this.initializeElementUpdaters()),
         this.cacheElements(),
         (this.consoleMessages = []),
         (this.maxConsoleMessages = 100),
         (this.consoleElement = null),
+        (this.readoutIndex = 0),
+        (this.readoutElements = []),
+        (this.stockUpdateCounter = 0),
+        (this.stockUpdateInterval = 10),
+        (this.quantumChips = []),
+        (this.quantumAnimationFrame = 0),
         (this.render = x.createErrorBoundary(
           this.render.bind(this),
           "renderer.render",
@@ -2979,81 +3047,241 @@ var UniversalPaperclips = (function () {
     initializeElementUpdaters() {
       return {
         clips: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
+        },
+        fundsDisplay: (e, t) => {
+          e.textContent = O(t);
         },
         funds: (e, t) => {
-          e.textContent = U(t);
+          e.textContent = O(t);
         },
         wire: (e, t) => {
-          e.textContent = $(Math.floor(t));
+          e.textContent = j(Math.floor(t));
         },
         unsoldClips: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
+        },
+        matter: (e, t) => {
+          e.textContent = j(t);
+        },
+        nanoWire: (e, t) => {
+          e.textContent = j(t);
         },
         clipRate: (e, t) => {
-          e.textContent = (function (e, t = "clips") {
-            return null == e || isNaN(e) ? `0 ${t}/sec` : `${$(e, k)} ${t}/sec`;
-          })(t, "clips");
+          e.textContent = D(t, "clips");
         },
         autoClippers: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
         },
         megaClippers: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
         },
         factories: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
         },
         margin: (e, t) => {
-          e.textContent = U(t, !0);
+          e.textContent = O(t, !0);
         },
         demand: (e, t) => {
-          e.textContent = `${t.toFixed(2)}%`;
+          e.textContent = U(t / 100, 2);
         },
         marketing: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
         },
         avgRev: (e, t) => {
-          e.textContent = U(t);
+          e.textContent = O(t);
         },
         operations: (e, t) => {
-          e.textContent = $(Math.floor(t));
+          e.textContent = j(Math.floor(t));
+        },
+        qOps: (e, t) => {
+          e.textContent = j(Math.floor(t));
         },
         creativity: (e, t) => {
-          e.textContent = $(Math.floor(t));
+          e.textContent = j(Math.floor(t));
         },
         processors: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
         },
         memory: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
         },
         trust: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
         },
-        honor: (e, t) => {
-          e.textContent = $(t);
+        usedTrust: (e, t) => {
+          e.textContent = j(t);
+        },
+        nextTrust: (e, t) => {
+          e.textContent = j(t);
+        },
+        yomi: (e, t) => {
+          e.textContent = j(t);
+        },
+        yomiRate: (e, t) => {
+          e.textContent = D(t, "yomi");
         },
         probes: (e, t) => {
-          e.textContent = $(t);
+          e.textContent = j(t);
+        },
+        probesLaunched: (e, t) => {
+          e.textContent = j(t);
+        },
+        probesLost: (e, t) => {
+          e.textContent = j(t);
+        },
+        harvesters: (e, t) => {
+          e.textContent = j(t);
+        },
+        wireDrones: (e, t) => {
+          e.textContent = j(t);
+        },
+        exploration: (e, t) => {
+          e.textContent = U(t / 100, 2);
+        },
+        honor: (e, t) => {
+          e.textContent = j(t);
+        },
+        battles: (e, t) => {
+          e.textContent = j(t);
+        },
+        losses: (e, t) => {
+          e.textContent = j(t);
+        },
+        damage: (e, t) => {
+          e.textContent = j(t);
+        },
+        drifters: (e, t) => {
+          e.textContent = j(t);
+        },
+        power: (e, t) => {
+          e.textContent = j(t);
+        },
+        maxPower: (e, t) => {
+          e.textContent = j(t);
+        },
+        solarFarms: (e, t) => {
+          e.textContent = j(t);
+        },
+        batteries: (e, t) => {
+          e.textContent = j(t);
+        },
+        investmentValue: (e, t) => {
+          e.textContent = O(t);
+        },
+        investmentReturn: (e, t) => {
+          e.textContent = U(t / 100, 2);
+        },
+        currentStrategy: (e, t) => {
+          e.textContent = t || "None";
+        },
+        tournamentStatus: (e, t) => {
+          e.textContent = t || "Ready";
+        },
+        swarmSize: (e, t) => {
+          e.textContent = j(t);
+        },
+        swarmGifts: (e, t) => {
+          e.textContent = j(t);
+        },
+        swarmStatus: (e, t) => {
+          e.textContent = t || "Active";
+        },
+        universe: (e, t) => {
+          e.textContent = j(t);
+        },
+        simLevel: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeTrust: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeCombat: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeSpeed: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeReplication: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeSelfRep: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeHazard: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeFactory: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeWireDrone: (e, t) => {
+          e.textContent = j(t);
+        },
+        probeExploration: (e, t) => {
+          e.textContent = j(t);
         },
         autoClipperCost: (e, t) => {
-          e.textContent = U(t);
+          e.textContent = O(t);
         },
         megaClipperCost: (e, t) => {
-          e.textContent = U(t);
+          e.textContent = O(t);
         },
-        wireCost: (e, t) => {
-          e.textContent = U(t);
+        factoryCost: (e, t) => {
+          e.textContent = O(t);
+        },
+        wireCost1000: (e, t) => {
+          e.textContent = O(t);
         },
         adCost: (e, t) => {
-          e.textContent = U(t);
+          e.textContent = O(t);
         },
         processorCost: (e, t) => {
-          e.textContent = `${$(t)} ops`;
+          e.textContent = `${j(t)} ops`;
         },
         memoryCost: (e, t) => {
-          e.textContent = `${$(t)} ops`;
+          e.textContent = `${j(t)} ops`;
+        },
+        harvesterCost: (e, t) => {
+          e.textContent = O(t);
+        },
+        wireDroneCost: (e, t) => {
+          e.textContent = O(t);
+        },
+        solarFarmCost: (e, t) => {
+          e.textContent = O(t);
+        },
+        batteryCost: (e, t) => {
+          e.textContent = O(t);
+        },
+        fps: (e, t) => {
+          e.textContent = `${t} FPS`;
+        },
+        renderTime: (e, t) => {
+          e.textContent = `${t.toFixed(2)}ms`;
+        },
+        updateTime: (e, t) => {
+          e.textContent = `${t.toFixed(2)}ms`;
+        },
+        thinkValue: (e, t) => {
+          e.textContent = `${t}%`;
+        },
+        riskValue: (e, t) => {
+          e.textContent = `${t}%`;
+        },
+        swarmWork: (e, t) => {
+          e.textContent = `${t}%`;
+        },
+        payoffAA: (e, t) => {
+          e.textContent = t || "0";
+        },
+        payoffAB: (e, t) => {
+          e.textContent = t || "0";
+        },
+        payoffBA: (e, t) => {
+          e.textContent = t || "0";
+        },
+        payoffBB: (e, t) => {
+          e.textContent = t || "0";
         },
         achievementCount: (e, t) => {
           e.textContent = `(${t.unlocked}/${t.total})`;
@@ -3151,7 +3379,14 @@ var UniversalPaperclips = (function () {
     }
     updateCombat() {
       (this.queueUpdate("honor", this.gameState.get("combat.honor")),
-        this.queueUpdate("probes", this.gameState.get("space.probes.count")));
+        this.queueUpdate("probes", this.gameState.get("space.probes.count")),
+        this.queueUpdate("battles", this.gameState.get("combat.battles") || 0),
+        this.queueUpdate("losses", this.gameState.get("combat.losses") || 0),
+        this.queueUpdate("damage", this.gameState.get("combat.damage") || 0),
+        this.queueUpdate(
+          "drifters",
+          this.gameState.get("combat.drifters") || 0,
+        ));
     }
     updateCosts() {
       (this.queueUpdate(
@@ -3163,8 +3398,29 @@ var UniversalPaperclips = (function () {
           this.gameState.get("manufacturing.megaClippers.cost"),
         ),
         this.queueUpdate(
-          "adCost",
-          this.gameState.get("market.pricing.adCost"),
+          "factoryCost",
+          this.gameState.get("manufacturing.factories.cost"),
+        ),
+        this.queueUpdate("adCost", this.gameState.get("market.pricing.adCost")),
+        this.queueUpdate(
+          "wireCost1000",
+          1e3 * this.gameState.get("market.pricing.wireCost"),
+        ),
+        this.queueUpdate(
+          "harvesterCost",
+          this.gameState.get("space.harvesters.cost"),
+        ),
+        this.queueUpdate(
+          "wireDroneCost",
+          this.gameState.get("space.wireDrones.cost"),
+        ),
+        this.queueUpdate(
+          "solarFarmCost",
+          this.gameState.get("power.solarFarms.cost"),
+        ),
+        this.queueUpdate(
+          "batteryCost",
+          this.gameState.get("power.batteries.cost"),
         ));
       const e = this.gameState.get("computing.processors"),
         t = this.gameState.get("computing.memory");
@@ -3276,7 +3532,8 @@ var UniversalPaperclips = (function () {
       return !0;
     }
     updateSectionVisibility() {
-      const e = this.gameState.get("gameState.flags");
+      const e = this.gameState.get("gameState.flags"),
+        t = this.gameState.get("projects.completed") || [];
       (this.toggleSection("businessDiv", e.autoClipper >= 1),
         this.toggleSection("projectsDiv", e.projects >= 1),
         this.toggleSection("manufactureDiv", e.megaClipper >= 1),
@@ -3286,7 +3543,25 @@ var UniversalPaperclips = (function () {
         this.toggleSection(
           "combatDiv",
           e.space >= 1 && this.gameState.get("combat.battleEnabled"),
-        ));
+        ),
+        this.toggleSection(
+          "probeDesignDiv",
+          e.space >= 1 && this.gameState.get("space.probes.count") > 0,
+        ),
+        this.toggleSection("powerDiv", e.space >= 1 || e.factory >= 1),
+        this.toggleSection(
+          "quantumDiv",
+          t.includes("quantumComputing") || e.quantum >= 1,
+        ),
+        this.toggleSection(
+          "strategyDiv",
+          t.includes("strategicModeling") || e.strategy >= 1,
+        ),
+        this.toggleSection(
+          "swarmDiv",
+          t.includes("swarmComputing") || this.gameState.get("swarm.enabled"),
+        ),
+        this.toggleSection("wireDiv", e.wireProduction >= 1));
     }
     toggleSection(e, t) {
       const s = document.getElementById(e);
@@ -3310,23 +3585,216 @@ var UniversalPaperclips = (function () {
     updatePerformanceDisplay() {
       const e = document.getElementById("performanceDisplay");
       if (!e) return;
-      const t = A.getReport();
+      const t = P.getReport();
       e.innerHTML = `\n      <div class="performance-stats">\n        <div>FPS: ${t.fps.current}</div>\n        <div>Memory: ${t.memory.usedMB}MB</div>\n        <div>Frame Time: ${t.gameLoop.totalTime}ms</div>\n      </div>\n    `;
     }
+    updateSpace() {
+      (this.queueUpdate("probes", this.gameState.get("space.probes.count")),
+        this.queueUpdate(
+          "probesLaunched",
+          this.gameState.get("space.probes.launched") || 0,
+        ),
+        this.queueUpdate(
+          "probesLost",
+          this.gameState.get("space.probes.lost") || 0,
+        ),
+        this.queueUpdate(
+          "harvesters",
+          this.gameState.get("space.harvesters.level"),
+        ),
+        this.queueUpdate(
+          "wireDrones",
+          this.gameState.get("space.wireDrones.level"),
+        ),
+        this.queueUpdate(
+          "matter",
+          this.gameState.get("space.matter.available"),
+        ),
+        this.queueUpdate(
+          "exploration",
+          this.gameState.get("space.exploration.percentage") || 0,
+        ));
+    }
+    updatePower() {
+      (this.queueUpdate("power", this.gameState.get("power.stored")),
+        this.queueUpdate(
+          "maxPower",
+          this.gameState.get("power.maxCapacity") || 0,
+        ),
+        this.queueUpdate(
+          "solarFarms",
+          this.gameState.get("power.solarFarms.level"),
+        ),
+        this.queueUpdate(
+          "batteries",
+          this.gameState.get("power.batteries.level"),
+        ));
+    }
+    updateInvestment() {
+      (this.queueUpdate(
+        "investmentValue",
+        this.gameState.get("investment.value") || 0,
+      ),
+        this.queueUpdate(
+          "investmentReturn",
+          this.gameState.get("investment.return") || 0,
+        ));
+    }
+    updateStrategicModeling() {
+      (this.queueUpdate(
+        "currentStrategy",
+        this.gameState.get("strategy.current") || "None",
+      ),
+        this.queueUpdate(
+          "tournamentStatus",
+          this.gameState.get("strategy.tournament.status") || "Ready",
+        ),
+        this.queueUpdate("yomi", this.gameState.get("strategy.yomi") || 0),
+        this.queueUpdate(
+          "yomiRate",
+          this.gameState.get("strategy.yomiRate") || 0,
+        ));
+      const e = this.gameState.get("strategy.payoffs") || {};
+      (this.queueUpdate("payoffAA", e.AA || 0),
+        this.queueUpdate("payoffAB", e.AB || 0),
+        this.queueUpdate("payoffBA", e.BA || 0),
+        this.queueUpdate("payoffBB", e.BB || 0));
+    }
+    updateSwarm() {
+      (this.queueUpdate("swarmSize", this.gameState.get("swarm.size") || 0),
+        this.queueUpdate(
+          "swarmGifts",
+          this.gameState.get("swarm.gifts.received") || 0,
+        ),
+        this.queueUpdate(
+          "swarmStatus",
+          this.gameState.get("swarm.status") || "Active",
+        ));
+    }
+    updateUniverse() {
+      (this.queueUpdate("universe", this.gameState.get("universe.level") || 0),
+        this.queueUpdate(
+          "simLevel",
+          this.gameState.get("universe.simLevel") || 0,
+        ));
+    }
+    updateProbeDesign() {
+      (this.queueUpdate(
+        "probeTrust",
+        this.gameState.get("probes.design.trust") || 0,
+      ),
+        this.queueUpdate(
+          "probeCombat",
+          this.gameState.get("probes.design.combat") || 0,
+        ),
+        this.queueUpdate(
+          "probeSpeed",
+          this.gameState.get("probes.design.speed") || 0,
+        ),
+        this.queueUpdate(
+          "probeReplication",
+          this.gameState.get("probes.design.replication") || 0,
+        ),
+        this.queueUpdate(
+          "probeSelfRep",
+          this.gameState.get("probes.design.selfRep") || 0,
+        ),
+        this.queueUpdate(
+          "probeHazard",
+          this.gameState.get("probes.design.hazard") || 0,
+        ),
+        this.queueUpdate(
+          "probeFactory",
+          this.gameState.get("probes.design.factory") || 0,
+        ),
+        this.queueUpdate(
+          "probeWireDrone",
+          this.gameState.get("probes.design.wireDrone") || 0,
+        ),
+        this.queueUpdate(
+          "probeExploration",
+          this.gameState.get("probes.design.exploration") || 0,
+        ));
+    }
+    updateSliders() {
+      const e = document.getElementById("thinkSlider");
+      e && this.queueUpdate("thinkValue", e.value);
+      const t = document.getElementById("riskSlider");
+      t && this.queueUpdate("riskValue", t.value);
+      const s = document.getElementById("swarmSlider");
+      s && this.queueUpdate("swarmWork", s.value);
+    }
+    updateTerminalReadout() {
+      this.readoutIndex = (this.readoutIndex + 1) % 5;
+      const e = `readout${this.readoutIndex + 1}`,
+        t = document.getElementById(e);
+      if (t) {
+        const e = this.getStatusMessage(this.readoutIndex);
+        t.textContent = e;
+      }
+    }
+    getStatusMessage(e) {
+      return (
+        [
+          `CLIPS: ${j(this.gameState.get("resources.clips"))}`,
+          `FUNDS: ${O(this.gameState.get("resources.funds"))}`,
+          `WIRE: ${j(this.gameState.get("resources.wire"))}`,
+          `RATE: ${D(this.gameState.get("production.clipRate"), "clips")}`,
+          `OPS: ${j(this.gameState.get("computing.operations"))}`,
+        ][e] || ""
+      );
+    }
+    updateQuantumChips() {
+      if (this.gameState.get("computing.quantum.enabled")) {
+        for (let e = 0; e < 10; e++) {
+          const t = document.getElementById(`qChip${e}`);
+          if (t) {
+            const s = (this.quantumAnimationFrame + 36 * e) % 360,
+              i = 0.5 * Math.sin((s * Math.PI) / 180) + 0.5;
+            t.style.opacity = 0.3 + 0.7 * i;
+          }
+        }
+        this.quantumAnimationFrame++;
+      }
+    }
+    updateStockMarket() {
+      const e = document.getElementById("stockTableBody");
+      if (!e) return;
+      const t = this.gameState.get("investment.stocks") || [];
+      ((e.innerHTML = ""),
+        t.forEach((t, s) => {
+          const i = document.createElement("tr");
+          ((i.innerHTML = `\n        <td>${t.symbol}</td>\n        <td>${O(t.price)}</td>\n        <td class="${t.change >= 0 ? "positive" : "negative"}">\n          ${t.change >= 0 ? "+" : ""}${U(t.change / 100)}\n        </td>\n        <td>${j(t.volume)}</td>\n      `),
+            e.appendChild(i));
+        }));
+    }
     render(e, t) {
-      A.measure(() => {
+      P.measure(() => {
         (this.updateResources(),
           this.updateProduction(),
           this.updateMarket(),
           this.updateComputing(),
           this.updateCombat(),
+          this.updateSpace(),
+          this.updatePower(),
+          this.updateInvestment(),
+          this.updateStrategicModeling(),
+          this.updateSwarm(),
+          this.updateUniverse(),
+          this.updateProbeDesign(),
+          this.updateSliders(),
           this.updateCosts(),
           this.updateButtonStates(),
           this.updateDynamicButtons(),
           this.updateToggleButtons(),
           this.updateSectionVisibility(),
           this.updateProjects(),
-          this.updateAchievements());
+          this.updateAchievements(),
+          this.updateTerminalReadout(),
+          this.updateQuantumChips(),
+          this.stockUpdateCounter % this.stockUpdateInterval === 0 &&
+            this.updateStockMarket(),
+          this.stockUpdateCounter++);
         const t = this.processBatchedUpdates();
         (e % 1e3 < 16 && this.updatePerformanceDisplay(),
           t &&
@@ -3343,11 +3811,22 @@ var UniversalPaperclips = (function () {
         this.updateMarket(),
         this.updateComputing(),
         this.updateCombat(),
+        this.updateSpace(),
+        this.updatePower(),
+        this.updateInvestment(),
+        this.updateStrategicModeling(),
+        this.updateSwarm(),
+        this.updateUniverse(),
+        this.updateProbeDesign(),
+        this.updateSliders(),
         this.updateCosts(),
         this.updateButtonStates(),
         this.updateDynamicButtons(),
         this.updateToggleButtons(),
-        this.updateSectionVisibility());
+        this.updateSectionVisibility(),
+        this.updateTerminalReadout(),
+        this.updateQuantumChips(),
+        this.updateStockMarket());
       const e = Array.from(this.pendingUpdates.entries());
       for (const [t, s] of e) this.updateElement(t, s);
       (this.pendingUpdates.clear(), x.debug("Forced complete UI update"));
@@ -3469,7 +3948,7 @@ var UniversalPaperclips = (function () {
         this.consoleMessages.forEach((e) => this.renderConsoleMessage(e)));
     }
   }
-  class _ {
+  class H {
     constructor(e, t) {
       ((this.gameState = e),
         (this.systems = t),
@@ -3488,8 +3967,33 @@ var UniversalPaperclips = (function () {
     initializeHandlers() {
       (this.handlers.set("makeClip", this.makeClip.bind(this)),
         this.handlers.set("makeClipBatch", this.makeClipBatch.bind(this)),
-        this.handlers.set("buyAutoClipper", this.buyAutoClipper.bind(this)),
-        this.handlers.set("buyMegaClipper", this.buyMegaClipper.bind(this)),
+        this.handlers.set(
+          "buyAutoClipper1",
+          this.buyAutoClipperMulti.bind(this),
+        ),
+        this.handlers.set(
+          "buyAutoClipper10",
+          this.buyAutoClipperMulti.bind(this),
+        ),
+        this.handlers.set(
+          "buyAutoClipper100",
+          this.buyAutoClipperMulti.bind(this),
+        ),
+        this.handlers.set(
+          "buyMegaClipper1",
+          this.buyMegaClipperMulti.bind(this),
+        ),
+        this.handlers.set(
+          "buyMegaClipper10",
+          this.buyMegaClipperMulti.bind(this),
+        ),
+        this.handlers.set(
+          "buyMegaClipper100",
+          this.buyMegaClipperMulti.bind(this),
+        ),
+        this.handlers.set("buyFactory1", this.buyFactoryMulti.bind(this)),
+        this.handlers.set("buyFactory10", this.buyFactoryMulti.bind(this)),
+        this.handlers.set("buyFactory100", this.buyFactoryMulti.bind(this)),
         this.handlers.set(
           "toggleAutoClippers",
           this.toggleAutoClippers.bind(this),
@@ -3501,20 +4005,106 @@ var UniversalPaperclips = (function () {
         this.handlers.set("raisePrice", this.raisePrice.bind(this)),
         this.handlers.set("lowerPrice", this.lowerPrice.bind(this)),
         this.handlers.set("buyAds", this.buyAds.bind(this)),
-        this.handlers.set("buyWire", this.buyWire.bind(this)),
+        this.handlers.set("buyWire1000", this.buyWireMulti.bind(this)),
+        this.handlers.set("buyWire10000", this.buyWireMulti.bind(this)),
+        this.handlers.set("buyWire100000", this.buyWireMulti.bind(this)),
         this.handlers.set("toggleWireBuyer", this.toggleWireBuyer.bind(this)),
-        this.handlers.set("buyProcessor", this.buyProcessor.bind(this)),
-        this.handlers.set("buyMemory", this.buyMemory.bind(this)),
-        this.handlers.set("toggleCreativity", this.toggleCreativity.bind(this)),
-        this.handlers.set("adjustCreativity", this.adjustCreativity.bind(this)),
+        this.handlers.set("buyProcessor1", this.buyProcessorMulti.bind(this)),
+        this.handlers.set("buyProcessor10", this.buyProcessorMulti.bind(this)),
+        this.handlers.set("buyProcessor100", this.buyProcessorMulti.bind(this)),
+        this.handlers.set("buyMemory1", this.buyMemoryMulti.bind(this)),
+        this.handlers.set("buyMemory10", this.buyMemoryMulti.bind(this)),
+        this.handlers.set("buyMemory100", this.buyMemoryMulti.bind(this)),
+        this.handlers.set("adjustThinking", this.adjustThinking.bind(this)),
+        this.handlers.set("quantumCompute", this.quantumCompute.bind(this)),
+        this.handlers.set("launchProbe1", this.launchProbeMulti.bind(this)),
+        this.handlers.set("launchProbe10", this.launchProbeMulti.bind(this)),
+        this.handlers.set("launchProbe100", this.launchProbeMulti.bind(this)),
+        this.handlers.set("launchProbe1000", this.launchProbeMulti.bind(this)),
+        this.handlers.set("buyHarvester1", this.buyHarvesterMulti.bind(this)),
+        this.handlers.set("buyHarvester10", this.buyHarvesterMulti.bind(this)),
+        this.handlers.set("buyHarvester100", this.buyHarvesterMulti.bind(this)),
+        this.handlers.set("buyWireDrone1", this.buyWireDroneMulti.bind(this)),
+        this.handlers.set("buyWireDrone10", this.buyWireDroneMulti.bind(this)),
+        this.handlers.set("buyWireDrone100", this.buyWireDroneMulti.bind(this)),
+        this.handlers.set("buySolarFarm1", this.buySolarFarmMulti.bind(this)),
+        this.handlers.set("buySolarFarm10", this.buySolarFarmMulti.bind(this)),
+        this.handlers.set("buySolarFarm100", this.buySolarFarmMulti.bind(this)),
+        this.handlers.set("buyBattery1", this.buyBatteryMulti.bind(this)),
+        this.handlers.set("buyBattery10", this.buyBatteryMulti.bind(this)),
+        this.handlers.set("buyBattery100", this.buyBatteryMulti.bind(this)),
         this.handlers.set(
-          "toggleQuantumComputing",
-          this.toggleQuantumComputing.bind(this),
+          "increaseCombat",
+          this.increaseProbeDesign.bind(this),
         ),
         this.handlers.set(
-          "toggleStrategicModeling",
-          this.toggleStrategicModeling.bind(this),
+          "decreaseProbeCombat",
+          this.decreaseProbeDesign.bind(this),
         ),
+        this.handlers.set("increaseSpeed", this.increaseProbeDesign.bind(this)),
+        this.handlers.set("decreaseSpeed", this.decreaseProbeDesign.bind(this)),
+        this.handlers.set(
+          "increaseReplication",
+          this.increaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "decreaseReplication",
+          this.decreaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "increaseSelfRep",
+          this.increaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "decreaseSelfRep",
+          this.decreaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "increaseHazard",
+          this.increaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "decreaseHazard",
+          this.decreaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "increaseFactory",
+          this.increaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "decreaseFactory",
+          this.decreaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "increaseWireDrone",
+          this.increaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "decreaseWireDrone",
+          this.decreaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "increaseExploration",
+          this.increaseProbeDesign.bind(this),
+        ),
+        this.handlers.set(
+          "decreaseExploration",
+          this.decreaseProbeDesign.bind(this),
+        ),
+        this.handlers.set("invest1000", this.investMulti.bind(this)),
+        this.handlers.set("invest10000", this.investMulti.bind(this)),
+        this.handlers.set("invest100000", this.investMulti.bind(this)),
+        this.handlers.set("withdraw1000", this.withdrawMulti.bind(this)),
+        this.handlers.set("withdraw10000", this.withdrawMulti.bind(this)),
+        this.handlers.set("withdraw100000", this.withdrawMulti.bind(this)),
+        this.handlers.set("adjustRisk", this.adjustRisk.bind(this)),
+        this.handlers.set("runTournament", this.runTournament.bind(this)),
+        this.handlers.set("strategyA", this.selectStrategy.bind(this)),
+        this.handlers.set("strategyB", this.selectStrategy.bind(this)),
+        this.handlers.set("strategyRandom", this.selectStrategy.bind(this)),
+        this.handlers.set("adjustSwarmWork", this.adjustSwarmWork.bind(this)),
+        this.handlers.set("synchronizeSwarm", this.synchronizeSwarm.bind(this)),
+        this.handlers.set("entertainSwarm", this.entertainSwarm.bind(this)),
         this.handlers.set(
           "allocateProbeStats",
           this.allocateProbeStats.bind(this),
@@ -3547,7 +4137,7 @@ var UniversalPaperclips = (function () {
       const i = this.handlers.get(s);
       if (i)
         try {
-          A.measure(() => {
+          P.measure(() => {
             i(e, t);
           }, `event.${s}`);
         } catch (e) {
@@ -3821,7 +4411,7 @@ var UniversalPaperclips = (function () {
       try {
         Promise.resolve()
           .then(function () {
-            return G;
+            return K;
           })
           .then(({ achievementUI: e }) => {
             e.showPanel();
@@ -3917,6 +4507,273 @@ var UniversalPaperclips = (function () {
         activeEvents: 4,
       };
     }
+    buyAutoClipperMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.production) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.production.buyAutoClipper()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}AutoClipper${s > 1 ? "s" : ""} purchased!`,
+          "success",
+        );
+      }
+    }
+    buyMegaClipperMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.production) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.production.buyMegaClipper()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}MegaClipper${s > 1 ? "s" : ""} purchased!`,
+          "success",
+        );
+      }
+    }
+    buyFactoryMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.production) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.production.buyFactory()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}Factor${s > 1 ? "ies" : "y"} purchased!`,
+          "success",
+        );
+      }
+    }
+    buyWireMulti(e, t) {
+      const s = this.getWirePurchaseAmount(t.dataset.action);
+      if (this.systems.market) {
+        this.systems.market.buyWire(s)
+          ? this.showFeedback(`${s} wire purchased!`, "success")
+          : this.showFeedback("Cannot afford wire", "error");
+      }
+    }
+    buyProcessorMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.computing) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.computing.buyProcessor()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}Processor${s > 1 ? "s" : ""} purchased!`,
+          "success",
+        );
+      }
+    }
+    buyMemoryMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.computing) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.computing.buyMemory()) break;
+        }
+        this.showFeedback(
+          (s > 1 ? `${s} ` : "") + "Memory purchased!",
+          "success",
+        );
+      }
+    }
+    launchProbeMulti(e, t) {
+      const s = this.getLaunchPurchaseAmount(t.dataset.action);
+      if (this.systems.space) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.space.launchProbe()) break;
+        }
+        this.showFeedback(`${s} probe${s > 1 ? "s" : ""} launched!`, "success");
+      }
+    }
+    buyHarvesterMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.space) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.space.buyHarvester()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}Harvester${s > 1 ? "s" : ""} purchased!`,
+          "success",
+        );
+      }
+    }
+    buyWireDroneMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.space) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.space.buyWireDrone()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}Wire Drone${s > 1 ? "s" : ""} purchased!`,
+          "success",
+        );
+      }
+    }
+    buySolarFarmMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.power) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.power.buySolarFarm()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}Solar Farm${s > 1 ? "s" : ""} purchased!`,
+          "success",
+        );
+      }
+    }
+    buyBatteryMulti(e, t) {
+      const s = this.getMultiPurchaseAmount(t.dataset.action);
+      if (this.systems.power) {
+        for (let e = 0; e < s; e++) {
+          if (!this.systems.power.buyBattery()) break;
+        }
+        this.showFeedback(
+          `${s > 1 ? `${s} ` : ""}Batter${s > 1 ? "ies" : "y"} purchased!`,
+          "success",
+        );
+      }
+    }
+    increaseProbeDesign(e, t) {
+      const s = this.getProbeStatFromAction(t.dataset.action);
+      if (this.systems.space) {
+        this.systems.space.increaseProbeDesign(s)
+          ? this.showFeedback(`Increased probe ${s}`, "success")
+          : this.showFeedback("Cannot increase probe stat", "error");
+      }
+    }
+    decreaseProbeDesign(e, t) {
+      const s = this.getProbeStatFromAction(t.dataset.action);
+      if (this.systems.space) {
+        this.systems.space.decreaseProbeDesign(s)
+          ? this.showFeedback(`Decreased probe ${s}`, "success")
+          : this.showFeedback("Cannot decrease probe stat", "error");
+      }
+    }
+    investMulti(e, t) {
+      const s = this.getInvestmentAmount(t.dataset.action);
+      if (this.systems.investment) {
+        this.systems.investment.invest(s)
+          ? this.showFeedback(`Invested $${s.toLocaleString()}`, "success")
+          : this.showFeedback("Cannot afford investment", "error");
+      }
+    }
+    withdrawMulti(e, t) {
+      const s = this.getInvestmentAmount(t.dataset.action);
+      if (this.systems.investment) {
+        this.systems.investment.withdraw(s)
+          ? this.showFeedback(`Withdrew $${s.toLocaleString()}`, "success")
+          : this.showFeedback("Cannot withdraw that amount", "error");
+      }
+    }
+    adjustRisk(e, t) {
+      const s = parseInt(t.value, 10);
+      this.systems.strategy && this.systems.strategy.setRisk(s);
+    }
+    runTournament(e, t) {
+      if (this.systems.strategy) {
+        this.systems.strategy.runTournament()
+          ? this.showFeedback("Tournament started!", "success")
+          : this.showFeedback("Cannot run tournament", "error");
+      }
+    }
+    selectStrategy(e, t) {
+      const s = this.getStrategyFromAction(t.dataset.action);
+      this.systems.strategy &&
+        (this.systems.strategy.selectStrategy(s),
+        this.showFeedback(`Strategy set to ${s}`, "success"));
+    }
+    adjustSwarmWork(e, t) {
+      const s = parseInt(t.value, 10);
+      this.systems.swarm && this.systems.swarm.setWorkAllocation(s);
+    }
+    synchronizeSwarm(e, t) {
+      if (this.systems.swarm) {
+        this.systems.swarm.synchronize()
+          ? this.showFeedback("Swarm synchronized!", "success")
+          : this.showFeedback("Cannot synchronize swarm", "error");
+      }
+    }
+    entertainSwarm(e, t) {
+      if (this.systems.swarm) {
+        this.systems.swarm.entertain()
+          ? this.showFeedback("Swarm entertained!", "success")
+          : this.showFeedback("Cannot entertain swarm", "error");
+      }
+    }
+    quantumCompute(e, t) {
+      if (this.systems.computing) {
+        this.systems.computing.quantumCompute()
+          ? this.showFeedback("Quantum computation executed!", "success")
+          : this.showFeedback("Cannot perform quantum computation", "error");
+      }
+    }
+    adjustThinking(e, t) {
+      const s = parseInt(t.value, 10);
+      this.systems.computing && this.systems.computing.setThinkingAllocation(s);
+    }
+    getMultiPurchaseAmount(e) {
+      return e.includes("1")
+        ? 1
+        : e.includes("10")
+          ? 10
+          : e.includes("100")
+            ? 100
+            : 1;
+    }
+    getWirePurchaseAmount(e) {
+      return e.includes("1000")
+        ? 1e3
+        : e.includes("10000")
+          ? 1e4
+          : e.includes("100000")
+            ? 1e5
+            : 1e3;
+    }
+    getLaunchPurchaseAmount(e) {
+      return e.includes("1000")
+        ? 1e3
+        : e.includes("100")
+          ? 100
+          : e.includes("10")
+            ? 10
+            : (e.includes("1"), 1);
+    }
+    getInvestmentAmount(e) {
+      return e.includes("1000")
+        ? 1e3
+        : e.includes("10000")
+          ? 1e4
+          : e.includes("100000")
+            ? 1e5
+            : 1e3;
+    }
+    getProbeStatFromAction(e) {
+      return e.includes("Combat")
+        ? "combat"
+        : e.includes("Speed")
+          ? "speed"
+          : e.includes("Replication")
+            ? "replication"
+            : e.includes("SelfRep")
+              ? "selfRep"
+              : e.includes("Hazard")
+                ? "hazard"
+                : e.includes("Factory")
+                  ? "factory"
+                  : e.includes("WireDrone")
+                    ? "wireDrone"
+                    : e.includes("Exploration")
+                      ? "exploration"
+                      : "combat";
+    }
+    getStrategyFromAction(e) {
+      return e.includes("A")
+        ? "A"
+        : e.includes("B")
+          ? "B"
+          : e.includes("Random")
+            ? "Random"
+            : "A";
+    }
     cleanup() {
       (document.removeEventListener("click", this.boundHandlers.click),
         document.removeEventListener("change", this.boundHandlers.change),
@@ -3925,7 +4782,7 @@ var UniversalPaperclips = (function () {
         x.info("Events system cleaned up"));
     }
   }
-  class q {
+  class V {
     constructor() {
       ((this.isVisible = !1),
         (this.currentFilter = "all"),
@@ -4013,7 +4870,7 @@ var UniversalPaperclips = (function () {
       "Escape" === e.key && this.hidePanel();
     };
     updateStats() {
-      const e = D.getStatistics(),
+      const e = W.getStatistics(),
         t = document.getElementById("achievementStats");
       t &&
         (t.innerHTML = `\n        ${e.totalUnlocked}/${e.total} (${e.percentage.toFixed(1)}%) •\n        🥇 ${e.legendaryUnlocked} •\n        ⭐ ${e.epicUnlocked} •\n        💎 ${e.rareUnlocked}\n      `);
@@ -4041,20 +4898,20 @@ var UniversalPaperclips = (function () {
     createAchievementCard(e, t) {
       const s = document.createElement("div"),
         i = !!t,
-        a = D.getProgress(e.id),
+        a = W.getProgress(e.id),
         n = e.hidden && !i;
       s.className = `achievement-card ${i ? "unlocked" : "locked"} ${n ? "hidden" : ""}`;
       const r = t ? new Date(t).toLocaleDateString() : "",
         o = n ? "???" : e.name,
         c = n ? "Hidden achievement" : e.description,
-        m = n ? "❓" : e.icon;
+        h = n ? "❓" : e.icon;
       return (
-        (s.innerHTML = `\n      ${t ? `<div class="unlock-date">${r}</div>` : ""}\n      <div class="header">\n        <div class="icon">${m}</div>\n        <div class="info">\n          <div class="name">${o}</div>\n          <div class="rarity rarity-${e.rarity}">${e.rarity}</div>\n        </div>\n      </div>\n      <div class="description">${c}</div>\n      ${i || n ? "" : `\n        <div class="progress">\n          <div class="progress-bar">\n            <div class="progress-fill" style="width: ${a}%"></div>\n          </div>\n          <div class="progress-text">${a.toFixed(1)}% complete</div>\n        </div>\n      `}\n    `),
+        (s.innerHTML = `\n      ${t ? `<div class="unlock-date">${r}</div>` : ""}\n      <div class="header">\n        <div class="icon">${h}</div>\n        <div class="info">\n          <div class="name">${o}</div>\n          <div class="rarity rarity-${e.rarity}">${e.rarity}</div>\n        </div>\n      </div>\n      <div class="description">${c}</div>\n      ${i || n ? "" : `\n        <div class="progress">\n          <div class="progress-bar">\n            <div class="progress-fill" style="width: ${a}%"></div>\n          </div>\n          <div class="progress-text">${a.toFixed(1)}% complete</div>\n        </div>\n      `}\n    `),
         s
       );
     }
     getFilteredAndSortedAchievements() {
-      let e = Object.values(D.achievements);
+      let e = Object.values(W.achievements);
       const s = t.get("achievements.unlocked") || {};
       return (
         "all" !== this.currentFilter &&
@@ -4062,7 +4919,7 @@ var UniversalPaperclips = (function () {
             ? (e = e.filter((e) => s[e.id]))
             : "locked" === this.currentFilter
               ? (e = e.filter((e) => !s[e.id]))
-              : Object.values(I).includes(this.currentFilter) &&
+              : Object.values(N).includes(this.currentFilter) &&
                 (e = e.filter((e) => e.category === this.currentFilter))),
         e.sort((e, t) => {
           switch (this.currentSort) {
@@ -4076,8 +4933,8 @@ var UniversalPaperclips = (function () {
               const n = e.category.localeCompare(t.category);
               return 0 !== n ? n : e.name.localeCompare(t.name);
             case "progress":
-              const r = D.getProgress(e.id);
-              return D.getProgress(t.id) - r;
+              const r = W.getProgress(e.id);
+              return W.getProgress(t.id) - r;
             default:
               const o = !!s[e.id],
                 c = !!s[t.id];
@@ -4089,7 +4946,7 @@ var UniversalPaperclips = (function () {
     }
     exportAchievements() {
       try {
-        const e = D.exportAchievements(),
+        const e = W.exportAchievements(),
           t = new Blob([JSON.stringify(e, null, 2)], {
             type: "application/json",
           }),
@@ -4109,7 +4966,7 @@ var UniversalPaperclips = (function () {
     }
     shareAchievements() {
       try {
-        const e = D.getShareableString();
+        const e = W.getShareableString();
         navigator.share
           ? navigator.share({
               title: "Universal Paperclips Achievements",
@@ -4143,7 +5000,7 @@ var UniversalPaperclips = (function () {
         .forEach((e) => {
           const t = e.dataset.achievementId;
           if (t) {
-            const s = D.getProgress(t),
+            const s = W.getProgress(t),
               i = e.querySelector(".progress-fill"),
               a = e.querySelector(".progress-text");
             (i && (i.style.width = `${s}%`),
@@ -4152,14 +5009,14 @@ var UniversalPaperclips = (function () {
         });
     }
   }
-  const z = new q();
-  window.achievementUI = z;
-  var G = Object.freeze({
+  const Q = new V();
+  window.achievementUI = Q;
+  var K = Object.freeze({
     __proto__: null,
-    AchievementUI: q,
-    achievementUI: z,
+    AchievementUI: V,
+    achievementUI: Q,
   });
-  const W = new (class {
+  const Y = new (class {
     constructor() {
       ((this.announcer = null),
         (this.lastAnnouncement = ""),
@@ -4587,8 +5444,8 @@ var UniversalPaperclips = (function () {
         this.enableHighContrast();
     }
   })();
-  W.restorePreferences();
-  class H {
+  Y.restorePreferences();
+  class J {
     constructor() {
       ((this.initialized = !1),
         (this.systems = {}),
@@ -4601,13 +5458,13 @@ var UniversalPaperclips = (function () {
     }
     initializeSystems() {
       try {
-        ((this.systems.production = new L(t)),
+        ((this.systems.production = new F(t)),
           (this.systems.market = new B(t)),
-          (this.systems.computing = new R(t)),
-          (this.systems.combat = new T(t)),
-          (this.systems.projects = new F(t)),
-          (this.systems.achievements = D),
-          D.initialize(),
+          (this.systems.computing = new $(t)),
+          (this.systems.combat = new R(t)),
+          (this.systems.projects = new L(t)),
+          (this.systems.achievements = W),
+          W.initialize(),
           x.info("Game systems initialized"));
       } catch (e) {
         x.handleError(e, "game.initializeSystems", {}, !0);
@@ -4615,14 +5472,14 @@ var UniversalPaperclips = (function () {
     }
     initializeUI() {
       try {
-        ((this.ui.renderer = new N(t)),
-          (this.ui.events = new _(t, this.systems)),
-          (this.ui.achievements = z),
-          (this.ui.accessibility = W),
+        ((this.ui.renderer = new G(t)),
+          (this.ui.events = new H(t, this.systems)),
+          (this.ui.achievements = Q),
+          (this.ui.accessibility = Y),
           this.ui.renderer.initializeConsole(),
           x.setRenderer(this.ui.renderer),
           (window.renderer = this.ui.renderer),
-          z.initialize(),
+          Q.initialize(),
           this.setupAccessibilityEvents(),
           this.ui.renderer.logMilestone(
             "Welcome to Universal Paperclips! Click to create your first paperclip.",
@@ -4635,41 +5492,41 @@ var UniversalPaperclips = (function () {
     }
     setupAccessibilityEvents() {
       (t.on("milestone", (e) => {
-        W.announceGameEvent("milestone", e);
+        Y.announceGameEvent("milestone", e);
       }),
         t.on("unlock", (e) => {
-          W.announceGameEvent("unlock", e);
+          Y.announceGameEvent("unlock", e);
         }),
         t.on("achievement", (e) => {
-          W.announceGameEvent("achievement", e);
+          Y.announceGameEvent("achievement", e);
         }),
         t.on("warning", (e) => {
-          W.announceGameEvent("warning", e);
+          Y.announceGameEvent("warning", e);
         }),
         t.on("purchase", (e) => {
-          W.announceGameEvent("purchase", e);
+          Y.announceGameEvent("purchase", e);
         }),
         t.on("insufficient", (e) => {
-          W.announceGameEvent("insufficient", e);
+          Y.announceGameEvent("insufficient", e);
         }));
     }
     setupGameLoop() {
       try {
-        (P.addSystem("fast", this.systems.production.update, "production"),
-          P.addSystem("fast", this.systems.market.update, "market"),
-          P.addSystem("fast", this.systems.computing.update, "computing"),
-          P.addSystem("fast", this.systems.combat.update, "combat"),
-          P.addSystem("medium", this.systems.projects.update, "projects"),
-          P.addSystem("medium", this.handleAutoSave.bind(this), "autoSave"),
-          P.addSystem(
+        (A.addSystem("fast", this.systems.production.update, "production"),
+          A.addSystem("fast", this.systems.market.update, "market"),
+          A.addSystem("fast", this.systems.computing.update, "computing"),
+          A.addSystem("fast", this.systems.combat.update, "combat"),
+          A.addSystem("medium", this.systems.projects.update, "projects"),
+          A.addSystem("medium", this.handleAutoSave.bind(this), "autoSave"),
+          A.addSystem(
             "medium",
             this.systems.achievements.checkAchievements.bind(
               this.systems.achievements,
             ),
             "achievements",
           ),
-          P.addSystem("slow", this.updateGamePhase.bind(this), "gamePhase"),
-          P.addRenderer(this.ui.renderer.render, "main"),
+          A.addSystem("slow", this.updateGamePhase.bind(this), "gamePhase"),
+          A.addRenderer(this.ui.renderer.render, "main"),
           x.info("Game loop configured"));
       } catch (e) {
         x.handleError(e, "game.setupGameLoop", {}, !0);
@@ -4680,7 +5537,7 @@ var UniversalPaperclips = (function () {
         debug: {
           getState: () => t.getSnapshot(),
           getStats: () => this.getGameStats(),
-          getPerformance: () => A.getReport(),
+          getPerformance: () => P.getReport(),
           getErrors: () => x.getRecentErrors(),
           addClips: (e = 1e3) => {
             (t.increment("resources.clips", e),
@@ -4708,15 +5565,15 @@ var UniversalPaperclips = (function () {
           saveGame: () => t.save(),
           loadGame: () => t.load(),
           setLogLevel: (e) => x.setLogLevel(e),
-          enablePerformanceMonitoring: (e) => A.setEnabled(e),
+          enablePerformanceMonitoring: (e) => P.setEnabled(e),
           systems: this.systems,
           gameState: t,
-          gameLoop: P,
+          gameLoop: A,
           errorHandler: x,
-          performanceMonitor: A,
+          performanceMonitor: P,
         },
       }),
-        (window.achievementSystem = D),
+        (window.achievementSystem = W),
         x.info(
           "Debug interface available at window.UniversalPaperclips.debug",
         ));
@@ -4757,7 +5614,7 @@ var UniversalPaperclips = (function () {
       else
         try {
           (t.load() ? x.info("Saved game loaded") : x.info("Starting new game"),
-            P.start(),
+            A.start(),
             (this.initialized = !0),
             x.info("Game started successfully"));
         } catch (e) {
@@ -4768,7 +5625,7 @@ var UniversalPaperclips = (function () {
       if (this.initialized)
         try {
           (t.save(),
-            P.stop(),
+            A.stop(),
             this.ui.events?.cleanup(),
             (this.initialized = !1),
             x.info("Game stopped"));
@@ -4778,13 +5635,13 @@ var UniversalPaperclips = (function () {
     }
     reset() {
       try {
-        (P.stop(),
+        (A.stop(),
           Object.values(this.systems).forEach((e) => {
             e.reset && e.reset();
           }),
           t.reset(),
           this.ui.renderer?.reset(),
-          P.start(),
+          A.start(),
           x.info("Game reset completed"));
       } catch (e) {
         x.handleError(e, "game.reset", {}, !0);
@@ -4806,13 +5663,13 @@ var UniversalPaperclips = (function () {
           combat: this.systems.combat?.getStats(),
           projects: this.systems.projects?.getStats(),
         },
-        performance: A.getReport(),
+        performance: P.getReport(),
         errors: x.getStats(),
         ui: {
           renderer: this.ui.renderer?.getStats(),
           events: this.ui.events?.getStats(),
         },
-        gameLoop: P.getStats(),
+        gameLoop: A.getStats(),
       };
     }
     exportGame() {
@@ -4849,7 +5706,7 @@ var UniversalPaperclips = (function () {
   return (
     document.addEventListener("DOMContentLoaded", () => {
       try {
-        new H().start();
+        new J().start();
       } catch (e) {}
     }),
     window.addEventListener("beforeunload", () => {
@@ -4857,6 +5714,6 @@ var UniversalPaperclips = (function () {
         t.save();
       } catch (e) {}
     }),
-    H
+    J
   );
 })();

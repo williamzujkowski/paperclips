@@ -6,9 +6,10 @@
  */
 
 import {
-  formatNumber,
-  formatCurrency,
   formatRate,
+  formatPercentage,
+  formatNumberCached,
+  formatCurrencyCached,
 } from "../../utils/formatting.js";
 import { errorHandler } from "../core/errorHandler.js";
 import { performanceMonitor } from "../core/performanceMonitor.js";
@@ -36,6 +37,18 @@ export class Renderer {
     this.maxConsoleMessages = 100;
     this.consoleElement = null;
 
+    // Terminal readout tracking
+    this.readoutIndex = 0;
+    this.readoutElements = [];
+
+    // Stock market update tracking
+    this.stockUpdateCounter = 0;
+    this.stockUpdateInterval = 10; // Update every 10 frames
+
+    // Quantum chip visualization
+    this.quantumChips = [];
+    this.quantumAnimationFrame = 0;
+
     // Bind methods
     this.render = errorHandler.createErrorBoundary(
       this.render.bind(this),
@@ -50,16 +63,25 @@ export class Renderer {
     return {
       // Resource displays
       clips: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
+      },
+      fundsDisplay: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
       },
       funds: (element, value) => {
-        element.textContent = formatCurrency(value);
+        element.textContent = formatCurrencyCached(value);
       },
       wire: (element, value) => {
-        element.textContent = formatNumber(Math.floor(value));
+        element.textContent = formatNumberCached(Math.floor(value));
       },
       unsoldClips: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
+      },
+      matter: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      nanoWire: (element, value) => {
+        element.textContent = formatNumberCached(value);
       },
 
       // Production displays
@@ -67,73 +89,248 @@ export class Renderer {
         element.textContent = formatRate(value, "clips");
       },
       autoClippers: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
       },
       megaClippers: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
       },
       factories: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
       },
 
       // Market displays
       margin: (element, value) => {
-        element.textContent = formatCurrency(value, true);
+        element.textContent = formatCurrencyCached(value, true);
       },
       demand: (element, value) => {
-        element.textContent = `${value.toFixed(2)}%`;
+        element.textContent = formatPercentage(value / 100, 2);
       },
       marketing: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
       },
       avgRev: (element, value) => {
-        element.textContent = formatCurrency(value);
+        element.textContent = formatCurrencyCached(value);
       },
 
       // Computing displays
       operations: (element, value) => {
-        element.textContent = formatNumber(Math.floor(value));
+        element.textContent = formatNumberCached(Math.floor(value));
+      },
+      qOps: (element, value) => {
+        element.textContent = formatNumberCached(Math.floor(value));
       },
       creativity: (element, value) => {
-        element.textContent = formatNumber(Math.floor(value));
+        element.textContent = formatNumberCached(Math.floor(value));
       },
       processors: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
       },
       memory: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
       },
       trust: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
+      },
+      usedTrust: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      nextTrust: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      yomi: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      yomiRate: (element, value) => {
+        element.textContent = formatRate(value, "yomi");
+      },
+
+      // Space displays
+      probes: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probesLaunched: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probesLost: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      harvesters: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      wireDrones: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      exploration: (element, value) => {
+        element.textContent = formatPercentage(value / 100, 2);
       },
 
       // Combat displays
       honor: (element, value) => {
-        element.textContent = formatNumber(value);
+        element.textContent = formatNumberCached(value);
       },
-      probes: (element, value) => {
-        element.textContent = formatNumber(value);
+      battles: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      losses: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      damage: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      drifters: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+
+      // Power displays
+      power: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      maxPower: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      solarFarms: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      batteries: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+
+      // Investment displays
+      investmentValue: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
+      },
+      investmentReturn: (element, value) => {
+        element.textContent = formatPercentage(value / 100, 2);
+      },
+
+      // Strategic modeling displays
+      currentStrategy: (element, value) => {
+        element.textContent = value || "None";
+      },
+      tournamentStatus: (element, value) => {
+        element.textContent = value || "Ready";
+      },
+
+      // Swarm displays
+      swarmSize: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      swarmGifts: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      swarmStatus: (element, value) => {
+        element.textContent = value || "Active";
+      },
+
+      // Universe displays
+      universe: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      simLevel: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+
+      // Probe design displays
+      probeTrust: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeCombat: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeSpeed: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeReplication: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeSelfRep: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeHazard: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeFactory: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeWireDrone: (element, value) => {
+        element.textContent = formatNumberCached(value);
+      },
+      probeExploration: (element, value) => {
+        element.textContent = formatNumberCached(value);
       },
 
       // Cost displays
       autoClipperCost: (element, value) => {
-        element.textContent = formatCurrency(value);
+        element.textContent = formatCurrencyCached(value);
       },
       megaClipperCost: (element, value) => {
-        element.textContent = formatCurrency(value);
+        element.textContent = formatCurrencyCached(value);
       },
-      wireCost: (element, value) => {
-        element.textContent = formatCurrency(value);
+      factoryCost: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
+      },
+      wireCost1000: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
       },
       adCost: (element, value) => {
-        element.textContent = formatCurrency(value);
+        element.textContent = formatCurrencyCached(value);
       },
       processorCost: (element, value) => {
-        element.textContent = `${formatNumber(value)} ops`;
+        element.textContent = `${formatNumberCached(value)} ops`;
       },
       memoryCost: (element, value) => {
-        element.textContent = `${formatNumber(value)} ops`;
+        element.textContent = `${formatNumberCached(value)} ops`;
       },
+      harvesterCost: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
+      },
+      wireDroneCost: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
+      },
+      solarFarmCost: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
+      },
+      batteryCost: (element, value) => {
+        element.textContent = formatCurrencyCached(value);
+      },
+
+      // Performance displays
+      fps: (element, value) => {
+        element.textContent = `${value} FPS`;
+      },
+      renderTime: (element, value) => {
+        element.textContent = `${value.toFixed(2)}ms`;
+      },
+      updateTime: (element, value) => {
+        element.textContent = `${value.toFixed(2)}ms`;
+      },
+
+      // Slider value displays
+      thinkValue: (element, value) => {
+        element.textContent = `${value}%`;
+      },
+      riskValue: (element, value) => {
+        element.textContent = `${value}%`;
+      },
+      swarmWork: (element, value) => {
+        element.textContent = `${value}%`;
+      },
+
+      // Payoff matrix displays
+      payoffAA: (element, value) => {
+        element.textContent = value || "0";
+      },
+      payoffAB: (element, value) => {
+        element.textContent = value || "0";
+      },
+      payoffBA: (element, value) => {
+        element.textContent = value || "0";
+      },
+      payoffBB: (element, value) => {
+        element.textContent = value || "0";
+      },
+
+      // Achievement displays
       achievementCount: (element, value) => {
         element.textContent = `(${value.unlocked}/${value.total})`;
       },
@@ -263,6 +460,10 @@ export class Renderer {
   updateCombat() {
     this.queueUpdate("honor", this.gameState.get("combat.honor"));
     this.queueUpdate("probes", this.gameState.get("space.probes.count"));
+    this.queueUpdate("battles", this.gameState.get("combat.battles") || 0);
+    this.queueUpdate("losses", this.gameState.get("combat.losses") || 0);
+    this.queueUpdate("damage", this.gameState.get("combat.damage") || 0);
+    this.queueUpdate("drifters", this.gameState.get("combat.drifters") || 0);
   }
 
   /**
@@ -277,7 +478,28 @@ export class Renderer {
       "megaClipperCost",
       this.gameState.get("manufacturing.megaClippers.cost"),
     );
+    this.queueUpdate(
+      "factoryCost",
+      this.gameState.get("manufacturing.factories.cost"),
+    );
     this.queueUpdate("adCost", this.gameState.get("market.pricing.adCost"));
+    this.queueUpdate(
+      "wireCost1000",
+      this.gameState.get("market.pricing.wireCost") * 1000,
+    );
+    this.queueUpdate(
+      "harvesterCost",
+      this.gameState.get("space.harvesters.cost"),
+    );
+    this.queueUpdate(
+      "wireDroneCost",
+      this.gameState.get("space.wireDrones.cost"),
+    );
+    this.queueUpdate(
+      "solarFarmCost",
+      this.gameState.get("power.solarFarms.cost"),
+    );
+    this.queueUpdate("batteryCost", this.gameState.get("power.batteries.cost"));
 
     // Calculate dynamic costs
     const processors = this.gameState.get("computing.processors");
@@ -502,17 +724,46 @@ export class Renderer {
    */
   updateSectionVisibility() {
     const flags = this.gameState.get("gameState.flags");
+    const projects = this.gameState.get("projects.completed") || [];
 
+    // Core sections
     this.toggleSection("businessDiv", flags.autoClipper >= 1);
     this.toggleSection("projectsDiv", flags.projects >= 1);
     this.toggleSection("manufactureDiv", flags.megaClipper >= 1);
     this.toggleSection("computeDiv", flags.comp >= 1);
     this.toggleSection("investmentDiv", flags.investment >= 1);
+
+    // Space sections
     this.toggleSection("spaceDiv", flags.space >= 1);
     this.toggleSection(
       "combatDiv",
       flags.space >= 1 && this.gameState.get("combat.battleEnabled"),
     );
+    this.toggleSection(
+      "probeDesignDiv",
+      flags.space >= 1 && this.gameState.get("space.probes.count") > 0,
+    );
+
+    // Power section
+    this.toggleSection("powerDiv", flags.space >= 1 || flags.factory >= 1);
+
+    // Advanced sections
+    this.toggleSection(
+      "quantumDiv",
+      projects.includes("quantumComputing") || flags.quantum >= 1,
+    );
+    this.toggleSection(
+      "strategyDiv",
+      projects.includes("strategicModeling") || flags.strategy >= 1,
+    );
+    this.toggleSection(
+      "swarmDiv",
+      projects.includes("swarmComputing") ||
+        this.gameState.get("swarm.enabled"),
+    );
+
+    // Wire production section
+    this.toggleSection("wireDiv", flags.wireProduction >= 1);
   }
 
   /**
@@ -575,6 +826,248 @@ export class Renderer {
   }
 
   /**
+   * Update space displays
+   */
+  updateSpace() {
+    this.queueUpdate("probes", this.gameState.get("space.probes.count"));
+    this.queueUpdate(
+      "probesLaunched",
+      this.gameState.get("space.probes.launched") || 0,
+    );
+    this.queueUpdate(
+      "probesLost",
+      this.gameState.get("space.probes.lost") || 0,
+    );
+    this.queueUpdate(
+      "harvesters",
+      this.gameState.get("space.harvesters.level"),
+    );
+    this.queueUpdate(
+      "wireDrones",
+      this.gameState.get("space.wireDrones.level"),
+    );
+    this.queueUpdate("matter", this.gameState.get("space.matter.available"));
+    this.queueUpdate(
+      "exploration",
+      this.gameState.get("space.exploration.percentage") || 0,
+    );
+  }
+
+  /**
+   * Update power displays
+   */
+  updatePower() {
+    this.queueUpdate("power", this.gameState.get("power.stored"));
+    this.queueUpdate("maxPower", this.gameState.get("power.maxCapacity") || 0);
+    this.queueUpdate(
+      "solarFarms",
+      this.gameState.get("power.solarFarms.level"),
+    );
+    this.queueUpdate("batteries", this.gameState.get("power.batteries.level"));
+  }
+
+  /**
+   * Update investment displays
+   */
+  updateInvestment() {
+    this.queueUpdate(
+      "investmentValue",
+      this.gameState.get("investment.value") || 0,
+    );
+    this.queueUpdate(
+      "investmentReturn",
+      this.gameState.get("investment.return") || 0,
+    );
+  }
+
+  /**
+   * Update strategic modeling displays
+   */
+  updateStrategicModeling() {
+    this.queueUpdate(
+      "currentStrategy",
+      this.gameState.get("strategy.current") || "None",
+    );
+    this.queueUpdate(
+      "tournamentStatus",
+      this.gameState.get("strategy.tournament.status") || "Ready",
+    );
+    this.queueUpdate("yomi", this.gameState.get("strategy.yomi") || 0);
+    this.queueUpdate("yomiRate", this.gameState.get("strategy.yomiRate") || 0);
+
+    // Update payoff matrix
+    const payoffs = this.gameState.get("strategy.payoffs") || {};
+    this.queueUpdate("payoffAA", payoffs.AA || 0);
+    this.queueUpdate("payoffAB", payoffs.AB || 0);
+    this.queueUpdate("payoffBA", payoffs.BA || 0);
+    this.queueUpdate("payoffBB", payoffs.BB || 0);
+  }
+
+  /**
+   * Update swarm displays
+   */
+  updateSwarm() {
+    this.queueUpdate("swarmSize", this.gameState.get("swarm.size") || 0);
+    this.queueUpdate(
+      "swarmGifts",
+      this.gameState.get("swarm.gifts.received") || 0,
+    );
+    this.queueUpdate(
+      "swarmStatus",
+      this.gameState.get("swarm.status") || "Active",
+    );
+  }
+
+  /**
+   * Update universe displays
+   */
+  updateUniverse() {
+    this.queueUpdate("universe", this.gameState.get("universe.level") || 0);
+    this.queueUpdate("simLevel", this.gameState.get("universe.simLevel") || 0);
+  }
+
+  /**
+   * Update probe design displays
+   */
+  updateProbeDesign() {
+    this.queueUpdate(
+      "probeTrust",
+      this.gameState.get("probes.design.trust") || 0,
+    );
+    this.queueUpdate(
+      "probeCombat",
+      this.gameState.get("probes.design.combat") || 0,
+    );
+    this.queueUpdate(
+      "probeSpeed",
+      this.gameState.get("probes.design.speed") || 0,
+    );
+    this.queueUpdate(
+      "probeReplication",
+      this.gameState.get("probes.design.replication") || 0,
+    );
+    this.queueUpdate(
+      "probeSelfRep",
+      this.gameState.get("probes.design.selfRep") || 0,
+    );
+    this.queueUpdate(
+      "probeHazard",
+      this.gameState.get("probes.design.hazard") || 0,
+    );
+    this.queueUpdate(
+      "probeFactory",
+      this.gameState.get("probes.design.factory") || 0,
+    );
+    this.queueUpdate(
+      "probeWireDrone",
+      this.gameState.get("probes.design.wireDrone") || 0,
+    );
+    this.queueUpdate(
+      "probeExploration",
+      this.gameState.get("probes.design.exploration") || 0,
+    );
+  }
+
+  /**
+   * Update slider value displays
+   */
+  updateSliders() {
+    // Update thinking slider
+    const thinkSlider = document.getElementById("thinkSlider");
+    if (thinkSlider) {
+      this.queueUpdate("thinkValue", thinkSlider.value);
+    }
+
+    // Update risk slider
+    const riskSlider = document.getElementById("riskSlider");
+    if (riskSlider) {
+      this.queueUpdate("riskValue", riskSlider.value);
+    }
+
+    // Update swarm work slider
+    const swarmSlider = document.getElementById("swarmSlider");
+    if (swarmSlider) {
+      this.queueUpdate("swarmWork", swarmSlider.value);
+    }
+  }
+
+  /**
+   * Update terminal readout
+   */
+  updateTerminalReadout() {
+    // Cycle through readout1-5 elements with status messages
+    this.readoutIndex = (this.readoutIndex + 1) % 5;
+    const readoutId = `readout${this.readoutIndex + 1}`;
+    const readoutElement = document.getElementById(readoutId);
+
+    if (readoutElement) {
+      // Get relevant status message based on game state
+      const message = this.getStatusMessage(this.readoutIndex);
+      readoutElement.textContent = message;
+    }
+  }
+
+  /**
+   * Get status message for terminal readout
+   */
+  getStatusMessage(index) {
+    const messages = [
+      `CLIPS: ${formatNumberCached(this.gameState.get("resources.clips"))}`,
+      `FUNDS: ${formatCurrencyCached(this.gameState.get("resources.funds"))}`,
+      `WIRE: ${formatNumberCached(this.gameState.get("resources.wire"))}`,
+      `RATE: ${formatRate(this.gameState.get("production.clipRate"), "clips")}`,
+      `OPS: ${formatNumberCached(this.gameState.get("computing.operations"))}`,
+    ];
+    return messages[index] || "";
+  }
+
+  /**
+   * Update quantum chip visualization
+   */
+  updateQuantumChips() {
+    const quantumEnabled = this.gameState.get("computing.quantum.enabled");
+    if (!quantumEnabled) return;
+
+    // Update quantum chip visual states
+    for (let i = 0; i < 10; i++) {
+      const chip = document.getElementById(`qChip${i}`);
+      if (chip) {
+        // Animate chips based on quantum operations
+        const animationPhase = (this.quantumAnimationFrame + i * 36) % 360;
+        const brightness =
+          Math.sin((animationPhase * Math.PI) / 180) * 0.5 + 0.5;
+        chip.style.opacity = 0.3 + brightness * 0.7;
+      }
+    }
+    this.quantumAnimationFrame++;
+  }
+
+  /**
+   * Update stock market table
+   */
+  updateStockMarket() {
+    const stockTableBody = document.getElementById("stockTableBody");
+    if (!stockTableBody) return;
+
+    // Update stock market data (this would be populated by investment system)
+    const stocks = this.gameState.get("investment.stocks") || [];
+
+    stockTableBody.innerHTML = "";
+    stocks.forEach((stock) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${stock.symbol}</td>
+        <td>${formatCurrencyCached(stock.price)}</td>
+        <td class="${stock.change >= 0 ? "positive" : "negative"}">
+          ${stock.change >= 0 ? "+" : ""}${formatPercentage(stock.change / 100)}
+        </td>
+        <td>${formatNumberCached(stock.volume)}</td>
+      `;
+      stockTableBody.appendChild(row);
+    });
+  }
+
+  /**
    * Main render method
    */
   render(timestamp, _deltaTime) {
@@ -585,6 +1078,14 @@ export class Renderer {
       this.updateMarket();
       this.updateComputing();
       this.updateCombat();
+      this.updateSpace();
+      this.updatePower();
+      this.updateInvestment();
+      this.updateStrategicModeling();
+      this.updateSwarm();
+      this.updateUniverse();
+      this.updateProbeDesign();
+      this.updateSliders();
       this.updateCosts();
       this.updateButtonStates();
       this.updateDynamicButtons();
@@ -592,6 +1093,14 @@ export class Renderer {
       this.updateSectionVisibility();
       this.updateProjects();
       this.updateAchievements();
+      this.updateTerminalReadout();
+      this.updateQuantumChips();
+
+      // Update stock market less frequently
+      if (this.stockUpdateCounter % this.stockUpdateInterval === 0) {
+        this.updateStockMarket();
+      }
+      this.stockUpdateCounter++;
 
       // Process batched DOM updates
       const hasMoreUpdates = this.processBatchedUpdates();
@@ -623,11 +1132,22 @@ export class Renderer {
     this.updateMarket();
     this.updateComputing();
     this.updateCombat();
+    this.updateSpace();
+    this.updatePower();
+    this.updateInvestment();
+    this.updateStrategicModeling();
+    this.updateSwarm();
+    this.updateUniverse();
+    this.updateProbeDesign();
+    this.updateSliders();
     this.updateCosts();
     this.updateButtonStates();
     this.updateDynamicButtons();
     this.updateToggleButtons();
     this.updateSectionVisibility();
+    this.updateTerminalReadout();
+    this.updateQuantumChips();
+    this.updateStockMarket();
 
     // Process all updates without batching
     const allUpdates = Array.from(this.pendingUpdates.entries());

@@ -103,7 +103,7 @@ export class GameState {
         nextChip: 0,
         fade: 1,
       },
-      operations: {
+      operationsDisplay: {
         temp: 0,
         standard: 0,
         fade: 0,
@@ -252,6 +252,64 @@ export class GameState {
         end5: 0,
         end6: 0,
       },
+    };
+
+    // Investment system
+    this.investment = {
+      value: 0,
+      return: 0,
+      stocks: [],
+      riskLevel: 0,
+      portfolio: {
+        aggressive: 0,
+        moderate: 0,
+        conservative: 0,
+      },
+    };
+
+    // Strategic modeling
+    this.strategy = {
+      current: "None",
+      yomi: 0,
+      yomiRate: 0,
+      tournament: {
+        status: "Ready",
+        active: false,
+        rounds: 0,
+      },
+      payoffs: {
+        AA: 0,
+        AB: 0,
+        BA: 0,
+        BB: 0,
+      },
+      thinkingAllocation: 50,
+      riskLevel: 0,
+    };
+
+    // Probe design
+    this.probes = {
+      design: {
+        trust: 0,
+        combat: 0,
+        speed: 0,
+        replication: 0,
+        selfRep: 0,
+        hazard: 0,
+        factory: 0,
+        wireDrone: 0,
+        exploration: 0,
+      },
+      launched: 0,
+      lost: 0,
+    };
+
+    // Universe simulation
+    this.universe = {
+      level: 0,
+      simLevel: 0,
+      processors: 0,
+      explored: 0,
     };
 
     this.legacy = {
